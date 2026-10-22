@@ -1,0 +1,118 @@
+/*
+ * Tables, with the metrics of docs/UI_GUIDE.md: rows 26 px, header 28 px, 8 px horizontal cell
+ * padding, square corners, no zebra striping. Colors are tokens from app.css only.
+ */
+
+/* The frame is a background layer, so that taking the keyboard focus does not move the rows. */
+.table-view {
+  -fx-background-color: -srm-border, -srm-surface;
+  -fx-background-insets: 0, 1;
+  -fx-background-radius: 0;
+  -fx-padding: 1;
+  -fx-fixed-cell-size: 26;
+}
+
+.table-view:focus-visible {
+  -fx-background-color: -srm-accent, -srm-surface;
+}
+
+.table-view .column-header-background {
+  -fx-background-color: -srm-surface-alt;
+}
+
+/*
+ * One border below the header; no borders between the columns. Without padding of its own, so
+ * that the text of a header begins where the text of its cells begins: 8 px in.
+ */
+.table-view .column-header,
+.table-view .filler {
+  -fx-background-color: -srm-surface-alt;
+  -fx-border-color: -srm-border;
+  -fx-border-width: 0 0 1 0;
+  -fx-padding: 0;
+  -fx-size: 28;
+}
+
+.table-view .column-header .label {
+  -fx-font-size: 12px;
+  -fx-font-weight: normal;
+  -fx-text-fill: -srm-text-muted;
+  -fx-padding: 0 8 0 8;
+  -fx-alignment: center-left;
+}
+
+/* The mark of the column the rows are sorted by. */
+.table-view .column-header .arrow {
+  -fx-background-color: -srm-text-muted;
+}
+
+.table-view .table-row-cell {
+  -fx-background-color: -srm-surface;
+  -fx-background-insets: 0;
+  -fx-padding: 0;
+  -fx-cell-size: 26;
+}
+
+/* The selected row; the selection of a table without the focus is set back. */
+.table-view .table-row-cell:selected {
+  -fx-background-color: -srm-surface-sunken;
+}
+
+.table-view:focused .table-row-cell:selected {
+  -fx-background-color: -srm-selection;
+}
+
+/* The row the keyboard is on: a 1 px accent ring, with or without the selection. */
+.table-view:focus-visible .table-row-cell:focused {
+  -fx-background-color: -srm-accent, -srm-surface;
+  -fx-background-insets: 0, 1;
+}
+
+.table-view:focus-visible .table-row-cell:focused:selected {
+  -fx-background-color: -srm-accent, -srm-selection;
+  -fx-background-insets: 0, 1;
+}
+
+.table-view .table-cell {
+  -fx-padding: 0 8 0 8;
+  -fx-border-width: 0;
+  -fx-alignment: center-left;
+  -fx-text-fill: -srm-text;
+}
+
+/* A column of numbers: header and cells against the right edge. */
+.table-view .column-header.numeric .label,
+.table-view .table-cell.numeric {
+  -fx-alignment: center-right;
+}
+
+/*
+ * A number with its unit. The unit has a part of a fixed width, wide enough for the longest unit
+ * of its column, and begins at the left edge of that part; the numbers of all rows therefore end
+ * at one edge and their digits line up, whatever the units are.
+ */
+.table-view .quantity {
+  -fx-spacing: 4;
+  -fx-alignment: center-right;
+}
+
+/* Percentages: "%". */
+.table-view .percent .quantity-unit {
+  -fx-min-width: 1em;
+  -fx-pref-width: 1em;
+  -fx-max-width: 1em;
+}
+
+/* Sizes: "GiB". */
+.table-view .size .quantity-unit {
+  -fx-min-width: 2em;
+  -fx-pref-width: 2em;
+  -fx-max-width: 2em;
+}
+
+/* Rates: "MiB/s". */
+.table-view .rate .quantity-unit {
+  -fx-min-width: 3em;
+  -fx-pref-width: 3em;
+  -fx-max-width: 3em;
+}

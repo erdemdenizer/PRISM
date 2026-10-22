@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SpotBugs exclusions.
+
+  Policy: a finding is fixed, not excluded. An entry is added here only when the finding
+  is a verified false positive or an unavoidable consequence of an API we must use, and
+  every entry carries a comment stating why. Keep matches as narrow as possible
+  (class + bug pattern), never a whole package or a whole category.
+-->
+<FindBugsFilter xmlns="https://github.com/spotbugs/filter/3.0.0">
+</FindBugsFilter>

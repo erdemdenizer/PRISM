@@ -1,0 +1,233 @@
+/*
+ * Application stylesheet: design tokens and base control styling.
+ * The values here are the ones documented in docs/UI_GUIDE.md; change both together.
+ * Component-specific rules belong in their own stylesheet, built on these tokens.
+ */
+
+.root {
+  /* Surfaces */
+  -srm-surface: #ffffff;
+  -srm-surface-alt: #f6f7f8;
+  -srm-surface-sunken: #eef0f2;
+  -srm-border: #d5d9dd;
+  -srm-border-strong: #b6bcc3;
+
+  /* Text */
+  -srm-text: #1b1f23;
+  -srm-text-muted: #5b636b;
+  -srm-text-disabled: #899098;
+
+  /* Single accent, plus semantic colors used only when they carry meaning */
+  -srm-accent: #0e7c86;
+  -srm-accent-text: #ffffff;
+  -srm-selection: #d9ecee;
+  -srm-ok: #2e7d32;
+  -srm-warning: #b35c00;
+  -srm-error: #c4281c;
+
+  /* Modena hooks, so stock controls follow the tokens */
+  -fx-base: -srm-surface-alt;
+  -fx-background: -srm-surface-alt;
+  -fx-control-inner-background: -srm-surface;
+  -fx-control-inner-background-alt: -srm-surface-alt;
+  -fx-accent: -srm-accent;
+  -fx-default-button: -srm-accent;
+  -fx-focus-color: -srm-accent;
+  -fx-faint-focus-color: transparent;
+  -fx-selection-bar: -srm-selection;
+  -fx-selection-bar-non-focused: -srm-surface-sunken;
+  -fx-box-border: -srm-border;
+  -fx-text-box-border: -srm-border-strong;
+
+  -fx-font-size: 13px;
+}
+
+.root.theme-dark {
+  -srm-surface: #1e2124;
+  -srm-surface-alt: #25292d;
+  -srm-surface-sunken: #181a1d;
+  -srm-border: #363b41;
+  -srm-border-strong: #4a5058;
+
+  -srm-text: #e4e7ea;
+  -srm-text-muted: #a0a7ae;
+  -srm-text-disabled: #6b727a;
+
+  -srm-accent: #3fb3bd;
+  -srm-accent-text: #0b1f21;
+  -srm-selection: #1f4347;
+  -srm-ok: #6fbf73;
+  -srm-warning: #e0a040;
+  -srm-error: #f0736a;
+}
+
+.label,
+.text {
+  -fx-font-smoothing-type: lcd;
+}
+
+.label {
+  -fx-text-fill: -srm-text;
+}
+
+.text-input {
+  -fx-prompt-text-fill: -srm-text-muted;
+}
+
+/*
+ * A text field: 28 px high like every control, flat, with a 1 px border that takes the accent
+ * color while the field has the focus. The border is a background layer, so focus moves nothing.
+ */
+.text-field {
+  -fx-background-color: -srm-border-strong, -srm-surface;
+  -fx-background-insets: 0, 1;
+  -fx-background-radius: 4, 3;
+  -fx-padding: 0 8 0 8;
+  -fx-min-height: 28;
+  -fx-pref-height: 28;
+  -fx-max-height: 28;
+  -fx-text-fill: -srm-text;
+  -fx-highlight-fill: -srm-selection;
+  -fx-highlight-text-fill: -srm-text;
+}
+
+.text-field:focused {
+  -fx-background-color: -srm-accent, -srm-surface;
+}
+
+.text-muted {
+  -fx-text-fill: -srm-text-muted;
+}
+
+/*
+ * Scroll bars: a flat thumb on a flat track, without the gradient, the outline and the arrow
+ * buttons of the stock look. The track is as wide as before (12 px), so nothing moves.
+ */
+.scroll-bar {
+  -fx-background-color: -srm-surface-alt;
+  -fx-background-insets: 0;
+  -fx-padding: 0;
+}
+
+.scroll-bar > .track,
+.scroll-bar > .track-background {
+  -fx-background-color: transparent;
+  -fx-background-insets: 0;
+}
+
+.scroll-bar > .thumb {
+  -fx-background-color: -srm-border-strong;
+  -fx-background-insets: 2;
+  -fx-background-radius: 4;
+}
+
+.scroll-bar > .thumb:hover,
+.scroll-bar > .thumb:pressed {
+  -fx-background-color: -srm-text-muted;
+}
+
+.scroll-bar:vertical > .increment-button,
+.scroll-bar:vertical > .decrement-button {
+  -fx-padding: 0 6 0 6;
+}
+
+.scroll-bar:horizontal > .increment-button,
+.scroll-bar:horizontal > .decrement-button {
+  -fx-padding: 6 0 6 0;
+}
+
+.scroll-bar > .increment-button,
+.scroll-bar > .decrement-button {
+  -fx-background-color: transparent;
+}
+
+.scroll-bar > .increment-button > .increment-arrow,
+.scroll-bar > .decrement-button > .decrement-arrow {
+  -fx-shape: null;
+  -fx-padding: 0;
+}
+
+/* The corner where two scroll bars meet. */
+.corner {
+  -fx-background-color: -srm-surface-alt;
+}
+
+/*
+ * Popups: a flat surface with one border, a 6 px radius and a small single-layer shadow. A menu
+ * item is a compact line; the one the keyboard is on has the selection color, so color is not
+ * the only sign beside its text.
+ */
+.context-menu {
+  -fx-background-color: -srm-border-strong, -srm-surface;
+  -fx-background-insets: 0, 1;
+  -fx-background-radius: 6, 5;
+  -fx-padding: 4;
+  -fx-effect: dropshadow(gaussian, -srm-border-strong, 6, 0, 0, 1);
+}
+
+.context-menu .menu-item {
+  -fx-padding: 4 12 4 8;
+  -fx-background-radius: 4;
+}
+
+.context-menu .menu-item .label {
+  -fx-text-fill: -srm-text;
+}
+
+.context-menu .menu-item:focused {
+  -fx-background-color: -srm-selection;
+}
+
+.context-menu .menu-item:focused .label {
+  -fx-text-fill: -srm-text;
+}
+
+.context-menu .menu-item:disabled .label {
+  -fx-text-fill: -srm-text-disabled;
+}
+
+.context-menu .radio-menu-item:checked > .left-container > .radio,
+.context-menu .menu > .right-container > .arrow {
+  -fx-background-color: -srm-text;
+}
+
+.context-menu .menu-item:disabled > .left-container > .radio {
+  -fx-background-color: -srm-text-disabled;
+}
+
+/* A group boundary, not a hairline inside the stack: 4 px above and below the line. */
+.context-menu .separator:horizontal {
+  -fx-padding: 4 0 4 0;
+}
+
+.context-menu .separator:horizontal .line {
+  -fx-border-color: -srm-border transparent transparent transparent;
+  -fx-border-insets: 1 0 0 0;
+}
+
+/*
+ * Type roles of docs/UI_GUIDE.md. Body (13 px regular) is the default and needs no class.
+ * JavaFX resolves a font weight to the regular or the bold face of the system font, so the
+ * guide's emphasized weight is written as bold here.
+ */
+.text-caption {
+  -fx-font-size: 11px;
+}
+
+.text-small {
+  -fx-font-size: 12px;
+}
+
+.text-section-title {
+  -fx-font-weight: bold;
+}
+
+.text-view-title {
+  -fx-font-size: 16px;
+  -fx-font-weight: bold;
+}
+
+.text-key-readout {
+  -fx-font-size: 20px;
+  -fx-font-weight: bold;
+}

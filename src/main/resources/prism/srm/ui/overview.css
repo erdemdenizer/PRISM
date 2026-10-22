@@ -1,0 +1,15 @@
+/*
+ * Overview page. Sizes are on the spacing scale of docs/UI_GUIDE.md (4, 8, 12, 16, 24);
+ * colors are tokens from app.css only.
+ */
+
+.overview {
+  -fx-padding: 12;
+  -fx-spacing: 16;
+}
+
+/* The four metrics: flat regions set apart by spacing, not by borders or cards. */
+.metric-grid {
+  -fx-hgap: 16;
+  -fx-vgap: 16;
+}

@@ -1,0 +1,13 @@
+# Normalize every text file to LF in the repository and the working tree, so
+# formatter output and wrapper scripts are identical on Windows, macOS and Linux.
+* text=auto eol=lf
+
+# Windows command scripts must keep CRLF.
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+*.png binary
+*.jpg binary
+*.ico binary
+*.icns binary
+*.jar binary

@@ -1,0 +1,103 @@
+/*
+ * Processes page. Sizes are on the spacing scale of docs/UI_GUIDE.md (4, 8, 12, 16, 24);
+ * colors are tokens from app.css only.
+ */
+
+.processes {
+  -fx-padding: 12;
+  -fx-spacing: 12;
+}
+
+/* The filter and the number of processes: one line, as high as a control. */
+.process-toolbar {
+  -fx-spacing: 8;
+  -fx-alignment: center-left;
+}
+
+.process-filter {
+  -fx-min-width: 160;
+  -fx-pref-width: 260;
+  -fx-max-width: 260;
+}
+
+/*
+ * The selected row keeps the selection color while the table does not have the focus, as while
+ * the user types in the filter: the details below describe that row, so it has to be found. The
+ * row the keyboard is on is still told apart by its accent ring and the accent frame of the table.
+ */
+.process-table .table-row-cell:selected {
+  -fx-background-color: -srm-selection;
+}
+
+/* On the selection color the muted unit would fall below the contrast the guide asks for. */
+.process-table .table-row-cell:selected .quantity-unit {
+  -fx-text-fill: -srm-text;
+}
+
+/* The details of the selected process: a flat region, set apart from the table by spacing. */
+.process-details {
+  -fx-spacing: 4;
+}
+
+.process-details-heading {
+  -fx-spacing: 8;
+  -fx-alignment: baseline-left;
+}
+
+.process-details-title {
+  -fx-font-weight: bold;
+}
+
+/* "No process selected" is not a name. */
+.process-details-title:placeholder {
+  -fx-font-weight: normal;
+  -fx-text-fill: -srm-text-muted;
+}
+
+.process-details-lines {
+  -fx-hgap: 8;
+  -fx-vgap: 4;
+}
+
+/* Never more than three facts on a line, so the two I/O rates stay together in any window. */
+.process-details-facts {
+  -fx-hgap: 16;
+  -fx-vgap: 4;
+  -fx-max-width: 58em;
+}
+
+/* A path is cut in its middle, so that the file name stays readable. A sentence is not a path. */
+.detail-path {
+  -fx-text-overrun: center-ellipsis;
+}
+
+.detail-path:placeholder {
+  -fx-text-overrun: ellipsis;
+}
+
+.detail-fact {
+  -fx-spacing: 8;
+  -fx-alignment: baseline-left;
+}
+
+/* "Reading...", a dash and the reason why a value is missing are not the value. */
+.detail-value:placeholder {
+  -fx-text-fill: -srm-text-muted;
+}
+
+/* Every caption is as wide as the longest one, "Private memory", so all values begin at one edge. */
+.detail-caption {
+  -fx-min-width: 7.5em;
+  -fx-pref-width: 7.5em;
+  -fx-max-width: 7.5em;
+}
+
+/*
+ * The value of a fact has a part of a fixed width, wide enough for the longest value, a date
+ * with its time. So every fact is as wide as every other, and the facts stand in columns.
+ */
+.detail-fact > .detail-value {
+  -fx-min-width: 10em;
+  -fx-pref-width: 10em;
+  -fx-max-width: 10em;
+}

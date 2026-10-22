@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Logging of the running application: the console, and a rolling file in the per-user log folder.
+
+  The folder is the system property srm.log.dir, which the application sets from the platform's
+  folder rules before it creates its first logger (prism.srm.app.LoggingSetup). Tests use
+  logback-test.xml instead and never write to that folder.
+-->
+<configuration>
+  <!--
+    Stops the context when the JVM exits: closes the file and waits for the clean-up job. Lines
+    are written to the file as they are logged, with or without this. What another shutdown hook
+    logs after this one has run is lost; Prism has no other hook yet.
+  -->
+  <shutdownHook />
+
+  <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%d{HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <!--
+    Bounded as far as Logback bounds it. A new file is begun once the current one has reached
+    2 MB (counted per process) and at midnight. At start and at each rollover, files 31 to 62
+    days old are deleted, and the files of the last 30 days are cut back to 20 MB, oldest first.
+    A file that is never looked at in those windows, because Prism was not started for two
+    months, stays: see docs/adr/0007-per-user-folders-and-log-files.md.
+
+    No <file> element: the active file already has its dated name, so a rollover never renames a
+    file another program may have open. The history is also cleaned at start, because a desktop
+    session may end before any rollover happens.
+  -->
+  <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+      <fileNamePattern>${srm.log.dir}/prism-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+      <maxFileSize>2MB</maxFileSize>
+      <maxHistory>30</maxHistory>
+      <totalSizeCap>20MB</totalSizeCap>
+      <cleanHistoryOnStart>true</cleanHistoryOnStart>
+    </rollingPolicy>
+    <encoder>
+      <charset>UTF-8</charset>
+      <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <root level="INFO">
+    <appender-ref ref="CONSOLE" />
+    <appender-ref ref="FILE" />
+  </root>
+</configuration>

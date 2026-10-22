@@ -1,0 +1,63 @@
+/*
+ * Performance page. Sizes are on the spacing scale of docs/UI_GUIDE.md (4, 8, 12, 16, 24);
+ * colors are tokens from app.css only.
+ */
+
+.performance {
+  -fx-padding: 12;
+  -fx-spacing: 12;
+}
+
+/* The choice of the section: a row of entries, set apart from the section by spacing. */
+.section-tabs {
+  -fx-spacing: 4;
+}
+
+/*
+ * An entry is a toggle button stripped of its button look, 28 px high like every control and
+ * like an entry of the navigation. The selected entry has the selection color and a 2 px accent
+ * bar at its bottom edge, so color is not the only sign; the bar is a background layer, 26 px
+ * down in the 28 px of the entry, and so moves no text. Keyboard focus is a 1 px ring that is
+ * always there and only takes a color when the entry has the focus.
+ */
+.section-tab {
+  -fx-background-color: transparent, transparent;
+  -fx-background-insets: 0, 26 4 0 4;
+  -fx-background-radius: 4, 0;
+  -fx-border-color: transparent;
+  -fx-border-width: 1;
+  -fx-border-radius: 4;
+  -fx-padding: 0 12 0 12;
+  -fx-min-height: 28;
+  -fx-pref-height: 28;
+  -fx-max-height: 28;
+  -fx-text-fill: -srm-text;
+}
+
+.section-tab:hover {
+  -fx-background-color: -srm-surface-sunken, transparent;
+}
+
+.section-tab:selected {
+  -fx-background-color: -srm-selection, -srm-accent;
+}
+
+.section-tab:focus-visible {
+  -fx-border-color: -srm-accent;
+}
+
+/* The parts of a section: flat regions set apart by spacing, not by borders or cards. */
+.performance-section {
+  -fx-spacing: 16;
+}
+
+/* A caption line directly above what it describes, as in a metric panel. */
+.processor-grid,
+.device-list {
+  -fx-spacing: 4;
+}
+
+.device-list-heading {
+  -fx-spacing: 8;
+  -fx-alignment: baseline-left;
+}

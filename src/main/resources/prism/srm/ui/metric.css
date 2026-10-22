@@ -1,0 +1,97 @@
+/*
+ * What the pages that show system metrics share: the metric panel, the facts, and the line that
+ * says why a page has no values. Sizes are on the spacing scale of docs/UI_GUIDE.md (4, 8, 12,
+ * 16, 24); colors are tokens from app.css only.
+ */
+
+.page-error {
+  -fx-text-fill: -srm-error;
+}
+
+/* A metric: a flat region, set apart from its neighbors by spacing, not by a border or a card. */
+.metric-panel {
+  -fx-spacing: 4;
+}
+
+/*
+ * The header is as high in every panel and in every state, so that the graphs of all four
+ * panels have the same size and stay where they are when a value arrives or goes missing.
+ * 32 px is the height of the tallest content: a series name above its value.
+ */
+.metric-header {
+  -fx-spacing: 8;
+  -fx-alignment: baseline-left;
+  -fx-min-height: 32;
+  -fx-pref-height: 32;
+  -fx-max-height: 32;
+}
+
+/* The values, and over them the text that takes their place while there are none. */
+.metric-readout {
+  -fx-alignment: baseline-right;
+}
+
+.metric-values {
+  -fx-spacing: 8;
+  -fx-alignment: baseline-right;
+}
+
+.metric-value {
+  -fx-spacing: 4;
+  -fx-alignment: baseline-right;
+}
+
+.metric-axis {
+  -fx-alignment: baseline-left;
+}
+
+/* Two series: each value under the name and the line color of its series. */
+.metric-series {
+  -fx-spacing: 16;
+  -fx-alignment: baseline-right;
+}
+
+.series {
+  -fx-alignment: top-right;
+}
+
+.series-legend {
+  -fx-graphic-text-gap: 4;
+}
+
+.series-swatch {
+  -fx-min-width: 8;
+  -fx-pref-width: 8;
+  -fx-max-width: 8;
+  -fx-min-height: 2;
+  -fx-pref-height: 2;
+  -fx-max-height: 2;
+}
+
+.series-primary {
+  -fx-background-color: -srm-accent;
+}
+
+.series-secondary {
+  -fx-background-color: -srm-text-muted;
+}
+
+/* Wide enough for the longest rate, so the digits do not move as the value changes. */
+.series-value {
+  -fx-min-width: 6.5em;
+  -fx-spacing: 4;
+  -fx-alignment: baseline-right;
+}
+
+.facts {
+  -fx-spacing: 4;
+}
+
+.fact-row {
+  -fx-spacing: 24;
+}
+
+/* "Reading..." and "Unavailable" in place of a fact are not the fact. */
+.fact-value:placeholder {
+  -fx-text-fill: -srm-text-muted;
+}

@@ -1,0 +1,29 @@
+/*
+ * History graph and history grid. The -srm-graph-* properties are read by the graphs and drawn
+ * on their Canvas; everything else is ordinary Region styling. Colors are tokens from app.css
+ * only.
+ */
+
+.history-graph {
+  -srm-graph-line: -srm-accent;
+  -srm-graph-secondary: -srm-text-muted;
+  -srm-graph-grid: -srm-border;
+
+  -fx-background-color: -srm-surface;
+  -fx-border-color: -srm-border;
+  -fx-border-width: 1;
+}
+
+/*
+ * The grid draws the surface and the frame of each cell itself, so the page shows between the
+ * cells. Its text is the caption role of docs/UI_GUIDE.md, 11 px: the label of a cell muted,
+ * its value in the color of text.
+ */
+.history-grid {
+  -srm-graph-line: -srm-accent;
+  -srm-graph-grid: -srm-border;
+  -srm-graph-surface: -srm-surface;
+  -srm-graph-label: -srm-text-muted;
+  -srm-graph-value: -srm-text;
+  -srm-graph-label-size: 11px;
+}

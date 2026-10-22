@@ -1,0 +1,61 @@
+# Build output
+target/
+dist/
+out/
+
+# Generated packages
+*.msi
+*.exe
+*.dmg
+*.pkg
+*.deb
+*.rpm
+*.AppImage
+
+# Logs and JVM crash dumps
+logs/
+*.log
+hs_err_pid*.log
+replay_pid*.log
+
+# Maven wrapper downloads
+.mvn/wrapper/maven-wrapper.jar
+
+# IDE and editor state
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+.classpath
+.project
+.settings/
+.factorypath
+bin/
+nbproject/
+nbactions*.xml
+*.swp
+*~
+
+# OS junk
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Local secrets and environment files
+.env
+.env.*
+!.env.example
+secrets/
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+
+# Claude Code machine-local state
+.claude/settings.local.json
+.claude/.cache/
+.claude/plans/

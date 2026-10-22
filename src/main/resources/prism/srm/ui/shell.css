@@ -1,0 +1,104 @@
+/*
+ * Shell: navigation and status bar. Sizes are on the spacing scale of docs/UI_GUIDE.md
+ * (4, 8, 12, 16, 24); colors are tokens from app.css only.
+ */
+
+/* Navigation: a fixed column, set apart from the page by one border. */
+.sidebar {
+  -fx-background-color: -srm-surface-alt;
+  -fx-border-color: -srm-border;
+  -fx-border-width: 0 1 0 0;
+  -fx-padding: 8;
+  -fx-spacing: 4;
+  -fx-min-width: 160;
+  -fx-pref-width: 160;
+  -fx-max-width: 160;
+}
+
+/* Directly below the entries it explains: 8 px here and the 4 px of the list make 12. */
+.sidebar-legend {
+  -fx-padding: 8 8 0 8;
+}
+
+/*
+ * A navigation entry is a toggle button stripped of its button look: 28 px high like every
+ * control, text at the left. It has two borders that are always there and only take a color
+ * when they mean something, so neither selection nor focus moves the text: a 1 px ring for
+ * keyboard focus, and a 2 px square bar at the left edge for the selected entry. The bar and
+ * 6 px of padding put the text 8 px from the edge.
+ */
+.nav-item {
+  -fx-background-color: transparent;
+  -fx-background-insets: 0;
+  -fx-background-radius: 4;
+  -fx-border-color: transparent, transparent;
+  -fx-border-width: 1, 0 0 0 2;
+  -fx-border-insets: 0, 4 0 4 0;
+  -fx-border-radius: 4, 0;
+  -fx-padding: 0 8 0 6;
+  -fx-min-height: 28;
+  -fx-pref-height: 28;
+  -fx-max-height: 28;
+  -fx-alignment: center-left;
+  -fx-text-fill: -srm-text;
+}
+
+.nav-item:hover {
+  -fx-background-color: -srm-surface-sunken;
+}
+
+/* Selected: the selection color, and the accent bar so that color is not the only sign. */
+.nav-item:selected {
+  -fx-background-color: -srm-selection;
+  -fx-border-color: transparent, transparent transparent transparent -srm-accent;
+}
+
+.nav-item:focus-visible {
+  -fx-border-color: -srm-accent, transparent;
+}
+
+.nav-item:selected:focus-visible {
+  -fx-border-color: -srm-accent, transparent transparent transparent -srm-accent;
+}
+
+.nav-item:disabled {
+  -fx-opacity: 1;
+  -fx-text-fill: -srm-text-disabled;
+}
+
+/*
+ * The area of the current page: a scroll pane without a look of its own. Its scroll bars appear
+ * only when the window is too small for the page. With keyboard focus it shows the accent ring,
+ * drawn as a background layer so that focus does not move the page.
+ */
+.page-area {
+  -fx-background-color: transparent;
+  -fx-background-insets: 0;
+  -fx-padding: 0;
+}
+
+.page-area > .viewport {
+  -fx-background-color: transparent;
+}
+
+.page-area:focus-visible {
+  -fx-background-color: -srm-accent, -srm-surface-alt;
+  -fx-background-insets: 0, 1;
+}
+
+/* Status bar: square corners, one border toward the page. */
+.status-bar {
+  -fx-background-color: -srm-surface-alt;
+  -fx-border-color: -srm-border;
+  -fx-border-width: 1 0 0 0;
+  -fx-padding: 4 8 4 8;
+  -fx-alignment: center-left;
+}
+
+.status-text {
+  -fx-text-fill: -srm-text-muted;
+}
+
+.status-text:failed {
+  -fx-text-fill: -srm-error;
+}
