@@ -37,12 +37,8 @@ When the program opens successfully you can close the console that popped up.
   without elevation).
 
 
-## Team and Task Distribution
-
-| Member | Focus Area & Accomplished So Far | Deliverable for Next Interim Submission |
-|---|---|---|
-| [erdemdenizer](https://github.com/erdemdenizer) | **Architecture & System Resource Engine**: Build infrastructure, OSHI hardware metrics source (`SystemMetricsSource`), rate calculator, system history buffer, Overview & Performance charts. | **Synthetic Load Generator (`prism.srm.demo`)**: Controllable multi-threaded CPU and memory workload tool for safe, reproducible process control verification. |
-| [erencatal](https://github.com/erencatal) | **Process Discovery & Windows Native Interop**: Process enumeration backend (`ProcessSource`), PID reuse prevention (`ProcessIdentity`), asynchronous details worker (`ProcessDetailsService`), Windows virtual size JNA mapping. | **Windows Native Process Controller (`platform.windows`)**: JNA/Win32 native implementations for process lifecycle actions (End Task, Force Kill, Suspend, Resume, Priority adjustment). |
-| [enessen0](https://github.com/enessen0) | **Interactive UI Architecture & Safety Engine**: Process table with in-place row reconciliation (`ProcessTableModel`), sorting, search/filter, UI-to-thread relay (`LatestValueRelay`), status shell. | **Safety Policy & Action UI (`application` / `ui.processes`)**: Action menus and confirmation dialogs, safety rules (protecting PRISM and critical OS processes), capability reporting and error feedback. |
-
-Detailed breakdown and past/future contributions: [docs/TEAM_TASKS.md](docs/TEAM_TASKS.md)
+| Member | Focus Area & Accomplished So Far |
+|---|---|
+| [erdemdenizer](https://github.com/erdemdenizer) | **System Metrics & Architecture**: Set up the main project structure, fetched CPU/RAM metrics using OSHI, built the history buffer to save performance data, and handled the chart backend.
+| [erencatal](https://github.com/erencatal) | **Process Discovery & Windows API**: Handled process listing, solved PID reuse bugs, created background workers for process details, and linked Windows system calls using JNA.
+| [enessen0](https://github.com/enessen0) | **UI & Thread Safety**: Designed the process table, implemented search, filtering, and sorting, and built the relay logic to safely send background data to the UI thread.
