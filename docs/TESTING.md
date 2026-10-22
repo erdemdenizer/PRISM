@@ -15,11 +15,6 @@ Seconds, not minutes. Use it after each small change. Compiler warnings are erro
 `-q` hides their text: if the build fails with only "warnings found and -Werror
 specified", rerun without `-q`.
 
-A Stop hook (`.claude/hooks/fast-check.mjs`) runs an equivalent offline check
-(`test-compile` + `spotless:check`, no tests) at the end of a Claude turn, but only when
-files under `src/`, `.mvn/`, `config/` or `pom.xml` changed since the last check. It
-does not replace the full gate.
-
 ## Full gate (before calling work done, before committing)
 
 ```
@@ -106,12 +101,15 @@ class ProcessTableSnapshotTest {
 - PNGs are build output. They are not committed and not compared automatically: fonts
   differ per operating system.
 
-## Hook tests
+## Manual probes against the real system
+
+Two test classes are named so that the default build does not run them. Each starts the
+real platform sources, prints what a person compares with the operating system's own tools
+(Task Manager, `Get-Process`, performance counters) and exits by itself:
 
 ```
-node --test .claude/hooks/*.test.mjs
+./mvnw -q test -Dtest=HostMonitoringProbe   # ten system samples (CPU, memory, disk, network)
+./mvnw -q test -Dtest=HostProcessProbe      # process listing, own threads under load, a child JVM that appears and exits
 ```
 
-Run after any change to `.claude/hooks/`. The suite covers the guard's decisions for
-Bash and PowerShell commands and file tools on Windows- and POSIX-shaped paths, and the
-parsing helpers of the fast check.
+See [DEMO.md](DEMO.md) for how they are used in a demonstration.

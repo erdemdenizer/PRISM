@@ -551,286 +551,46 @@ selected while processes start and exit; operate the table by keyboard only.
 
 **Quality gate.** Full, plus snapshots.
 
+> **Abridged for the course checkpoint.** Milestones 6 to 13 are outside this checkpoint. Only
+> the objective of each is kept here; [ROADMAP.md](ROADMAP.md) describes the staged release plan.
+
 ## 6. Demo workload
 
-**Objective.** A safe target for every destructive demonstration that follows.
-
-**Areas.** A new isolated package `prism.srm.demo` with its own `main`, using only the
-JDK (including `com.sun.management` for the physical memory size). `ArchitectureTest`
-gains a rule for it in both directions: it depends on no other `prism.srm` package and
-none depends on it. `docs/TESTING.md` documents its use.
-
-**Acceptance criteria.** DEMO-1 to DEMO-3: controllable CPU load and memory use from
-command-line arguments; the memory bound and the maximum duration cannot be exceeded by
-any argument; it reports allocation failures and its own progress.
-
-**Tests.** Argument validation and clamping; duty-cycle arithmetic.
-
-**Manual verification.** Run it at 50% CPU and 256 MiB and watch it in Prism's process
-table and in Task Manager; confirm it exits by itself.
-
-**Reviewers.** `architecture-reviewer` (the new package rule).
-
-**Quality gate.** Full.
+**Objective.** A safe target for every destructive demonstration that follows: a small
+program with controllable CPU load and memory use, bounded by its arguments.
 
 ## 7. Process control on Windows
 
-**Objective.** End Task, Force Kill, Suspend, Resume and Change Priority on Windows,
-with explicit results, protection rules, capability-driven UI, and the Logs page.
-
-**Areas.**
-- `domain`: operation result, capability level and mechanism, priority level.
-- `platform`: `ProcessController` with its capability report and the facts that mark a
-  process as protected; the portable `ProcessHandle` implementation of Force Kill.
-- `platform.windows`: close request, per-thread suspend and resume, priority class,
-  critical-process detection, with the JNA mappings that `jna-platform` lacks.
-- `application`: the control service (protection rules, result messages, activity log)
-  and the suspension coordinator, for now with the "user" reason only.
-- `ui`: actions and confirmations on the Processes page, enabled and explained from the
-  capability report with no operating-system check; the Logs page.
-
-**Acceptance criteria.**
-- CTL-1 to CTL-9 on Windows, each action returning an operation result.
-- The UI enables, disables and explains actions from the capability report alone
-  (CAP-1 to CAP-3, CAP-5); a fake capability report with different levels changes the
-  UI without code changes.
-- Prism's own process and protected processes are refused before any native call
-  (SAFE-2, SAFE-3).
-- An elevated or system process yields `ACCESS_DENIED` with a plain message; nothing
-  crashes (SAFE-4, CAP-4).
-- Processes suspended through Prism show as "Suspended by Prism" (PROC-6).
-- Every native handle is closed on every path.
-- Each native function, constant and structure cites its Microsoft Learn page.
-- Actions and results appear in the Logs page (UI-6).
-
-**Tests.** Protection rules; result-to-message mapping; the control service against a
-fake controller (process vanished, denied, unsupported); the suspension coordinator
-(suspend, resume, process exit, PID reuse); view models driven by fake capability
-reports.
-
-**Manual verification.** Each action on the demo workload; End Task on a windowed and a
-windowless process; an action on a system process; handle count of Prism stable after
-many operations.
-
-**Reviewers.** `native-api-reviewer` (required), `ui-critic`, `test-reviewer`.
-
-**Quality gate.** Full, plus snapshots.
+**Objective.** End Task, Force Kill, Suspend, Resume and Change Priority on Windows, with
+explicit results, protection rules, capability-driven UI, and the Logs page.
 
 ## 8. Process control on Linux and macOS
 
-**Objective.** The same control actions through POSIX mechanisms. The UI needs no
-change: it already reads capabilities.
-
-**Areas.** `platform.linux`, `platform.macos`: signals and priority through a small JNA
-mapping (`kill`, `getpriority`, `setpriority`), errno mapping, protected-process facts.
-The mapping is deliberately duplicated in the two packages: implementation packages may
-not depend on each other, and JNA may not appear in the `platform` root.
-
-**Acceptance criteria.**
-- CTL-3, CTL-5 and CTL-6 for both systems; errno values map to operation results.
-- The capability reports match the table in section 6 of the specification.
-- The report states plainly that this code has not been run on Linux or macOS, unless
-  it has.
-
-**Tests.** Errno-to-result mapping; priority-level-to-nice mapping; capability reports
-per system; selection of the implementation by detected system.
-
-**Manual verification.** On Linux and on macOS when a machine is available: each action
-on the demo workload, and lowering then raising a priority. Until then: none, and the
-milestone is recorded as implemented but unverified on those systems.
-
-**Reviewers.** `native-api-reviewer` (required).
-
-**Quality gate.** Full.
+**Objective.** The same control actions through POSIX mechanisms. The UI needs no change: it
+already reads capabilities.
 
 ## 9. Managed Processes and emulated CPU limiter
 
-**Objective.** Managed Processes, the Limits page, and a working CPU limit on every
-system through the emulated limiter.
-
-**Areas.**
-- `domain`: managed-process settings, limit values.
-- `platform`: `ResourceLimiter` with its per-process capability, implemented for now on
-  every system by a limiter that reports `UNAVAILABLE`, so the limit service has one
-  path from the start; the read of one process's current counters on `ProcessSource`,
-  with which the limiter measures its target.
-- `application`: the managed-process registry; the limit service (native first, emulated
-  fallback); the emulated CPU limiter on its own scheduled executor; the suspension
-  coordinator gains the "limiter" reason, the suspension journal and its recovery at
-  start-up.
-- `app`: the JVM shutdown hook (LIFE-5).
-- `ui`: the Limits page; manage and limit actions and the managed mark on the Processes
-  page.
-
-**Acceptance criteria.**
-- MGD-1 to MGD-4; LIM-1 to LIM-4 for the emulated path; LIM-7; LIM-8.
-- The limiter holds the target near the requested share of total machine capacity by
-  feedback on measured, normalized CPU use; it never derives its split from the limit
-  alone, and it does not suspend a target that is under its cap (LIM-8).
-- The Limits page shows the implementation type per process and never shows Emulated
-  as native (UI-4, CAP-3).
-- A process the user suspended stays suspended while a limit runs on it and after the
-  limit is cancelled (CTL-9, LIFE-2).
-- Cancelling a limit, an error, and a controlled shutdown each leave the target running.
-- The journal is written per limit, not per duty cycle, and holds the fields of LIFE-6.
-- After Prism is killed mid-limit, the next start resumes the target and logs it
-  (LIFE-4). A journal entry whose PID or start time does not match the live process is
-  discarded without touching that process, and a suspension the user requested is never
-  resumed by recovery (LIFE-6).
-
-**Tests.**
-- The limiter against a fake controller, a fake CPU reading and an injected clock:
-  - a single-threaded target on an 8-processor machine (at most 12.5% of the machine)
-    under a 30% limit is never suspended, and under a 5% limit converges near 5%;
-  - a multi-threaded target using 80% of the machine under a 20% limit converges near
-    20%;
-  - a noisy reading inside the dead band does not change the split; one update never
-    moves the split by more than the bound;
-  - cancellation in each phase, target exit mid-cycle, controller failure, and an
-    identity mismatch before a suspend or resume.
-- The coordinator with overlapping reasons.
-- The registry (PID reuse, exit, refusal of Prism itself and of protected processes).
-- Journal recovery: matching identity, reused PID with a different start time, process
-  gone, an entry with only a user reason (left suspended and taken over), an entry with
-  a user reason and an automatic one (left suspended), an entry written by an instance
-  that is still running (left alone), a corrupt file.
-- The controller with a zero or missing CPU reading, and at both ends of its range.
-- The shutdown hook after a completed shutdown.
-
-**Manual verification.** Limit the demo workload with one thread and with several, and
-compare the observed share with the cap; cancel the limit; suspend it manually during a
-limit; kill Prism from Task Manager during a limit and restart it.
-
-**Reviewers.** `test-reviewer`, `architecture-reviewer`, `performance-check` skill (timer
-frequency), `native-api-reviewer` (suspension safety).
-
-**Quality gate.** Full, plus snapshots.
+**Objective.** Managed Processes, the Limits page, and a working CPU limit on every system
+through the emulated limiter.
 
 ## 10. Windows native limits
 
 **Objective.** Hard CPU and memory limits through Job Objects, as decided in ADR-0002.
 
-**Areas.** `platform.windows`: the Job Object implementation of `ResourceLimiter` with
-its JNA mappings and structures; `application`: the limit service now receives native
-levels on Windows; `ui`: implementation type and mechanism-specific warnings on the
-Limits page.
-
-**Acceptance criteria.**
-- LIM-5 in full; LIM-3 and LIM-4 for the native path.
-- A failed assignment is reported with its result and the emulated fallback is offered;
-  success is never shown for a failed step.
-- Limits are cleared on controlled shutdown (LIFE-1).
-- Every job is named deterministically from the process identity, as specified in
-  ADR-0002.
-- Recovery after a crash is tested experimentally on Windows: Prism is killed while a
-  limit is active, and the next start attempts to reopen the named job, validate it
-  against the live process identity and its job membership, and clear the limits.
-  Whether the attempt succeeds is the thing being established; either outcome is
-  recorded in ADR-0002 and the user-facing wording follows the result.
-- When reopening or validation fails, Prism reports the process as possibly still
-  limited and takes no destructive action (LIFE-4).
-- `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` is never used.
-- Structure layouts are checked against the documented sizes.
-
-**Tests.** Structure size and field offsets for 64-bit; flag composition; rate
-conversion; job-name derivation from a process identity; the recovery decision
-(reopened and valid, reopened but identity or membership mismatch, not found) against a
-fake; limit-service selection and failure paths against a fake limiter.
-
-**Manual verification.** Cap the demo workload at 20% and compare with Task Manager; set
-a commit limit and watch the workload report an allocation failure; try a process that
-already belongs to a job; exit Prism and confirm the limit is gone; kill Prism during a
-limit, restart it, and confirm whether the limit was found and cleared.
-
-**Reviewers.** `native-api-reviewer` (required), `test-reviewer`.
-
-**Quality gate.** Full, plus snapshots.
-
 ## 11. OOM Guard and memory policy
 
-**Objective.** The OOM state machine, its page, persisted settings, interventions
-limited to Managed Processes, and the emulated memory policy that reuses them.
-
-**Areas.** `domain`: state, thresholds; `application`: the state machine (pure, with an
-injected clock), the intervention policy, the settings store, the emulated memory
-policy (LIM-9), the "OOM Guard" reason in the suspension coordinator; `ui`: the OOM
-Guard page and a state indicator in the shell.
-
-**Acceptance criteria.**
-- OOM-1 to OOM-13; LIM-9; SET-1 and SET-2.
-- With default settings nothing is ever lowered, suspended or terminated.
-- The page separates monitoring from automatic intervention (UI-5).
-- Terminate is reachable only through the global switch and an explicit per-process
-  choice.
-
-**Tests.** Every transition; hysteresis, dwell and flapping input; the absolute floor;
-an unavailable memory reading; candidate ordering; action downgrade under each
-combination of switches; Terminate never without both opt-ins; managed-only; recording
-of actions; the memory policy against its limit; settings load, save, missing and
-corrupt file.
-
-**Manual verification.** Raise the thresholds temporarily so the states are reached
-without real memory pressure, ramp the demo workload, and observe state changes; then
-enable automatic suspend, manage the workload with action Suspend, and confirm it is
-suspended, logged, and resumed after recovery.
-
-**Reviewers.** `test-reviewer` (state machine), `ui-critic`, `architecture-reviewer`.
-
-**Quality gate.** Full, plus snapshots.
+**Objective.** The OOM state machine, its page, persisted settings, interventions limited to
+Managed Processes, and the emulated memory policy that reuses them.
 
 ## 12. Linux native limits
 
 **Gated**: starts when a Linux machine with cgroups v2 is available, because ADR-0003
 cannot be accepted without running it.
 
-**Objective.** CPU and memory limits through cgroups v2 for the processes an
-unprivileged user can move.
-
-**Areas.** `platform.linux`: the capability probe, creation and removal of
-application-owned child cgroups, `cpu.max`, `memory.high`, `memory.max`; ADR-0003 moves
-from Proposed to Accepted or is replaced.
-
-**Acceptance criteria.** LIM-6 in full; a failed probe reports `UNAVAILABLE` and the
-limit service falls back to the emulated limiter; limits are set only in cgroups
-created by Prism; those are removed on shutdown. The CPU limit is converted from the
-whole-machine percentage with the logical processor count. The UI text for
-`memory.max` and `memory.high` matches the kernel's documented behavior and promises
-neither a kill of the target nor a limit that is never exceeded.
-
-**Tests.** The `cpu.max` conversion (for example 25% on 8 processors is
-`200000 100000`; 1% on 1 processor is `1000 100000`; 100% is `max`); parsing of `/proc/<pid>/cgroup`, mount
-information and controller lists from fixture text; the probe's decision table; file
-operations against a temporary directory standing in for the cgroup file system.
-
-**Manual verification.** On Linux: limit the demo workload started from a desktop
-launcher and from a terminal and compare its CPU share with the cap; drive it into
-`memory.high` and into `memory.max` and record what actually happens; try a process in
-a login session scope and a system service and confirm the honest refusal; confirm
-cleanup after exit.
-
-**Reviewers.** `native-api-reviewer` (required).
-
-**Quality gate.** Full, run on Linux.
+**Objective.** CPU and memory limits through cgroups v2 for the processes an unprivileged
+user can move.
 
 ## 13. Settings, shutdown hardening, polish, packaging
 
 **Objective.** Finish the product surface and make it deliverable.
-
-**Areas.** `ui`: the Settings page, theme switching, remaining states; `app`: the full
-shutdown sequence; packaging configuration for jpackage on Windows; documentation.
-
-**Acceptance criteria.**
-- UI-7 and UI-8 across all pages.
-- LIFE-1 to LIFE-6 verified step by step, including a failing cleanup step.
-- A Windows application image built with jpackage starts and runs on a machine without
-  a JDK (DEL-1). Any build plugin added for this is recorded in an ADR.
-- Every page is operable by keyboard and passes the UI guide checklist in both themes.
-
-**Tests.** Shutdown ordering with failing steps; snapshots of every page and state.
-
-**Manual verification.** Full demonstration script with the demo workload: monitoring,
-control, limits, OOM Guard, shutdown. Install and run the packaged image.
-
-**Reviewers.** All four review agents, at the final boundary.
-
-**Quality gate.** Full, plus snapshots.

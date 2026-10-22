@@ -54,8 +54,3 @@ secrets/
 *.pfx
 *.jks
 *.keystore
-
-# Claude Code machine-local state
-.claude/settings.local.json
-.claude/.cache/
-.claude/plans/
