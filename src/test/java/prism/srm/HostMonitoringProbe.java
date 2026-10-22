@@ -17,12 +17,10 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 import prism.srm.application.SystemMonitor;
 import prism.srm.domain.CpuSample;
-import prism.srm.domain.DeviceLayer;
 import prism.srm.domain.DiskCounters;
 import prism.srm.domain.FileSystemUsage;
 import prism.srm.domain.MemorySample;
 import prism.srm.domain.NetworkCounters;
-import prism.srm.domain.NetworkInterfaceUsage;
 import prism.srm.domain.OperatingSystemInfo;
 import prism.srm.domain.ProcessorInfo;
 import prism.srm.domain.SystemActivity;
@@ -51,20 +49,14 @@ class HostMonitoringProbe {
             return thread;
         });
         try {
-            long creationStart = System.nanoTime();
             TimedSource source = new TimedSource(HostPlatform.create().systemMetricsSource());
-            print("Source created in %.0f ms", millisSince(creationStart));
 
             SystemMonitor monitor =
                     new SystemMonitor(source, scheduler, System::nanoTime, SystemMonitor.DEFAULT_INTERVAL);
             CountDownLatch remaining = new CountDownLatch(SAMPLES);
-            Duration[] cpuTimeAtFirstSample = new Duration[1];
-            long[] nanosAtFirstSample = new long[1];
             monitor.addListener(snapshot -> {
                 if (remaining.getCount() == SAMPLES) {
                     printFacts(snapshot);
-                    cpuTimeAtFirstSample[0] = processCpuTime();
-                    nanosAtFirstSample[0] = System.nanoTime();
                 }
                 printSample(SAMPLES - remaining.getCount() + 1, snapshot, source);
                 remaining.countDown();
@@ -75,110 +67,59 @@ class HostMonitoringProbe {
             monitor.stop();
 
             assertThat(completed).as("all samples arrived in time").isTrue();
-            double elapsedSeconds = (System.nanoTime() - nanosAtFirstSample[0]) / 1e9;
-            double cpuSeconds = processCpuTime().minus(cpuTimeAtFirstSample[0]).toNanos() / 1e9;
-            int processors = Runtime.getRuntime().availableProcessors();
-            print(
-                    "This JVM between the first and the last sample: %.3f s CPU in %.1f s = %.2f%% of one"
-                            + " processor, %.3f%% of the machine (%d logical processors)",
-                    cpuSeconds,
-                    elapsedSeconds,
-                    100 * cpuSeconds / elapsedSeconds,
-                    100 * cpuSeconds / elapsedSeconds / processors,
-                    processors);
+            print("============================================================");
+            print("✓ Probe Completed: %d samples collected successfully.", SAMPLES);
+            print("============================================================\n");
         } finally {
             scheduler.shutdownNow();
         }
     }
 
     private static void printFacts(SystemSnapshot snapshot) {
+        print("\n============================================================");
+        print(" PRISM System Monitoring Probe (%d Samples)", SAMPLES);
+        print("============================================================");
         print(
-                "Processor: %s",
-                snapshot.processor()
-                        .map(processor -> String.format(
-                                Locale.ROOT,
-                                "%s | logical %d | physical %s | packages %s",
-                                processor.name().orElse("(name not reported)"),
-                                processor.logicalProcessorCount(),
-                                processor.physicalCoreCount().isPresent()
-                                        ? processor.physicalCoreCount().getAsInt()
-                                        : "(not reported)",
-                                processor.packageCount().isPresent()
-                                        ? processor.packageCount().getAsInt()
-                                        : "(not reported)"))
-                        .orElse("unavailable"));
-        print(
-                "Operating system: %s",
+                "OS   : %s",
                 snapshot.operatingSystem()
-                        .map(os -> String.format(
-                                Locale.ROOT,
-                                "%s | version %s | build %s",
-                                os.name(),
-                                os.version().orElse("(not reported)"),
-                                os.build().orElse("(not reported)")))
-                        .orElse("unavailable"));
+                        .map(os -> os.name() + " (" + os.version().orElse("") + ")")
+                        .orElse("-"));
         print(
-                "File systems: %s",
+                "CPU  : %s (%d logical processors)",
+                snapshot.processor().flatMap(ProcessorInfo::name).orElse("CPU"),
+                snapshot.processor().map(ProcessorInfo::logicalProcessorCount).orElse(1));
+        print(
+                "Disk : %s",
                 snapshot.fileSystems()
-                        .map(fileSystems -> fileSystems.stream()
-                                .map(fileSystem -> String.format(
-                                        Locale.ROOT,
-                                        "%s %.1f of %.1f GiB usable",
-                                        fileSystem.mountPoint(),
-                                        fileSystem.usableBytes() / MIB / 1024,
-                                        fileSystem.totalBytes() / MIB / 1024))
+                        .map(fs -> fs.stream()
+                                .map(f -> f.mountPoint() + " "
+                                        + String.format(
+                                                Locale.ROOT,
+                                                "%.1f/%.1f GB",
+                                                f.usableBytes() / MIB / 1024,
+                                                f.totalBytes() / MIB / 1024))
                                 .collect(Collectors.joining("; ")))
-                        .orElse("unavailable"));
-        if (snapshot.network().isEmpty()) {
-            print("Interfaces: unavailable");
-            return;
-        }
-        List<NetworkInterfaceUsage> interfaces = snapshot.network().get().interfaces();
-        for (DeviceLayer layer : DeviceLayer.values()) {
-            List<NetworkInterfaceUsage> ofLayer = interfaces.stream()
-                    .filter(networkInterface -> networkInterface.layer() == layer)
-                    .toList();
-            print(
-                    "Interfaces %s (%d): %s",
-                    layer,
-                    ofLayer.size(),
-                    ofLayer.stream()
-                            .map(networkInterface ->
-                                    networkInterface.name() + " (" + networkInterface.displayName() + ")")
-                            .collect(Collectors.joining("; ")));
-        }
+                        .orElse("-"));
+        print("============================================================\n");
     }
 
     private static void printSample(long number, SystemSnapshot snapshot, TimedSource source) {
         String cpu = snapshot.cpu()
-                .map(usage -> String.format(
-                        Locale.ROOT,
-                        "%5.1f%% [%s]",
-                        usage.totalPercent(),
-                        usage.perProcessorPercent().stream()
-                                .map(HostMonitoringProbe::percent)
-                                .collect(Collectors.joining(" "))))
+                .map(usage -> String.format(Locale.ROOT, "%.1f%%", usage.totalPercent()))
                 .orElse("-");
         String memory = snapshot.memory()
                 .map(sample -> String.format(
                         Locale.ROOT,
-                        "used %.0f of %.0f MiB (%.1f%%), available %.0f MiB, swap %s",
-                        sample.usedBytes() / MIB,
-                        sample.totalBytes() / MIB,
+                        "%.1f / %.1f GB (%.1f%%) | Available: %.1f GB",
+                        sample.usedBytes() / MIB / 1024,
+                        sample.totalBytes() / MIB / 1024,
                         sample.usedPercent(),
-                        sample.availableBytes() / MIB,
-                        sample.swap()
-                                .map(swap -> String.format(
-                                        Locale.ROOT,
-                                        "%.0f of %.0f MiB",
-                                        swap.usedBytes() / MIB,
-                                        swap.totalBytes() / MIB))
-                                .orElse("none")))
+                        sample.availableBytes() / MIB / 1024))
                 .orElse("-");
         String disk = snapshot.diskRates()
                 .map(rates -> String.format(
                         Locale.ROOT,
-                        "read %.0f KiB/s, write %.0f KiB/s",
+                        "Read: %.0f KB/s | Write: %.0f KB/s",
                         rates.readBytesPerSecond() / 1024,
                         rates.writeBytesPerSecond() / 1024))
                 .orElse("-");
@@ -186,42 +127,25 @@ class HostMonitoringProbe {
                 .flatMap(usage -> usage.total())
                 .map(rates -> String.format(
                         Locale.ROOT,
-                        "down %.1f KiB/s, up %.1f KiB/s",
+                        "Down: %.1f KB/s | Up: %.1f KB/s",
                         rates.receiveBytesPerSecond() / 1024,
                         rates.sendBytesPerSecond() / 1024))
                 .orElse("-");
         String activity = snapshot.activity()
                 .map(system -> String.format(
                         Locale.ROOT,
-                        "uptime %d s, %d processes",
-                        system.uptime().toSeconds(),
-                        system.processCount()))
+                        "%d processes | Uptime: %d s",
+                        system.processCount(),
+                        system.uptime().toSeconds()))
                 .orElse("-");
-        print("#%d  %s  CPU %s", number, LocalTime.now().truncatedTo(ChronoUnit.SECONDS), cpu);
-        print("     memory %s", memory);
-        print("     disk %s | network %s | %s", disk, network, activity);
-        print(
-                "     history %d samples | source time this cycle %.1f ms (disk read %.1f ms, network read %.1f ms)",
-                snapshot.history().cpuTotalPercent().size(),
-                source.takeCycleNanos() / 1e6,
-                source.lastDiskReadNanos / 1e6,
-                source.lastNetworkReadNanos / 1e6);
-        String busiestLogical = snapshot.network().map(usage -> usage.interfaces()).orElse(List.of()).stream()
-                .filter(networkInterface -> networkInterface.layer() != DeviceLayer.PHYSICAL)
-                .filter(networkInterface -> networkInterface
-                        .rates()
-                        .map(rates -> rates.receiveBytesPerSecond() + rates.sendBytesPerSecond() > 0)
-                        .orElse(false))
-                .map(networkInterface -> String.format(
-                        Locale.ROOT,
-                        "%s %.1f/%.1f",
-                        networkInterface.name(),
-                        networkInterface.rates().orElseThrow().receiveBytesPerSecond() / 1024,
-                        networkInterface.rates().orElseThrow().sendBytesPerSecond() / 1024))
-                .collect(Collectors.joining(", "));
-        print(
-                "     non-physical interfaces with traffic, not in the total (down/up KiB/s): %s",
-                busiestLogical.isEmpty() ? "none" : busiestLogical);
+
+        print("[Sample #%d | %s]", number, LocalTime.now().truncatedTo(ChronoUnit.SECONDS));
+        print("  • CPU Usage : %s", cpu);
+        print("  • Memory    : %s", memory);
+        print("  • Disk I/O  : %s", disk);
+        print("  • Network   : %s", network);
+        print("  • System    : %s", activity);
+        print("");
     }
 
     private static String percent(OptionalDouble value) {
