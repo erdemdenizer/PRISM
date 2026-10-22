@@ -2,7 +2,7 @@
 
 ## Requirements
 
-- **JDK 25** (Eclipse Temurin 25 LTS recommended) with `JAVA_HOME` pointing at it. The build
+- **JDK 25** (Eclipse Temurin 25 LTS recommended) with `JAVA_HOME` pointing at it. The build refuses any other Java version (Maven Enforcer rule in `pom.xml`).
 
 ## Compile and run
 
@@ -36,9 +36,12 @@ When the program opens successfully you can close the console that popped up.
 - User, path and command line are absent for processes this user may not open (expected
   without elevation).
 
+## Team
 
 | Member | Focus Area & Accomplished So Far |
 |---|---|
 | [erdemdenizer](https://github.com/erdemdenizer) | **System Metrics & Architecture**: Set up the main project structure, fetched CPU/RAM metrics using OSHI, built the history buffer to save performance data, and handled the chart backend.
 | [erencatal](https://github.com/erencatal) | **Process Discovery & Windows API**: Handled process listing, solved PID reuse bugs, created background workers for process details, and linked Windows system calls using JNA.
 | [enessen0](https://github.com/enessen0) | **UI & Thread Safety**: Designed the process table, implemented search, filtering, and sorting, and built the relay logic to safely send background data to the UI thread.
+
+Detailed breakdown and past/future contributions: [docs/TEAM_TASKS.md](docs/TEAM_TASKS.md).
