@@ -11,20 +11,18 @@ PowerShell (Windows):
 ```powershell
 $env:JAVA_HOME = 'C:\path\to\jdk-25'
 
-
-
-.\mvnw.cmd -q compile          # compile, warnings are errors (about 10 s)
-.\mvnw.cmd verify              # full quality gate: enforcer, compile, 665 tests, Spotless, JaCoCo, SpotBugs (about 1 min)
+.\mvnw.cmd -q compile          # compile with warnings as errors
+.\mvnw.cmd verify              # full quality gate: 665 tests, Spotless, JaCoCo, SpotBugs
 .\mvnw.cmd javafx:run          # start the application
 ```
 
-
 When the program opens successfully you can close the console that popped up.
+
 ## Mini demo (commands)
 
 ```powershell
-.\mvnw.cmd -q test -Dtest=HostMonitoringProbe   # ten system samples: CPU per processor, memory, disk and network rates (about 12 s)
-.\mvnw.cmd -q test -Dtest=HostProcessProbe      # process listing every 2 s; loads 4 threads; starts a child JVM that appears and then exits (about 30 s)
+.\mvnw.cmd -q test -Dtest=HostMonitoringProbe   # samples CPU, memory, disk and network rates
+.\mvnw.cmd -q test -Dtest=HostProcessProbe      # tests process listing, thread load, child JVM lifecycle
 ```
 
 
