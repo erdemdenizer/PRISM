@@ -3,10 +3,9 @@ package prism.srm.domain;
 import java.time.Instant;
 import java.util.Objects;
 
-
 // record keywordd is used for transferring immutable objects
-//in our case im using it to get PID
-//this module gets pid's of processes.
+// in our case im using it to get PID
+// this module gets pid's of processes.
 
 public record ProcessIdentity(long pid, Instant startTime) {
 

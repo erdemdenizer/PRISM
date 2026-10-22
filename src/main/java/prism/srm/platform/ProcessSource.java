@@ -17,5 +17,6 @@ public interface ProcessSource {
      * Reads every process the system lists
      */
     List<ProcessReading> processes();
+
     Optional<ProcessDetails> details(ProcessIdentity identity);
 }

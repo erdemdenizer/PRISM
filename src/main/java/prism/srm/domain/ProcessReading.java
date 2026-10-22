@@ -34,10 +34,6 @@ public record ProcessReading(
         OptionalLong bytesRead,
         OptionalLong bytesWritten) {
 
-
-
-
-
     public ProcessReading {
         Objects.requireNonNull(identity, "identity");
         Objects.requireNonNull(name, "name");
@@ -56,7 +52,7 @@ public record ProcessReading(
         }
     }
 
-// process value cant be 0. so we wrote a function for it
+    // process value cant be 0. so we wrote a function for it
     private static void requireNotNegative(OptionalLong value, String name) {
         if (value.isPresent() && value.getAsLong() < 0) {
             throw new IllegalArgumentException(name + " must not be negative: " + value.getAsLong());
