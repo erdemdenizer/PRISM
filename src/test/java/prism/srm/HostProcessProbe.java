@@ -32,19 +32,9 @@ import prism.srm.platform.ProcessSource;
 import prism.srm.platform.windows.WindowsProcessVirtualSizes;
 
 /**
- * Manual check of process monitoring against the real system. It watches the processes with the
- * real source at the default cadence and prints what a person needs to compare with the operating
- * system's own tools: the process count, this JVM's own row, the busiest processes, and what an
- * enumeration costs.
+ *this is the demo test file
+ * it creates a process and forks it in to child and then checks if somethings wrong or not
  *
- * <p>To have something known to look at, the probe loads a few of its own threads for a while,
- * which should show as that many logical processors' worth of the machine, and starts one
- * harmless child JVM that only sleeps and exits by itself, which should appear and then
- * disappear. It touches no process it did not start.
- *
- * <p>The class name keeps it out of the default build. Run it with {@code ./mvnw -q test
- * -Dtest=HostProcessProbe}. For a cost measurement without the artificial load, add {@code
- * -Dprobe.cycles=100 -Dprobe.busyThreads=0 -Dprobe.child=false}.
  */
 class HostProcessProbe {
 

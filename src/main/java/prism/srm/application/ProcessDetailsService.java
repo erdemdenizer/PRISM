@@ -10,18 +10,10 @@ import prism.srm.domain.ProcessIdentity;
 import prism.srm.platform.ProcessSource;
 
 /**
- * Reads the executable path and the command line of one process when somebody asks for them
- * (PROC-5). They are too expensive to read for every process on every cycle, so the process
- * monitor never reads them; this service reads them for the one process asked for, on the
- * executor it is given, and hands the result to its listener.
+ * this module makkes when user clicks the "path" it retrieves data required for it
+ * this module i s also ai helped cus optimization was so bad it we had 2 use ai for this also
  *
- * <p>Every request the executor runs gets exactly one result, which names the process that was
- * asked for; a request the executor drops gets none. A process that has exited, or whose PID
- * another process has taken over, gives {@link ProcessDetailsResult.Outcome#PROCESS_GONE}, also
- * if the source should answer with the details of that other process. A {@link RuntimeException} from the source is
- * logged once per kind and gives {@link ProcessDetailsResult.Outcome#FAILED}. An {@link Error} is
- * not caught: it ends the thread it happened on, and the listener is told from a {@code finally}
- * block that the read failed, so that nobody waits for an answer that will not come.
+ *
  */
 public final class ProcessDetailsService {
 

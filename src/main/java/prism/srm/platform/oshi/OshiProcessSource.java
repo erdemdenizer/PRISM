@@ -25,22 +25,7 @@ import prism.srm.platform.ProcessSource;
 import prism.srm.platform.ProcessVirtualSizeSource;
 
 /**
- * Process readings through OSHI, from the long-lived OSHI objects that {@link OshiHost} owns.
- *
- * <p>A reading asks OSHI for all processes in one call and takes from each process only values
- * OSHI holds after that call. OSHI's listing is not free per process: on Windows it reads the
- * performance data and the process list once for all processes, and it also opens every process
- * briefly to learn its path, which the system refuses for protected processes. What this class
- * adds on top is nothing per process and cycle. It never asks a process for its command line,
- * arguments, environment, working directory or threads: OSHI fetches those with a further query
- * per process, and the command line alone was measured at about 54 ms per process on Windows.
- *
- * <p>On Windows the virtual size is not among the values OSHI holds. It comes from the system's
- * own source, with one further read for all processes per listing.
- *
- * <p>Several values OSHI returns are not what their name says on every system, or stand for
- * "could not read" as well as for a real zero. Each such value is absent here instead; the
- * methods below say which and why. Only the Windows behavior has been run.
+ * this part is partially ai made : using oshi liblary pulls info from kernel
  */
 final class OshiProcessSource implements ProcessSource {
 

@@ -13,19 +13,12 @@ import prism.srm.domain.ProcessSnapshot;
 import prism.srm.platform.ProcessSource;
 
 /**
- * Takes one reading of all processes and turns it, together with the previous reading, into
- * snapshots with processor and I/O rates.
  *
- * <p>A rate is computed only between two readings of the same {@link ProcessIdentity}. A process
- * seen for the first time has none, and neither has a process that took over the PID of one that
- * exited, because its identity differs. Only the counters of the processes in the latest reading
- * are kept: when a process is gone from a reading, nothing of it remains.
+ * this module is mainly used for cleaning up the application part like deleting the closed processes and etc.
+ * we use map list hashmap array list data structures for this file
+ * map is used to keep the previous and current states of processes
+ * and the others are used in harmony to keep current processes and etc. required for the application itself.
  *
- * <p>Reading all processes takes tens of milliseconds, and the source does not say at which
- * moment inside that time the counters were taken. A reading is therefore dated at the midpoint
- * of the time the read took.
- *
- * <p>Used by one thread at a time.
  */
 final class ProcessSampler {
 

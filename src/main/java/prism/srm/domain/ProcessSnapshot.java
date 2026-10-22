@@ -7,20 +7,16 @@ import java.util.OptionalInt;
 import java.util.OptionalLong;
 
 /**
- * The state of one process after a monitoring cycle. A value is absent when the system does not
- * provide it, and a rate also when there is no valid pair of readings of this same process to
- * compute it from. The start time is part of the identity.
  *
- * @param parentPid the PID of the process that created this one, as the system recorded it then.
- *     That process may have exited since, and its PID may belong to another process by now.
- * @param state absent where the system reports no state for a process as a whole
- * @param cpuPercent share of the whole machine's processor capacity the process used since the
- *     previous reading, 0 to 100, where 100 means every logical processor was busy with it
- * @param priority the scheduling priority as the system numbers it; the scale differs between
- *     systems
- * @param ioReadBytesPerSecond rate at which the process reads in I/O operations. It is not a
- *     disk rate: see {@link ProcessReading#bytesRead()} for what each system counts
- * @param ioWriteBytesPerSecond rate at which the process writes in I/O operations
+ *
+ * @param parentPid
+ * @param state
+ * @param cpuPercent
+ * @param priority
+ * @param ioReadBytesPerSecond
+ *     for disk rate see {@link ProcessReading#bytesRead()} for what each system counts
+ * @param ioWriteBytesPerSecond
+ * this module is mainly used for displaying the cpu percentage using the values from {@link ProcessReading}
  */
 public record ProcessSnapshot(
         ProcessIdentity identity,
@@ -48,7 +44,7 @@ public record ProcessSnapshot(
         Objects.requireNonNull(user, "user");
         Objects.requireNonNull(threadCount, "threadCount");
         Objects.requireNonNull(priority, "priority");
-        // Written so that NaN is rejected too.
+        // Written so that NaN is rejected too. cus nan might cause crashes etc.
         if (cpuPercent.isPresent() && !(cpuPercent.getAsDouble() >= 0 && cpuPercent.getAsDouble() <= 100)) {
             throw new IllegalArgumentException("Expected a percentage from 0 to 100: " + cpuPercent.getAsDouble());
         }
