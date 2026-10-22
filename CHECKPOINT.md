@@ -10,9 +10,8 @@ view") of the team's working repository.
 - The source under `src/`, the Maven build (`pom.xml`, `mvnw`, `mvnw.cmd`, `.mvn/`), the
   quality configuration (`config/`, `.editorconfig`, `.gitattributes`) and the documents under
   `docs/` are as they were at that commit, with the exceptions listed below.
-- The history of this repository starts with one import commit. The working repository's own
-  history for milestones 1 to 5 (nine feature and documentation commits from 2026-10-05 to
-  2026-10-07, all authored by `erdemdenizer`) is not replayed here.
+- The history of this repository starts with one import commit consolidating team milestones 1 to 5.
+  Individual branches and future feature work are developed through pull requests on this repository.
 - Development has continued in the team's working repository since this snapshot. The
   modules that [docs/ROADMAP.md](docs/ROADMAP.md) lists as "outside this checkpoint" are not
   part of this repository and are not claimed to be unstarted; they will be published here in

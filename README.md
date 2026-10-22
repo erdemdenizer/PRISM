@@ -37,13 +37,12 @@ When the program opens successfully you can close the console that popped up.
   without elevation).
 
 
-## Team
+## Team and Task Distribution
 
-| GitHub | Role at the next interim submission (proposed) |
-|---|---|
-| [erdemdenizer](https://github.com/erdemdenizer) | architecture, integration, repository coordination; demo workload and the first stage of process control |
-| [erencatal](https://github.com/erencatal) | process-monitoring backend tests, lifecycle and edge-case coverage, process-control safety verification |
-| [enessen0](https://github.com/enessen0) | JavaFX process-action interface, error feedback, documentation, reproducible demo |
+| Member | Focus Area & Accomplished So Far | Deliverable for Next Interim Submission |
+|---|---|---|
+| [erdemdenizer](https://github.com/erdemdenizer) | **Architecture & System Resource Engine**: Build infrastructure, OSHI hardware metrics source (`SystemMetricsSource`), rate calculator, system history buffer, Overview & Performance charts. | **Synthetic Load Generator (`prism.srm.demo`)**: Controllable multi-threaded CPU and memory workload tool for safe, reproducible process control verification. |
+| [erencatal](https://github.com/erencatal) | **Process Discovery & Windows Native Interop**: Process enumeration backend (`ProcessSource`), PID reuse prevention (`ProcessIdentity`), asynchronous details worker (`ProcessDetailsService`), Windows virtual size JNA mapping. | **Windows Native Process Controller (`platform.windows`)**: JNA/Win32 native implementations for process lifecycle actions (End Task, Force Kill, Suspend, Resume, Priority adjustment). |
+| [enessen0](https://github.com/enessen0) | **Interactive UI Architecture & Safety Engine**: Process table with in-place row reconciliation (`ProcessTableModel`), sorting, search/filter, UI-to-thread relay (`LatestValueRelay`), status shell. | **Safety Policy & Action UI (`application` / `ui.processes`)**: Action menus and confirmation dialogs, safety rules (protecting PRISM and critical OS processes), capability reporting and error feedback. |
 
-
-check : [TEAM_TASKS.md](docs/TEAM_TASKS.md)
+Detailed breakdown and past/future contributions: [docs/TEAM_TASKS.md](docs/TEAM_TASKS.md)
