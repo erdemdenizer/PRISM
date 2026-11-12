@@ -8,7 +8,6 @@ import java.util.Objects;
  * system reuses PIDs, so a PID alone may name a different process a moment later; the pair does
  * not repeat. Everything that compares two readings of a process compares identities.
  *
- * @param pid the process identifier assigned by the operating system kernel
  * @param startTime when the process started, exactly as the system reports it. Two identities are
  *     equal only if these are equal to the last unit, so the value is never rounded or adjusted.
  */

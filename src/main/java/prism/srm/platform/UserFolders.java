@@ -15,4 +15,16 @@ public interface UserFolders {
      * directory when the system gave no absolute home folder to build it from.
      */
     Path logs();
+
+    /**
+     * Returns the folder for the state Prism keeps for itself between runs, such as the suspension
+     * journal (ADR-0011). It may not exist yet; whoever writes there creates it.
+     */
+    Path state();
+
+    /**
+     * Returns the folder of the settings file (SET-1, ADR-0014). It may not exist yet; whoever writes
+     * there creates it.
+     */
+    Path settings();
 }

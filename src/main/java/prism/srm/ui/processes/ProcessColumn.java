@@ -172,6 +172,7 @@ enum ProcessColumn {
             case SUSPENDED -> "Suspended";
             case ZOMBIE -> "Zombie";
             case OTHER -> "Other";
+            case SUSPENDED_BY_PRISM -> "Suspended by Prism";
         };
     }
 }

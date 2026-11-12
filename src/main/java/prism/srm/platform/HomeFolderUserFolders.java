@@ -19,4 +19,14 @@ final class HomeFolderUserFolders implements UserFolders {
     public Path logs() {
         return home.resolve(".prism-srm").resolve("logs");
     }
+
+    @Override
+    public Path state() {
+        return home.resolve(".prism-srm").resolve("state");
+    }
+
+    @Override
+    public Path settings() {
+        return home.resolve(".prism-srm").resolve("settings");
+    }
 }

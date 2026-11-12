@@ -111,11 +111,19 @@ class ProcessTextTest {
     }
 
     @ParameterizedTest
-    @EnumSource(ProcessState.class)
+    @EnumSource(value = ProcessState.class, names = "SUSPENDED_BY_PRISM", mode = EnumSource.Mode.EXCLUDE)
     void everyStateTheSystemReportsHasAWord(ProcessState state) {
         String word = text.state(process(1, "a").state(state).build());
 
         assertThat(word).isNotBlank().isNotEqualTo(DASH).matches("[A-Z][a-z]+");
+    }
+
+    /** PROC-6: Prism's own suspension is named as such, not as a state the system reported. */
+    @Test
+    void aProcessPrismHoldsSuspendedSaysSo() {
+        assertThat(text.state(
+                        process(1, "a").state(ProcessState.SUSPENDED_BY_PRISM).build()))
+                .isEqualTo("Suspended by Prism");
     }
 
     @Test
