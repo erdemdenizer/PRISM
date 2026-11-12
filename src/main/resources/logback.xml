@@ -8,11 +8,11 @@
 -->
 <configuration>
   <!--
-    Stops the context when the JVM exits: closes the file and waits for the clean-up job. Lines
-    are written to the file as they are logged, with or without this. What another shutdown hook
-    logs after this one has run is lost; Prism has no other hook yet.
+    No shutdown hook of Logback's own: Prism's hook (srm-exit-hook, ADR-0011) logs what it releases
+    when the JVM exits, and a Logback hook that ran first would stop the context and lose those
+    lines. Every line is written to the file as it is logged (immediateFlush), so nothing waits in
+    a buffer; the clean-up of old files may be cut short at exit and runs again at the next start.
   -->
-  <shutdownHook />
 
   <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
     <encoder>
