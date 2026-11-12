@@ -16,5 +16,8 @@ public record ProcessIdentity(long pid, Instant startTime) {
 
     public ProcessIdentity {
         Objects.requireNonNull(startTime, "startTime");
+        if (pid < 0) {
+            throw new IllegalArgumentException("pid must not be negative: " + pid);
+        }
     }
 }
