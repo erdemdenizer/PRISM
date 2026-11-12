@@ -1,8 +1,10 @@
 package prism.srm.platform.oshi;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 
 import java.time.Duration;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import oshi.hardware.CentralProcessor.TickType;
 import oshi.util.GlobalConfig;
@@ -88,5 +90,15 @@ class OshiSystemMetricsSourceTest {
         assertThat(OshiSystemMetricsSource.text("   ")).isEmpty();
         assertThat(OshiSystemMetricsSource.text("")).isEmpty();
         assertThat(OshiSystemMetricsSource.text(null)).isEmpty();
+    }
+
+    @Test
+    void aZeroAvailableReadingIsUnavailableNotEmergency() {
+        // On macOS a failed read of the page counts gives 0 available beside a valid total.
+        assertThatIllegalStateException()
+                .isThrownBy(() -> OshiSystemMetricsSource.memorySample(16L << 30, 0, Optional.empty()));
+        assertThat(OshiSystemMetricsSource.memorySample(16L << 30, 1, Optional.empty())
+                        .availableBytes())
+                .isEqualTo(1);
     }
 }
