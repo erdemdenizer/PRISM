@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.function.Function;
 import javafx.event.Event;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Menu;
@@ -50,8 +51,13 @@ class SortMenuSceneTest {
             return table().getContextMenu();
         }
 
+        /** The sort group begins after the actions on the selected process and their separator. */
         Menu sortBy() {
-            return (Menu) menu().getItems().get(0);
+            return menu().getItems().stream()
+                    .filter(item -> item instanceof Menu && item.getText().equals("Sort by"))
+                    .map(Menu.class::cast)
+                    .findFirst()
+                    .orElseThrow();
         }
 
         RadioMenuItem column(String title) {
@@ -102,27 +108,111 @@ class SortMenuSceneTest {
         }
     }
 
+    /**
+     * The actions on the selected process first (milestone 7), a line, then the sort group: every
+     * column and both directions, and nothing else.
+     */
     @Test
-    void theMenuOffersEveryColumnAndBothDirectionsAndNothingElse() {
+    void theMenuOffersTheActionsTheLimitsThenEveryColumnAndBothDirectionsAndNothingElse() {
         List<Object> seen = inPage(scene -> {
             List<Object> facts = new ArrayList<>();
-            facts.add(scene.menu().getItems().size());
-            facts.add(scene.sortBy().getText());
+            facts.add(scene.menu().getItems().stream()
+                    .map(item -> item instanceof SeparatorMenuItem ? "---" : item.getText())
+                    .toList());
             facts.add(scene.sortBy().getItems().stream().map(MenuItem::getText).toList());
-            facts.add(scene.menu().getItems().get(1) instanceof SeparatorMenuItem);
-            facts.add(scene.menu().getItems().get(2).getText());
-            facts.add(scene.menu().getItems().get(3).getText());
             return facts;
         });
 
         assertThat(seen)
                 .containsExactly(
-                        4,
-                        "Sort by",
-                        List.of("Name", "PID", "CPU", "Memory", "I/O", "User", "Threads", "Priority", "State"),
-                        true,
-                        "Ascending",
-                        "Descending");
+                        List.of(
+                                "Suspend",
+                                "Resume",
+                                "Priority",
+                                "---",
+                                "End task\u2026",
+                                "Force kill\u2026",
+                                "---",
+                                "Manage",
+                                "Set CPU limit…",
+                                "Add to OOM management",
+                                "Remove from OOM management",
+                                "Unmanage",
+                                "---",
+                                "Sort by",
+                                "---",
+                                "Ascending",
+                                "Descending"),
+                        List.of("Name", "PID", "CPU", "Memory", "I/O", "User", "Threads", "Priority", "State"));
+    }
+
+    /**
+     * Fix round H (PR-20): a right click on the column headers opens the sort group alone; on a row, or
+     * from the keyboard (wherever the pointer is), the actions on the selected process come first as before.
+     */
+    @Test
+    void onTheHeadersTheMenuIsTheSortGroupAlone() {
+        List<Object> seen = inPage(scene -> {
+            scene.page().show(List.of(cpu(10, 1), cpu(20, 5)));
+            scene.settle();
+            Node header = scene.table().lookup(".column-header-background .column-header");
+            Node row = scene.table().lookup(".table-row-cell .table-cell");
+            List<Object> facts = new ArrayList<>();
+            facts.add(shownOn(scene, header, false));
+            facts.add(shownOn(scene, row, false));
+            facts.add(shownOn(scene, header, false).size());
+            facts.add(shownOn(scene, header, true).size());
+            return facts;
+        });
+
+        assertThat(seen)
+                .containsExactly(List.of("Sort by", "---", "Ascending", "Descending"), FULL_MENU, 4, FULL_MENU.size());
+    }
+
+    private static final List<String> FULL_MENU = List.of(
+            "Suspend",
+            "Resume",
+            "Priority",
+            "---",
+            "End task…",
+            "Force kill…",
+            "---",
+            "Manage",
+            "Set CPU limit…",
+            "Add to OOM management",
+            "Remove from OOM management",
+            "Unmanage",
+            "---",
+            "Sort by",
+            "---",
+            "Ascending",
+            "Descending");
+
+    /**
+     * The items the menu would show after a context menu request on a node: the request goes through the
+     * table's filter and is consumed at the node, so that no window is needed to show the menu.
+     */
+    private static List<String> shownOn(Scene2 scene, Node target, boolean keyboard) {
+        javafx.event.EventHandler<ContextMenuEvent> stop = ContextMenuEvent::consume;
+        target.addEventHandler(ContextMenuEvent.CONTEXT_MENU_REQUESTED, stop);
+        try {
+            Event.fireEvent(
+                    target,
+                    new ContextMenuEvent(
+                            ContextMenuEvent.CONTEXT_MENU_REQUESTED,
+                            4,
+                            4,
+                            4,
+                            4,
+                            keyboard,
+                            new PickResult(target, 4, 4)));
+        } finally {
+            target.removeEventHandler(ContextMenuEvent.CONTEXT_MENU_REQUESTED, stop);
+        }
+        return scene.menu().getItems().stream()
+                .filter(MenuItem::isVisible)
+                .map(item -> item instanceof SeparatorMenuItem ? "---" : item.getText())
+                .toList();
     }
 
     @Test
@@ -373,10 +463,9 @@ class SortMenuSceneTest {
         return SnapshotHarness.inspect(Theme.LIGHT, 100, 100, javafx.scene.layout.Pane::new, ignored -> {
             ProcessesPage page =
                     new ProcessesPage(new ValueFormatter(Locale.US), ZoneOffset.UTC, LOG_FOLDER, asked::add);
-            if (theme == Theme.DARK) {
-                page.getStyleClass().add("theme-dark");
-            }
             Scene scene = new Scene(page, 916, 651);
+            scene.getPreferences().setColorScheme(SnapshotHarness.colorScheme(theme));
+            scene.getPreferences().setReducedMotion(true);
             scene.getStylesheets().add(Stylesheets.app());
             Stage stage = new Stage();
             stage.setScene(scene);
