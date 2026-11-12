@@ -125,7 +125,7 @@ public final class WindowsProcessVirtualSizes implements ProcessVirtualSizeSourc
                     || !(instance.get(ProcessCounter.VIRTUAL_BYTES) instanceof Long virtualBytes)) {
                 continue;
             }
-            long createdMillis = createdFiletime / FILETIME_UNITS_PER_MILLI - FILETIME_EPOCH_TO_UNIX_EPOCH_MILLIS;
+            long createdMillis = filetimeToEpochMillis(createdFiletime);
             // The counter is an unsigned 64-bit number. A value that does not fit a long, or a
             // creation time before 1970, is not a reading.
             if (createdMillis <= 0 || virtualBytes < 0) {
@@ -138,5 +138,14 @@ public final class WindowsProcessVirtualSizes implements ProcessVirtualSizeSourc
             sizes.putIfAbsent(identity, virtualBytes);
         }
         return sizes;
+    }
+
+    /**
+     * A FILETIME as milliseconds since 1970, truncated as OSHI truncates the start time of a
+     * process. Process control compares creation times with the start times of the listing through
+     * this one conversion, so that an identity is matched in exactly the way it was formed.
+     */
+    static long filetimeToEpochMillis(long filetime) {
+        return filetime / FILETIME_UNITS_PER_MILLI - FILETIME_EPOCH_TO_UNIX_EPOCH_MILLIS;
     }
 }
