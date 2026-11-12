@@ -1,5 +1,8 @@
 # About this checkpoint
 
+> This file records the first stage, the milestone 5 checkpoint, as it was published. The second
+> stage is described in [docs/COURSE_RELEASE.md](docs/COURSE_RELEASE.md).
+
 This repository is the **milestone 5 checkpoint** of PRISM, prepared for the Operating Systems
 course. It is an authentic snapshot of the team's project as it stood on **2026-10-07**, taken
 from commit `caba4429bd4556becf9365fde35734e4755c33bc` ("feat: implement read-only processes

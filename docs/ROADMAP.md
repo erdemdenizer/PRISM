@@ -38,13 +38,32 @@ is assigned to (staged release plan below).
 | 12 | Linux native limits | CPU and memory limits through cgroups v2 for processes an unprivileged user may move (ADR-0003) | LIM-6 |
 | 13 | Settings, shutdown hardening, polish, packaging | Settings page, theme switching, the full shutdown sequence, a Windows application image built with jpackage | UI-7, LIFE-1 to LIFE-6, DEL-1 |
 
+## Course release 2
+
+The second stage contains everything the team has built so far: milestones 5.5 to 13 and the
+redesigned user interface. It is about 80 % of the product: the work that remains is to bring
+Linux and macOS to the level Windows has reached, and to finish their tests.
+
+Left for the next stage:
+
+- application images for Linux and macOS (the image is built for Windows only);
+- the Linux native limits, implemented in milestone 12 and switched off in the product (owner
+  decision K16) until desktop applications are validated with them;
+- validated memory signals on Linux and macOS, so that OOM Guard's interventions and the watched
+  memory limit can run there (today they monitor, warn and log);
+- the redesigned user interface tested on macOS, and its test round on Linux repeated;
+- a review of accessibility with a screen reader, and high-DPI checks beyond 125 %.
+
+Details and the provenance of the release: [COURSE_RELEASE.md](COURSE_RELEASE.md).
+
 ## Staged release plan for the course repository
 
 | Course submission | Published here | Demonstration |
 |---|---|---|
 | First meeting (2026-10-23) | Milestones 1 to 5: this checkpoint | Live monitoring in the application; the process-lifecycle probe |
 | Next interim submission | Milestone 6 (demo workload) and the first stage of milestone 7 (process actions on Windows with explicit results and safety rules), with the tests and the process-action UI; see [TEAM_TASKS.md](TEAM_TASKS.md) for who delivers what | Control actions on the demo workload, never on a real application |
-| Later submissions | Milestones 8 to 13 in order, each with its verification record | Limits, OOM Guard, packaged application |
+| Course release 2 | Milestones 5.5 to 13, and the redesigned user interface ([COURSE_RELEASE.md](COURSE_RELEASE.md)) | Process control and limits on the demo workload, OOM Guard, the packaged application |
+| Later submissions | Linux and macOS brought to the level of Windows | Native limits on Linux, application images for Linux and macOS, tests on macOS |
 
 The order follows MILESTONES.md. Dates other than the first meeting are set by the course
 schedule and are not stated here.

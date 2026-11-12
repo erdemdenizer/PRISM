@@ -1,4 +1,8 @@
-# Demonstration guide (milestone 5 checkpoint)
+# Demonstration guide
+
+Demos A and B and the fallback are those of the milestone 5 checkpoint, with what was observed then.
+Demos C to E belong to the course release 2 ([COURSE_RELEASE.md](COURSE_RELEASE.md)); they act on the
+demo workload `prism-demo` only, never on an application someone uses.
 
 Everything below was run on 2026-10-22 on Windows 11 with Temurin JDK 25.0.4 from a clean
 copy of this repository. Times are from that run; a different machine will differ.
@@ -77,6 +81,38 @@ Prints processor and OS facts, the file systems, the network interfaces grouped 
 memory and swap, disk and network rates, uptime and process count, and how long the source
 took in that cycle. Observed on 2026-10-22: passed in 12 s; the first cycle costs about 1.9 s
 (device enumeration), later cycles 14 to 28 ms.
+
+## Demo C: process control on the demo workload (Windows, about 3 minutes)
+
+Start the demo workload in its own console, then PRISM (from the application image, or with
+`.\mvnw.cmd javafx:run`):
+
+```powershell
+target\package\image\PRISM\prism-demo.exe --cpu 25 --memory 256MiB --duration 10m
+```
+
+1. **Processes**: filter for `prism-demo`, select it. The inspector shows its identity, its CPU near
+   25 % of the machine and its memory.
+2. **Priority**: lower it one level; the column changes on the next refresh.
+3. **Suspend**, then **Resume**: its CPU falls to 0 and comes back.
+4. **End task...**: the demo has no window, so PRISM says that it asked and the demo did not close,
+   and does not claim it ended. **Force kill...** asks once more and ends it.
+5. Point at PRISM's own row: it offers no action (CAP-2), and the Logs page records every request.
+
+## Demo D: managed processes, the CPU limit and OOM Guard (Windows, about 3 minutes)
+
+1. Start the demo again (`--cpu 40 --duration 10m`). In the inspector choose **Manage**, then
+   **Set CPU limit...** at 10 %. On Windows the Limits page shows the limit as native: a Job Object
+   holds the demo and the operating system enforces the limit. Its CPU settles near 10 %. (Where no
+   native limit is available, PRISM offers its emulated limit and says so before it is used.)
+2. **Remove CPU limit**: the demo goes back to 40 %.
+3. **OOM Guard**: the state follows the memory available; the actions apply to managed processes only.
+   Close PRISM while a limit holds: the limit is cleared and the demo goes on running (LIFE-1).
+
+## Demo E: the application image (Windows)
+
+`target\package\image\PRISM\PRISM.exe` starts without a Java installation. Settings: the theme
+(System, Light, Dark) changes at once and is kept for the next start.
 
 ## If something fails during the meeting
 
