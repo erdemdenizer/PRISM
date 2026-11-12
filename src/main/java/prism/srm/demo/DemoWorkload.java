@@ -45,7 +45,8 @@ public final class DemoWorkload {
                 memory,
                 DemoWorkload::processCpuTimeNanos,
                 System.out,
-                DemoRun.DEFAULT_STATUS_INTERVAL);
+                DemoRun.DEFAULT_STATUS_INTERVAL,
+                Boolean.getBoolean("prism.demo.interactive"));
         // Ctrl+C and a termination request run the shutdown hooks: the run is asked to stop and the
         // hook waits for its end line, so that what happened to the process is reported.
         Runtime.getRuntime()
