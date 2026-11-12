@@ -1,7 +1,10 @@
 package prism.srm.app;
 
+import java.net.URL;
+import java.util.List;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.image.Image;
 import javafx.stage.Stage;
 import prism.srm.ui.Stylesheets;
 
@@ -24,10 +27,13 @@ final class MainWindow {
 
     static final double MIN_HEIGHT = 480;
 
+    /** The sizes of the window icon; the system picks the one for the title bar, the taskbar and Alt+Tab. */
+    static final List<Integer> ICON_SIZES = List.of(16, 24, 32, 48, 64, 128, 256);
+
     private MainWindow() {}
 
     /**
-     * Gives the stage its title, its content at the default size and its smallest size, which it
+     * Gives the stage its title, its icon, its content at the default size and its smallest size, which it
      * keeps on every monitor. The stage is not shown. Call on the JavaFX Application Thread.
      *
      * @param typefaceBundled whether the bundled typeface was loaded ({@code Typefaces}); if not,
@@ -40,6 +46,12 @@ final class MainWindow {
             scene.getStylesheets().add(Stylesheets.fontsFallback());
         }
         stage.setTitle(TITLE);
+        for (int size : ICON_SIZES) {
+            URL icon = MainWindow.class.getResource("icon/prism-" + size + ".png");
+            if (icon != null) {
+                stage.getIcons().add(new Image(icon.toExternalForm()));
+            }
+        }
         new MinimumWindowSize(stage.minWidthProperty(), stage.minHeightProperty(), MIN_WIDTH, MIN_HEIGHT)
                 .keep(stage.outputScaleXProperty(), stage.outputScaleYProperty());
         stage.setScene(scene);
