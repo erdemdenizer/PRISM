@@ -1,0 +1,96 @@
+[INFO] Scanning for projects...
+[INFO] Loaded 24051 auto-discovered prefixes for remote repository central (prefixes-central.txt)
+[INFO] 
+[INFO] ----------------------------< prism:prism >-----------------------------
+[INFO] Building PRISM 0.1.0
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- enforcer:3.6.3:enforce (enforce-baseline) @ prism ---
+[INFO] Rule 0: org.apache.maven.enforcer.rules.version.RequireJavaVersion passed
+[INFO] Rule 1: org.apache.maven.enforcer.rules.version.RequireMavenVersion passed
+[INFO] Rule 2: org.apache.maven.enforcer.rules.RequirePluginVersions passed
+[INFO] Rule 3: org.apache.maven.enforcer.rules.dependency.RequireReleaseDeps passed
+[INFO] Rule 4: org.apache.maven.enforcer.rules.dependency.RequireUpperBoundDeps passed
+[INFO] Rule 5: org.apache.maven.enforcer.rules.dependency.BannedDependencies passed
+[INFO] 
+[INFO] --- jacoco:0.8.15:prepare-agent (coverage-agent) @ prism ---
+[INFO] Loaded 74 auto-discovered prefixes for remote repository apache.snapshots (prefixes-apache.snapshots.txt)
+[INFO] argLine set to -javaagent:%USERPROFILE%\\.m2\\repository\\org\\jacoco\\org.jacoco.agent\\0.8.15\\org.jacoco.agent-0.8.15-runtime.jar=destfile=<worktree>\\target\\jacoco.exec
+[INFO] 
+[INFO] --- resources:3.5.0:resources (default-resources) @ prism ---
+[INFO] Copying 17 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.16.0:compile (default-compile) @ prism ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 291 source files with javac [debug release 25] to target\classes
+[INFO] 
+[INFO] --- resources:3.5.0:testResources (default-testResources) @ prism ---
+[INFO] Copying 1 resource from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.16.0:testCompile (default-testCompile) @ prism ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 202 source files with javac [debug release 25] to target\test-classes
+[INFO] 
+[INFO] --- surefire:3.6.0:test (default-test) @ prism ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running prism.srm.platform.windows.JnaWin32Test
+[INFO] Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.941 s -- in prism.srm.platform.windows.JnaWin32Test
+[INFO] Running prism.srm.platform.windows.NativeLimitRecoveryIntegrationTest
+native-validation: selfInJob=Optional[false] childInJob=Optional[false] pid=37856
+  [26052] 01:30:44.728 INFO  [main] p.s.p.windows.WindowsJobLimiter - Native limits: CPU LimitCapability[level=NATIVE_HARD, mechanism=Optional[JOB_OBJECT], reason=Optional.empty], memory LimitCapability[level=NATIVE_HARD, mechanism=Optional[JOB_OBJECT], reason=Optional.empty]
+01:30:44.787 WARN  [junit-timeout-thread-1] p.srm.application.NativeRecovery - The native-limit ledger of 26052-1791671443994 is left alone: that Prism process still runs
+recovery: live session: HELD_ELSEWHERE a running program holds this job (CPU 20 %, memory 4 GiB); Prism changes nothing use=21.3
+native-validation: selfInJob=Optional[false] childInJob=Optional[false] pid=27708
+  [45836] 01:30:55.613 INFO  [main] p.s.p.windows.WindowsJobLimiter - Native limits: CPU LimitCapability[level=NATIVE_HARD, mechanism=Optional[JOB_OBJECT], reason=Optional.empty], memory LimitCapability[level=NATIVE_HARD, mechanism=Optional[JOB_OBJECT], reason=Optional.empty]
+recovery: child of an exited target: childUse=21.0 GONE_CHILDREN_UNKNOWN the process exited; Prism cannot prove that its limit never took effect
+native-validation: selfInJob=Optional[false] childInJob=Optional[false] pid=55508
+  [49624] 01:31:06.623 INFO  [main] p.s.p.windows.WindowsJobLimiter - Native limits: CPU LimitCapability[level=NATIVE_HARD, mechanism=Optional[JOB_OBJECT], reason=Optional.empty], memory LimitCapability[level=NATIVE_HARD, mechanism=Optional[JOB_OBJECT], reason=Optional.empty]
+recovery: stand-in says limiting CPU 20 %, memory 4 GiB
+recovery: limited=22.0 afterKill=20.5 reopenError=2 inJob=Optional[true]
+01:31:26.670 WARN  [junit-timeout-thread-3] prism.srm.application.ActivityLog - demo (PID 55508) may still be limited by an earlier Prism session (CPU 20 %, memory 4 GiB): the job of an earlier session cannot be reached. The limit lasts until the process exits; Prism starts no second limiter for it.
+recovery: UNREACHABLE the job of an earlier session cannot be reached
+recovery: afterRecovery=20.3
+recovery: after the target exited: GONE_CHILDREN_UNKNOWN the process exited; Prism cannot prove that its limit never took effect
+native-validation: selfInJob=Optional[false] childInJob=Optional[false] pid=18128
+  [51924] 01:31:37.652 INFO  [main] p.s.p.windows.WindowsJobLimiter - Native limits: CPU LimitCapability[level=NATIVE_HARD, mechanism=Optional[JOB_OBJECT], reason=Optional.empty], memory LimitCapability[level=NATIVE_HARD, mechanism=Optional[JOB_OBJECT], reason=Optional.empty]
+recovery: stand-in says changed-cpu APPLIED CPU 30 %, memory 4 GiB
+recovery: partial change: afterKill=30.4 UNREACHABLE the job of an earlier session cannot be reached
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 63.95 s -- in prism.srm.platform.windows.NativeLimitRecoveryIntegrationTest
+[INFO] Running prism.srm.platform.windows.ParentExitsChildSurvivesTest
+native-validation: selfInJob=Optional[false] childInJob=Optional[false] pid=36196
+01:31:47.872 INFO  [junit-timeout-thread-5] p.s.p.windows.WindowsJobLimiter - Native limits: CPU LimitCapability[level=NATIVE_HARD, mechanism=Optional[JOB_OBJECT], reason=Optional.empty], memory LimitCapability[level=NATIVE_HARD, mechanism=Optional[JOB_OBJECT], reason=Optional.empty]
+01:31:57.964 INFO  [junit-timeout-thread-5] p.s.p.windows.WindowsJobLimiter - The job of exited PID 36196 held 2 process(es); Prism cleared its limits
+parent-exits: limited=20.5 RELEASED survivors=2 childChildren=[58344:conhost.exe] free=58.3
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 20.27 s -- in prism.srm.platform.windows.ParentExitsChildSurvivesTest
+[INFO] Running prism.srm.platform.windows.WindowsJobIntegrationTest
+native-validation: selfInJob=Optional[false] childInJob=Optional[false] pid=46096
+01:32:09.176 INFO  [junit-timeout-thread-6] p.s.p.windows.WindowsJobLimiter - Native limits: CPU LimitCapability[level=NATIVE_HARD, mechanism=Optional[JOB_OBJECT], reason=Optional.empty], memory LimitCapability[level=NATIVE_HARD, mechanism=Optional[JOB_OBJECT], reason=Optional.empty]
+native-validation: selfInJob=Optional[false] childInJob=Optional[false] pid=44552
+01:32:09.321 INFO  [junit-timeout-thread-7] p.s.p.windows.WindowsJobLimiter - Native limits: CPU LimitCapability[level=NATIVE_HARD, mechanism=Optional[JOB_OBJECT], reason=Optional.empty], memory LimitCapability[level=NATIVE_HARD, mechanism=Optional[JOB_OBJECT], reason=Optional.empty]
+native-validation: selfInJob=Optional[false] childInJob=Optional[false] pid=27960
+01:32:09.511 INFO  [junit-timeout-thread-8] p.s.p.windows.WindowsJobLimiter - Native limits: CPU LimitCapability[level=NATIVE_HARD, mechanism=Optional[JOB_OBJECT], reason=Optional.empty], memory LimitCapability[level=NATIVE_HARD, mechanism=Optional[JOB_OBJECT], reason=Optional.empty]
+native-commit: under a 256 MiB limit, asking 512 MiB: allocated=80 failed=true
+01:32:09.658 WARN  [main] p.s.p.windows.WindowsJobLimiter - Clearing a job's limits: CPU 87, memory 0
+native-validation: selfInJob=Optional[false] childInJob=Optional[false] pid=51716
+01:32:19.830 INFO  [junit-timeout-thread-9] p.s.p.windows.WindowsJobLimiter - Native limits: CPU LimitCapability[level=NATIVE_HARD, mechanism=Optional[JOB_OBJECT], reason=Optional.empty], memory LimitCapability[level=NATIVE_HARD, mechanism=Optional[JOB_OBJECT], reason=Optional.empty]
+native-cap: processors=16 baseline=58.4 capped=20.9 cleared=59.4
+01:32:39.842 INFO  [junit-timeout-thread-10] p.s.p.windows.WindowsJobLimiter - Native limits: CPU LimitCapability[level=NATIVE_HARD, mechanism=Optional[JOB_OBJECT], reason=Optional.empty], memory LimitCapability[level=NATIVE_HARD, mechanism=Optional[JOB_OBJECT], reason=Optional.empty]
+native-validation: selfInJob=Optional[false] childInJob=Optional[false] pid=37040
+01:32:39.992 INFO  [junit-timeout-thread-11] p.s.p.windows.WindowsJobLimiter - Native limits: CPU LimitCapability[level=NATIVE_HARD, mechanism=Optional[JOB_OBJECT], reason=Optional.empty], memory LimitCapability[level=NATIVE_HARD, mechanism=Optional[JOB_OBJECT], reason=Optional.empty]
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 31.99 s -- in prism.srm.platform.windows.WindowsJobIntegrationTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 20, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  02:14 min
+[INFO] Finished at: 2026-10-11T01:32:40+03:00
+[INFO] ------------------------------------------------------------------------
