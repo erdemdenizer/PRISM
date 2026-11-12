@@ -1,6 +1,6 @@
 # 0004. Emulated limiting and suspension recovery
 
-- Status: Accepted
+- Status: Accepted; the recovery of §4–5 and its time bound are amended by [0011](0011-suspension-journal-and-recovery.md): after a crash nothing is resumed by itself, and the damage lasts until the user acts on the list shown at the next start; §3 ("an executor dedicated to limiting") is amended by [0015](0015-oom-guard-interventions.md): `srm-limiter` also runs OOM Guard's interventions
 - Date: 2026-10-05
 
 ## Context

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report.xsd" version="3.0.2" name="prism.srm.platform.windows.NativeLimitRecoveryIntegrationTest" time="63.947" tests="4" errors="0" skipped="0" failures="0" flakes="0">
+  <properties><!-- sanitized for docs/evidence: only the properties named in ../m10-native-validation-a6f12b6.md are kept; paths, user and environment were removed -->
+    <property name="sun.arch.data.model" value="64"/>
+    <property name="os.name" value="Windows 11"/>
+    <property name="user.country" value="TR"/>
+    <property name="user.language" value="tr"/>
+    <property name="java.runtime.version" value="25.0.4.1+1-LTS"/>
+    <property name="os.version" value="10.0"/>
+    <property name="file.encoding" value="UTF-8"/>
+    <property name="prism.native.required" value="true"/>
+    <property name="java.vm.name" value="OpenJDK 64-Bit Server VM"/>
+    <property name="java.version" value="25.0.4.1"/>
+    <property name="os.arch" value="amd64"/>
+    <property name="native.encoding" value="Cp1254"/>
+    <property name="java.vendor" value="Eclipse Adoptium"/>
+    <property name="java.vm.version" value="25.0.4.1+1-LTS"/>
+  </properties>
+  <testcase name="recoveryNeverChangesTheJobOfAPrismSessionThatStillRuns" classname="prism.srm.platform.windows.NativeLimitRecoveryIntegrationTest" time="11.071">
+    <system-out><![CDATA[native-validation: selfInJob=Optional[false] childInJob=Optional[false] pid=37856
+  [26052] 01:30:44.728 INFO  [main] p.s.p.windows.WindowsJobLimiter - Native limits: CPU LimitCapability[level=NATIVE_HARD, mechanism=Optional[JOB_OBJECT], reason=Optional.empty], memory LimitCapability[level=NATIVE_HARD, mechanism=Optional[JOB_OBJECT], reason=Optional.empty]
+01:30:44.787 WARN  [junit-timeout-thread-1] p.srm.application.NativeRecovery - The native-limit ledger of 26052-1791671443994 is left alone: that Prism process still runs
+recovery: live session: HELD_ELSEWHERE a running program holds this job (CPU 20 %, memory 4 GiB); Prism changes nothing use=21.3
+]]></system-out>
+  </testcase>
+  <testcase name="aProcessTheTargetStartedStaysLimitedAndTheNextStartSaysItMayBe" classname="prism.srm.platform.windows.NativeLimitRecoveryIntegrationTest" time="10.922">
+    <system-out><![CDATA[native-validation: selfInJob=Optional[false] childInJob=Optional[false] pid=27708
+  [45836] 01:30:55.613 INFO  [main] p.s.p.windows.WindowsJobLimiter - Native limits: CPU LimitCapability[level=NATIVE_HARD, mechanism=Optional[JOB_OBJECT], reason=Optional.empty], memory LimitCapability[level=NATIVE_HARD, mechanism=Optional[JOB_OBJECT], reason=Optional.empty]
+recovery: child of an exited target: childUse=21.0 GONE_CHILDREN_UNKNOWN the process exited; Prism cannot prove that its limit never took effect
+]]></system-out>
+  </testcase>
+  <testcase name="afterAHardKillTheLimitStaysTheNameIsGoneAndTheNextStartListsIt" classname="prism.srm.platform.windows.NativeLimitRecoveryIntegrationTest" time="30.94">
+    <system-out><![CDATA[native-validation: selfInJob=Optional[false] childInJob=Optional[false] pid=55508
+  [49624] 01:31:06.623 INFO  [main] p.s.p.windows.WindowsJobLimiter - Native limits: CPU LimitCapability[level=NATIVE_HARD, mechanism=Optional[JOB_OBJECT], reason=Optional.empty], memory LimitCapability[level=NATIVE_HARD, mechanism=Optional[JOB_OBJECT], reason=Optional.empty]
+recovery: stand-in says limiting CPU 20 %, memory 4 GiB
+recovery: limited=22.0 afterKill=20.5 reopenError=2 inJob=Optional[true]
+01:31:26.670 WARN  [junit-timeout-thread-3] prism.srm.application.ActivityLog - demo (PID 55508) may still be limited by an earlier Prism session (CPU 20 %, memory 4 GiB): the job of an earlier session cannot be reached. The limit lasts until the process exits; Prism starts no second limiter for it.
+recovery: UNREACHABLE the job of an earlier session cannot be reached
+recovery: afterRecovery=20.3
+recovery: after the target exited: GONE_CHILDREN_UNKNOWN the process exited; Prism cannot prove that its limit never took effect
+]]></system-out>
+  </testcase>
+  <testcase name="aCrashInTheMiddleOfAChangeIsReadAsEitherValuePerKind" classname="prism.srm.platform.windows.NativeLimitRecoveryIntegrationTest" time="11.011">
+    <system-out><![CDATA[native-validation: selfInJob=Optional[false] childInJob=Optional[false] pid=18128
+  [51924] 01:31:37.652 INFO  [main] p.s.p.windows.WindowsJobLimiter - Native limits: CPU LimitCapability[level=NATIVE_HARD, mechanism=Optional[JOB_OBJECT], reason=Optional.empty], memory LimitCapability[level=NATIVE_HARD, mechanism=Optional[JOB_OBJECT], reason=Optional.empty]
+recovery: stand-in says changed-cpu APPLIED CPU 30 %, memory 4 GiB
+recovery: partial change: afterKill=30.4 UNREACHABLE the job of an earlier session cannot be reached
+]]></system-out>
+  </testcase>
+</testsuite>
