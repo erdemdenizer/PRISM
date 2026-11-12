@@ -58,3 +58,14 @@ prism task for disturbition/
 *.pfx
 *.jks
 *.keystore
+
+# Local task distribution folder (contains personal names/assignments)
+task distrubution/
+task distribution/
+*TASK*.md
+PRISM-UI-LAB*/
+lab-evidence/
+lab-docs/
+lab-spikes/
+CLAUDE.md
+.claude/
