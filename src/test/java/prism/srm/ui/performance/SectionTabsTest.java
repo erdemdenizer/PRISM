@@ -86,6 +86,53 @@ class SectionTabsTest {
         assertThat(seen).containsExactly(true, 0);
     }
 
+    /** The surface under the selected entry slides to it, or is simply there with reduced motion. */
+    @Test
+    void theSelectedSurfaceSlidesToTheEntryChosenUnlessTheUserPrefersLessMotion() {
+        List<Object> seen = inTabs(Section.CPU, (tabs, selections) -> {
+            List<Object> facts = new ArrayList<>();
+            javafx.scene.Node indicator = tabs.lookup(".segment-indicator");
+            press(tabs.entry(Section.CPU), KeyCode.RIGHT);
+            tabs.layout();
+            facts.add(tabs.sliding());
+            facts.add(indicator.getLayoutX()
+                    == tabs.entry(Section.MEMORY).getLayoutX()
+                            + tabs.getInsets().getLeft());
+            tabs.getScene().getPreferences().setReducedMotion(false);
+            press(tabs.entry(Section.MEMORY), KeyCode.RIGHT);
+            facts.add(tabs.sliding());
+            return facts;
+        });
+
+        assertThat(seen).containsExactly(false, true, true);
+    }
+
+    /** Halfway through a slide the surface is between the two entries, in place and in width. */
+    @Test
+    void theSurfaceIsBetweenTheTwoEntriesHalfwayThroughASlideAndOnTheTargetAtItsEnd() {
+        List<Object> seen = inTabs(Section.CPU, (tabs, selections) -> {
+            tabs.getScene().getPreferences().setReducedMotion(false);
+            javafx.scene.Node indicator = tabs.lookup(".segment-indicator");
+            ToggleButton from = tabs.entry(Section.CPU);
+            ToggleButton to = tabs.entry(Section.NETWORK);
+            double inset = tabs.getInsets().getLeft();
+            tabs.entry(Section.NETWORK).fire();
+            tabs.jumpSlideTo(javafx.util.Duration.millis(80));
+            double midX = indicator.getLayoutX();
+            double midWidth = indicator.getLayoutBounds().getWidth();
+            tabs.jumpSlideTo(javafx.util.Duration.millis(160));
+            List<Object> facts = new ArrayList<>();
+            facts.add(midX > from.getLayoutX() + inset && midX < to.getLayoutX() + inset);
+            facts.add(midWidth > Math.min(from.getWidth(), to.getWidth())
+                    && midWidth < Math.max(from.getWidth(), to.getWidth()));
+            facts.add(indicator.getLayoutX() == to.getLayoutX() + inset);
+            facts.add(indicator.getLayoutBounds().getWidth() == to.getWidth());
+            return facts;
+        });
+
+        assertThat(seen).containsExactly(true, true, true, true);
+    }
+
     private static <T> T inTabs(Section selected, BiFunction<SectionTabs, List<Section>, T> inspection) {
         List<Section> selections = new ArrayList<>();
         return SnapshotHarness.inspect(
