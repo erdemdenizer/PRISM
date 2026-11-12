@@ -27,6 +27,8 @@ public final class ActivityLog {
     private final int capacity;
     private final InstantSource clock;
     private final ArrayDeque<ActivityEntry> entries;
+    private volatile Runnable listener = () -> {};
+    private volatile boolean listenerFailed;
 
     /**
      * @param capacity the number of entries kept, at least one
@@ -39,6 +41,17 @@ public final class ActivityLog {
         this.capacity = capacity;
         this.clock = Objects.requireNonNull(clock, "clock");
         this.entries = new ArrayDeque<>(Math.min(capacity, 64));
+    }
+
+    /**
+     * Sets who is told after each new entry, on the thread that recorded it and before another
+     * entry can be added, so what it reads from {@link #entries()} is never older than what an
+     * earlier call read. It must return quickly. A {@code RuntimeException} it throws is logged
+     * once and does not reach the code that recorded the entry. One listener: the composition root
+     * hands the log to the user interface.
+     */
+    public void setListener(Runnable listener) {
+        this.listener = Objects.requireNonNull(listener, "listener");
     }
 
     /** Records an event. */
@@ -57,11 +70,23 @@ public final class ActivityLog {
                 entries.removeFirst();
             }
             entries.addLast(entry);
+            tellListener();
         }
         switch (severity) {
             case INFO -> LOG.info(message, cause);
             case WARNING -> LOG.warn(message, cause);
             case ERROR -> LOG.error(message, cause);
+        }
+    }
+
+    private void tellListener() {
+        try {
+            listener.run();
+        } catch (RuntimeException e) {
+            if (!listenerFailed) {
+                listenerFailed = true;
+                LOG.warn("The activity log could not be handed over; it is still kept and written", e);
+            }
         }
     }
 
