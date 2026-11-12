@@ -104,6 +104,15 @@ class ArchitectureTest {
                 .onlyDependOnClassesThat()
                 .resideInAnyPackage("java..", "com.sun.management..", DEMO)
                 .check(production);
+        // Kept from matching nothing after a rename: the package must contain the entry point.
+        classes()
+                .that()
+                .resideInAPackage(DEMO)
+                .and()
+                .haveSimpleName("DemoWorkload")
+                .should()
+                .bePublic()
+                .check(production);
     }
 
     @Test
