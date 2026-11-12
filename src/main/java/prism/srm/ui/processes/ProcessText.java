@@ -4,6 +4,8 @@ import java.time.ZoneId;
 import java.util.Objects;
 import java.util.OptionalDouble;
 import java.util.OptionalLong;
+import java.util.Set;
+import prism.srm.domain.ProcessIdentity;
 import prism.srm.domain.ProcessSnapshot;
 import prism.srm.ui.format.Quantity;
 import prism.srm.ui.format.ValueFormatter;
@@ -70,9 +72,29 @@ final class ProcessText {
                 : MISSING;
     }
 
-    /** The state as a word, or the dash where the system has no state for a process as a whole. */
+    /** The State column's word for a managed process the system gives no state for (UI-2). */
+    static final String MANAGED = "Managed";
+
+    /** Added to the state of a managed process: the mark of UI-2, in the words of the column, no badge. */
+    static final String MANAGED_SUFFIX = ", managed";
+
+    private Set<ProcessIdentity> managed = Set.of();
+
+    /** The processes that are managed now, from the limits as they were last handed over. */
+    void showManaged(Set<ProcessIdentity> identities) {
+        managed = Set.copyOf(identities);
+    }
+
+    /**
+     * The state as a word, or the dash where the system has no state for a process as a whole;
+     * with the mark of a managed process.
+     */
     String state(ProcessSnapshot process) {
-        return process.state().map(ProcessColumn::stateName).orElse(MISSING);
+        String word = process.state().map(ProcessColumn::stateName).orElse(null);
+        if (!managed.contains(process.identity())) {
+            return word == null ? MISSING : word;
+        }
+        return word == null ? MANAGED : word + MANAGED_SUFFIX;
     }
 
     /** When the process started, in the time zone of the user. */
