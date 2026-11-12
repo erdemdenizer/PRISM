@@ -66,6 +66,12 @@ abstract class CanvasGraph extends Region {
             return graph.valueColor;
         }
     };
+    private static final CssMetaData<CanvasGraph, Color> CURSOR_COLOR = new ColorMetaData("-srm-graph-cursor") {
+        @Override
+        public StyleableProperty<Color> getStyleableProperty(CanvasGraph graph) {
+            return graph.cursorColor;
+        }
+    };
     private static final CssMetaData<CanvasGraph, Number> LABEL_SIZE =
             new CssMetaData<>("-srm-graph-label-size", StyleConverter.getSizeConverter(), 0) {
                 @Override
@@ -78,16 +84,37 @@ abstract class CanvasGraph extends Region {
                     return graph.labelSize;
                 }
             };
-    private static final List<CssMetaData<? extends Styleable, ?>> CSS_META_DATA = List.copyOf(withRegionMetaData(
-            List.of(LINE_COLOR, SECONDARY_COLOR, GRID_COLOR, SURFACE_COLOR, LABEL_COLOR, VALUE_COLOR, LABEL_SIZE)));
+    private static final List<CssMetaData<? extends Styleable, ?>> CSS_META_DATA =
+            List.copyOf(withRegionMetaData(List.of(
+                    LINE_COLOR,
+                    SECONDARY_COLOR,
+                    GRID_COLOR,
+                    SURFACE_COLOR,
+                    LABEL_COLOR,
+                    VALUE_COLOR,
+                    CURSOR_COLOR,
+                    LABEL_SIZE)));
 
     private final Canvas canvas = new Canvas();
+
+    /**
+     * A second Canvas over the first, for what follows the pointer or the keyboard (a cursor line):
+     * it is cleared and drawn on its own, so that the graph below is not drawn again for it.
+     * {@code null} for a graph that has nothing to draw over itself.
+     */
+    private final Canvas overlay;
+
+    /** How often the graph and its overlay were drawn; for tests of what an event costs. */
+    private long redraws;
+
+    private long overlayRedraws;
     private final StyleableObjectProperty<Color> lineColor = new ColorProperty(LINE_COLOR, "lineColor");
     private final StyleableObjectProperty<Color> secondaryColor = new ColorProperty(SECONDARY_COLOR, "secondaryColor");
     private final StyleableObjectProperty<Color> gridColor = new ColorProperty(GRID_COLOR, "gridColor");
     private final StyleableObjectProperty<Color> surfaceColor = new ColorProperty(SURFACE_COLOR, "surfaceColor");
     private final StyleableObjectProperty<Color> labelColor = new ColorProperty(LABEL_COLOR, "labelColor");
     private final StyleableObjectProperty<Color> valueColor = new ColorProperty(VALUE_COLOR, "valueColor");
+    private final StyleableObjectProperty<Color> cursorColor = new ColorProperty(CURSOR_COLOR, "cursorColor");
     private final StyleableDoubleProperty labelSize = new SimpleStyleableDoubleProperty(LABEL_SIZE, this, "labelSize") {
         @Override
         protected void invalidated() {
@@ -98,10 +125,25 @@ abstract class CanvasGraph extends Region {
 
     /** @param styleClass the style class of the graph, which gives it its colors */
     CanvasGraph(String styleClass) {
+        this(styleClass, false);
+    }
+
+    /**
+     * @param styleClass the style class of the graph, which gives it its colors
+     * @param withOverlay whether the graph draws something over itself ({@link #drawOverlay})
+     */
+    CanvasGraph(String styleClass, boolean withOverlay) {
         getStyleClass().add(styleClass);
         getStylesheets().add(Stylesheets.graph());
         setAccessibleRole(AccessibleRole.IMAGE_VIEW);
         getChildren().add(canvas);
+        if (withOverlay) {
+            overlay = new Canvas();
+            overlay.setMouseTransparent(true);
+            getChildren().add(overlay);
+        } else {
+            overlay = null;
+        }
     }
 
     /**
@@ -110,8 +152,15 @@ abstract class CanvasGraph extends Region {
      */
     abstract void draw(GraphicsContext graphics, double width, double height);
 
+    /**
+     * Draws what lies over the graph on a cleared overlay of the given size; nothing by default.
+     * Not called while the overlay is too small to show anything.
+     */
+    void drawOverlay(GraphicsContext graphics, double width, double height) {}
+
     /** Clears the Canvas and draws the graph again. */
     final void redraw() {
+        redraws++;
         double width = canvas.getWidth();
         double height = canvas.getHeight();
         GraphicsContext graphics = canvas.getGraphicsContext2D();
@@ -121,6 +170,38 @@ abstract class CanvasGraph extends Region {
         }
         graphics.setLineWidth(1);
         draw(graphics, width, height);
+    }
+
+    /** Clears the overlay and draws it again; the graph below stays as it is. */
+    final void redrawOverlay() {
+        if (overlay == null) {
+            return;
+        }
+        overlayRedraws++;
+        double width = overlay.getWidth();
+        double height = overlay.getHeight();
+        GraphicsContext graphics = overlay.getGraphicsContext2D();
+        graphics.clearRect(0, 0, width, height);
+        if (width < 2 || height < 2) {
+            return;
+        }
+        graphics.setLineWidth(1);
+        drawOverlay(graphics, width, height);
+    }
+
+    /** The width of the Canvas the graph is drawn on: the graph less its insets. */
+    final double plotWidth() {
+        return canvas.getWidth();
+    }
+
+    /** How often the graph itself was drawn so far; for tests. */
+    final long redrawCount() {
+        return redraws;
+    }
+
+    /** How often the overlay was drawn so far; for tests. */
+    final long overlayRedrawCount() {
+        return overlayRedraws;
     }
 
     final Color lineColor() {
@@ -147,6 +228,10 @@ abstract class CanvasGraph extends Region {
         return valueColor.get();
     }
 
+    final Color cursorColor() {
+        return cursorColor.get();
+    }
+
     final double labelSize() {
         return labelSize.get();
     }
@@ -166,10 +251,18 @@ abstract class CanvasGraph extends Region {
         double width = Math.max(0, snapSizeX(getWidth() - left - snappedRightInset()));
         double height = Math.max(0, snapSizeY(getHeight() - top - snappedBottomInset()));
         canvas.relocate(left, top);
+        if (overlay != null) {
+            overlay.relocate(left, top);
+        }
         if (width != canvas.getWidth() || height != canvas.getHeight()) {
             canvas.setWidth(width);
             canvas.setHeight(height);
             redraw();
+            if (overlay != null) {
+                overlay.setWidth(width);
+                overlay.setHeight(height);
+                redrawOverlay();
+            }
         }
     }
 
@@ -216,6 +309,7 @@ abstract class CanvasGraph extends Region {
         @Override
         protected void invalidated() {
             redraw();
+            redrawOverlay();
         }
     }
 }
