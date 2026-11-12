@@ -1,6 +1,7 @@
 package prism.srm;
 
 import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAPackage;
+import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAnyPackage;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.library.Architectures.layeredArchitecture;
@@ -22,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import prism.srm.platform.HostPlatform;
 import prism.srm.platform.HostSystem;
 import prism.srm.platform.UserFolders;
+import prism.srm.ui.Typefaces;
 
 /**
  * Enforces the layer boundaries described in docs/ARCHITECTURE.md against the compiled production
@@ -94,28 +96,6 @@ class ArchitectureTest {
     }
 
     @Test
-    void theDemoWorkloadUsesOnlyTheJdk() {
-        // DEMO-1: a separate program. It is started on its own, so it may use nothing of Prism, no
-        // logger and no library; com.sun.management is the JDK's way to the physical memory size.
-        classes()
-                .that()
-                .resideInAPackage(DEMO)
-                .should()
-                .onlyDependOnClassesThat()
-                .resideInAnyPackage("java..", "com.sun.management..", DEMO)
-                .check(production);
-        // Kept from matching nothing after a rename: the package must contain the entry point.
-        classes()
-                .that()
-                .resideInAPackage(DEMO)
-                .and()
-                .haveSimpleName("DemoWorkload")
-                .should()
-                .bePublic()
-                .check(production);
-    }
-
-    @Test
     void nativeAndOshiCodeStaysInsidePlatformImplementations() {
         noClasses()
                 .that()
@@ -142,6 +122,91 @@ class ArchitectureTest {
                 .should()
                 .onlyDependOnClassesThat()
                 .resideInAnyPackage("java..", DOMAIN)
+                .check(production);
+    }
+
+    /**
+     * SAFE-5: no shell command is ever assembled. No production class starts a process at all, so
+     * none can run one built from process names or arguments: process control goes through the JDK
+     * and documented native calls only.
+     */
+    @Test
+    void noProductionCodeStartsAProcess() {
+        assertThat(processStarts(production)).isEmpty();
+    }
+
+    /** The scan finds what it looks for: a test class that starts the demo workload, a mapping of system(3). */
+    @Test
+    void theScanForStartedProcessesFindsOne() {
+        JavaClasses demoStarter = new ClassFileImporter().importClasses(prism.srm.platform.DemoProcess.class);
+        JavaClasses shell = new ClassFileImporter().importClasses(ShellMapping.class);
+
+        assertThat(processStarts(demoStarter)).isNotEmpty();
+        assertThat(processStarts(shell)).containsExactly(ShellMapping.class.getName() + " maps system");
+    }
+
+    /** What the scan must catch: a JNA mapping of the C library's system(3). Never loaded. */
+    interface ShellMapping extends com.sun.jna.Library {
+        int system(String command);
+    }
+
+    /** What starts a process: ProcessBuilder, Runtime.exec, or a native mapping of the C calls for it. */
+    private static List<String> processStarts(JavaClasses classes) {
+        Set<String> nativeStarts = Set.of(
+                "system",
+                "popen",
+                "posix_spawn",
+                "posix_spawnp",
+                "fork",
+                "vfork",
+                "execv",
+                "execve",
+                "execvp",
+                "execl",
+                "execlp",
+                "execle");
+        List<String> starts = new ArrayList<>();
+        for (JavaClass type : classes) {
+            for (JavaAccess<?> access : type.getAccessesFromSelf()) {
+                String owner = access.getTargetOwner().getName();
+                String name = access.getName();
+                if (owner.equals(ProcessBuilder.class.getName())
+                        || owner.equals(Runtime.class.getName()) && name.equals("exec")
+                        // Windows, through jna-platform: CreateProcess*, ShellExecute*, WinExec.
+                        || name.startsWith("CreateProcess")
+                        || name.startsWith("ShellExecute")
+                        || name.equals("WinExec")) {
+                    starts.add(type.getName() + " -> " + owner + "." + access.getName());
+                }
+            }
+            if (type.isAssignableTo("com.sun.jna.Library")) {
+                type.getMethods().stream()
+                        .filter(method -> nativeStarts.contains(method.getName()))
+                        .forEach(method -> starts.add(type.getName() + " maps " + method.getName()));
+            }
+        }
+        return starts;
+    }
+
+    @Test
+    void theDemoWorkloadUsesOnlyTheJdk() {
+        // DEMO-1: a separate program. It is started on its own, so it may use nothing of Prism, no
+        // logger and no library; com.sun.management is the JDK's way to the physical memory size.
+        classes()
+                .that()
+                .resideInAPackage(DEMO)
+                .should()
+                .onlyDependOnClassesThat()
+                .resideInAnyPackage("java..", "com.sun.management..", DEMO)
+                .check(production);
+        // Kept from matching nothing after a rename: the package must contain the entry point.
+        classes()
+                .that()
+                .resideInAPackage(DEMO)
+                .and()
+                .haveSimpleName("DemoWorkload")
+                .should()
+                .bePublic()
                 .check(production);
     }
 
@@ -273,9 +338,130 @@ class ArchitectureTest {
                 .dependOnClassesThat()
                 .resideInAPackage("prism.srm.ui.shell..")
                 .check(production);
-        slices().matching("prism.srm.ui.(overview|performance|processes)..")
+        slices().matching("prism.srm.ui.(overview|performance|processes|limits|oom|logs|settings)..")
                 .should()
                 .notDependOnEachOther()
+                .check(production);
+        // What the pages share lies below them: a shared package never reaches up into a page.
+        noClasses()
+                .that()
+                .resideInAnyPackage(
+                        "prism.srm.ui.format..",
+                        "prism.srm.ui.graph..",
+                        "prism.srm.ui.metric..",
+                        "prism.srm.ui.icon..",
+                        "prism.srm.ui.control..")
+                .should()
+                .dependOnClassesThat()
+                .resideInAnyPackage(
+                        "prism.srm.ui.overview..",
+                        "prism.srm.ui.performance..",
+                        "prism.srm.ui.processes..",
+                        "prism.srm.ui.limits..",
+                        "prism.srm.ui.oom..",
+                        "prism.srm.ui.logs..",
+                        "prism.srm.ui.settings..")
+                .check(production);
+    }
+
+    @Test
+    void theBundledTypefaceIsLoadedInOnePlaceOnly() {
+        // The font registry of the toolkit is process-wide. One owner loads the faces, pays the
+        // cost once at start-up, and decides the fallback in one place; nothing else reads a font
+        // file.
+        noClasses()
+                .that()
+                .doNotBelongToAnyOf(Typefaces.class)
+                .should()
+                .callMethod(javafx.scene.text.Font.class, "loadFont", String.class, double.class)
+                .orShould()
+                .callMethod(javafx.scene.text.Font.class, "loadFont", java.io.InputStream.class, double.class)
+                .check(production);
+    }
+
+    @Test
+    void theSuspensionCoordinatorIsTheOnlyOwnerOfSuspensions() {
+        // CTL-9, ADR-0004: one owner keeps the reasons a process is suspended, so the user, the
+        // limiter and OOM Guard never resume each other's suspensions. They ask the coordinator.
+        noClasses()
+                .that()
+                .doNotBelongToAnyOf(prism.srm.application.SuspensionCoordinator.class)
+                .and()
+                .resideOutsideOfPackage("prism.srm.platform..")
+                .should()
+                .callMethod(
+                        prism.srm.platform.ProcessController.class, "suspend", prism.srm.domain.ProcessIdentity.class)
+                .orShould()
+                .callMethod(prism.srm.platform.ProcessController.class, "resume", prism.srm.platform.Suspension.class)
+                .orShould()
+                .callMethod(prism.srm.platform.Suspension.class, "close")
+                .check(production);
+    }
+
+    @Test
+    void onlyTheUsersActionsAndOomGuardTerminateCloseOrRePrioritizeAProcess() {
+        // Milestone 11: OOM Guard acts on processes itself, through the controller, like the service of the
+        // user's actions; nothing else does. Suspensions go through the coordinator (rule above).
+        noClasses()
+                .that()
+                .doNotBelongToAnyOf(
+                        prism.srm.application.ProcessControlService.class, prism.srm.application.OomGuard.class)
+                .and()
+                .resideOutsideOfPackage("prism.srm.platform..")
+                .should()
+                .callMethod(
+                        prism.srm.platform.ProcessController.class, "terminate", prism.srm.domain.ProcessIdentity.class)
+                .orShould()
+                .callMethod(
+                        prism.srm.platform.ProcessController.class,
+                        "changePriority",
+                        prism.srm.domain.ProcessIdentity.class,
+                        prism.srm.domain.PriorityLevel.class)
+                .orShould()
+                .callMethod(
+                        prism.srm.platform.ProcessController.class,
+                        "requestClose",
+                        prism.srm.domain.ProcessIdentity.class)
+                .check(production);
+    }
+
+    @Test
+    void theOomStateMachineIsAPureFunctionOfItsInputs() {
+        // ADR-0015: no thread, no log, no platform; the JDK and the domain only.
+        classes()
+                .that()
+                .belongToAnyOf(prism.srm.application.OomStateMachine.class)
+                .should()
+                .onlyDependOnClassesThat(resideInAnyPackage("java..", "prism.srm.domain..")
+                        .or(com.tngtech.archunit.core.domain.JavaClass.Predicates.belongToAnyOf(
+                                prism.srm.application.OomStateMachine.class))
+                        .or(new com.tngtech.archunit.base.DescribedPredicate<JavaClass>("arrays of its own types") {
+                            @Override
+                            public boolean test(JavaClass type) {
+                                return type.isArray()
+                                        && type.getBaseComponentType()
+                                                .getName()
+                                                .startsWith("prism.srm.application.OomStateMachine");
+                            }
+                        }))
+                .check(production);
+    }
+
+    @Test
+    void onlyTheCoordinatorTakesOverASuspensionAnEarlierSessionLeft() {
+        // ADR-0011: taking over a stop found after a crash is the one act that may end a stop that is
+        // not Prism's. It happens in one place, on the user's request, after the coordinator's checks.
+        noClasses()
+                .that()
+                .doNotBelongToAnyOf(prism.srm.application.SuspensionCoordinator.class)
+                .and()
+                .resideOutsideOfPackage("prism.srm.platform..")
+                .should()
+                .callMethod(
+                        prism.srm.platform.ProcessController.class,
+                        "adopt",
+                        prism.srm.domain.ProcessIdentity.class,
+                        java.util.Optional.class)
                 .check(production);
     }
 
@@ -283,8 +469,8 @@ class ArchitectureTest {
     void everyPackageOfTheUserInterfaceIsKnownToTheseRules() {
         // The rule above names the pages. A new package must be added here, and if it is a page,
         // to that rule: otherwise it would be outside the rule without anything failing.
-        Set<String> shared = Set.of("format", "graph", "metric");
-        Set<String> pages = Set.of("overview", "performance", "processes");
+        Set<String> shared = Set.of("format", "graph", "metric", "icon", "control");
+        Set<String> pages = Set.of("overview", "performance", "processes", "limits", "oom", "logs", "settings");
         Set<String> found = new TreeSet<>();
         for (JavaClass type :
                 production.that(resideInAPackage("prism.srm.ui.(*)..")).stream().toList()) {
@@ -295,6 +481,33 @@ class ArchitectureTest {
         known.addAll(pages);
         known.add("shell");
         assertThat(found).isEqualTo(known);
+    }
+
+    @Test
+    void theColorSchemeOfASceneIsSetByTheThemeControllerOnly() {
+        // ADR-0009: one owner applies the appearance mode to every scene; a view that forced a
+        // scheme of its own would stop following the mode.
+        noClasses()
+                .that()
+                .doNotHaveFullyQualifiedName("prism.srm.app.ThemeController")
+                .should()
+                .callMethod(
+                        javafx.scene.Scene.Preferences.class, "setColorScheme", javafx.application.ColorScheme.class)
+                .check(production);
+    }
+
+    @Test
+    void theRootOfTheUserInterfaceReachesIntoNoneOfItsPackages() {
+        // Stylesheets, Typefaces, Motion and the relay are what every ui package leans on. The
+        // slice rule above sees only the packages; a root class that reached into one would be
+        // a cycle it cannot see.
+        noClasses()
+                .that()
+                .resideInAPackage("prism.srm.ui")
+                .should()
+                .dependOnClassesThat()
+                .resideInAPackage("prism.srm.ui.(*)..")
+                .check(production);
     }
 
     @Test
