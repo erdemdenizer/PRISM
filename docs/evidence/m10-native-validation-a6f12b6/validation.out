@@ -1,0 +1,5 @@
+native validation passed
+validated: prism.srm.platform.windows.WindowsJobIntegrationTest: tests=6
+validated: prism.srm.platform.windows.NativeLimitRecoveryIntegrationTest: tests=4
+validated: prism.srm.platform.windows.ParentExitsChildSurvivesTest: tests=1
+validated: prism.srm.platform.windows.JnaWin32Test: tests=9

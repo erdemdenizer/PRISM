@@ -138,7 +138,7 @@ final class OshiSystemMetricsSource implements SystemMetricsSource {
         long swapTotal = virtual.getSwapTotal();
         Optional<SwapUsage> swap =
                 swapTotal > 0 ? Optional.of(new SwapUsage(swapTotal, virtual.getSwapUsed())) : Optional.empty();
-        return new MemorySample(physical.getTotal(), physical.getAvailable(), swap);
+        return memorySample(physical.getTotal(), physical.getAvailable(), swap);
     }
 
     @Override
@@ -259,6 +259,24 @@ final class OshiSystemMetricsSource implements SystemMetricsSource {
      */
     static Duration diskEnumerationInterval(HostSystem system) {
         return system == HostSystem.LINUX ? Duration.ZERO : DEVICE_ENUMERATION_INTERVAL;
+    }
+
+    /**
+     * The memory reading, or a failure when OSHI's numbers cannot be a reading.
+     *
+     * <p>No available memory at all is taken as a failed read, not as a reading (milestone 11). On
+     * macOS OSHI answers a failed {@code host_statistics} call with 0 available while the total comes
+     * from another call ({@code hw.memsize}), so a failure would otherwise look like a valid sample at
+     * the edge of exhaustion and could carry OOM Guard into EMERGENCY; OSHI keeps the error to itself,
+     * so the two cannot be told apart. A system with nothing available at all could not run Prism to
+     * read it, and the samples before it have already shown the pressure. Windows and Linux report a
+     * failure with a total of 0, which the sample refuses already.
+     */
+    static MemorySample memorySample(long totalBytes, long availableBytes, Optional<SwapUsage> swap) {
+        if (availableBytes == 0) {
+            throw new IllegalStateException("no available memory was read: taken as a failed read");
+        }
+        return new MemorySample(totalBytes, availableBytes, swap);
     }
 
     /** A count that is not positive is one the system did not report. */

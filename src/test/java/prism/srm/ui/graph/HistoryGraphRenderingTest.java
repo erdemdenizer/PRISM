@@ -40,9 +40,9 @@ class HistoryGraphRenderingTest {
     void drawsWithTheTokenColorsOfTheLightTheme() {
         Pixels pixels = render(Theme.LIGHT);
 
-        assertSameColor(pixels.primaryLine(), Color.web("#0e7c86"));
-        assertSameColor(pixels.secondaryLine(), Color.web("#5b636b"));
-        assertSameColor(pixels.grid(), Color.web("#d5d9dd"));
+        assertSameColor(pixels.primaryLine(), Color.web("#4f5bd5"));
+        assertSameColor(pixels.secondaryLine(), Color.web("#4a5262"));
+        assertSameColor(pixels.grid(), Color.web("#e1e4e9"));
         assertSameColor(pixels.background(), Color.web("#ffffff"));
     }
 
@@ -50,10 +50,10 @@ class HistoryGraphRenderingTest {
     void drawsWithTheTokenColorsOfTheDarkTheme() {
         Pixels pixels = render(Theme.DARK);
 
-        assertSameColor(pixels.primaryLine(), Color.web("#3fb3bd"));
-        assertSameColor(pixels.secondaryLine(), Color.web("#a0a7ae"));
-        assertSameColor(pixels.grid(), Color.web("#363b41"));
-        assertSameColor(pixels.background(), Color.web("#1e2124"));
+        assertSameColor(pixels.primaryLine(), Color.web("#7c8cff"));
+        assertSameColor(pixels.secondaryLine(), Color.web("#a9b1be"));
+        assertSameColor(pixels.grid(), Color.web("#2d3138"));
+        assertSameColor(pixels.background(), Color.web("#20242b"));
     }
 
     /** The fill is the line color at low opacity: neither the background nor the line itself. */
@@ -62,7 +62,7 @@ class HistoryGraphRenderingTest {
         Pixels pixels = render(Theme.LIGHT);
 
         assertThat(pixels.fill()).isNotEqualTo(pixels.background()).isNotEqualTo(pixels.primaryLine());
-        // 12 % of the accent over white stays close to white.
+        // 8 % of the accent over white stays close to white.
         assertThat(pixels.fill().getBrightness()).isGreaterThan(0.85);
     }
 
@@ -80,7 +80,7 @@ class HistoryGraphRenderingTest {
                 },
                 root -> {
                     PixelReader reader = root.snapshot(null, null).getPixelReader();
-                    Color line = Color.web("#0e7c86");
+                    Color line = Color.web("#4f5bd5");
                     return new boolean[] {
                         isClose(reader.getColor(COLUMN, FRAME + 70), line),
                         isClose(reader.getColor(WIDTH - FRAME - 6, FRAME + 70), line)

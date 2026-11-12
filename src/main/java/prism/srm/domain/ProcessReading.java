@@ -9,7 +9,6 @@ import java.util.OptionalLong;
  * One raw reading of a process: facts and the cumulative counters that rates are computed from.
  * A value the system does not provide for this process is absent, never zero.
  *
- * @param identity the unique identity (PID + start time) of the process
  * @param name the system's short name for the process; empty when it reports none
  * @param parentPid the PID of the process that created this one, as the system recorded it then.
  *     That process may have exited since, and its PID may belong to another process by now.
@@ -21,8 +20,6 @@ import java.util.OptionalLong;
  *     processes
  * @param virtualBytes current size of the virtual address space of the process, which says
  *     nothing about how much memory or disk the process really uses
- * @param user the username owning the process, or empty if inaccessible without elevation
- * @param threadCount number of active threads in the process
  * @param priority the scheduling priority as the system numbers it; the scale differs between
  *     systems
  * @param bytesRead bytes the process has read in I/O operations since it started, by the

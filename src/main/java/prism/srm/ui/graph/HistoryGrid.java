@@ -9,6 +9,7 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontSmoothingType;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
+import prism.srm.ui.Typefaces;
 
 /**
  * Draws many small histories, one per cell, on a single Canvas: the utilization of each logical
@@ -34,6 +35,9 @@ public final class HistoryGrid extends CanvasGraph {
 
     /** The least room between the label and the value of a cell. */
     private static final int TEXT_GAP = 8;
+
+    /** The radius of the corners of a cell (docs/UI_GUIDE.md: 4 px for controls and cells). */
+    private static final int CELL_RADIUS = 4;
 
     private final int capacity;
 
@@ -105,7 +109,8 @@ public final class HistoryGrid extends CanvasGraph {
 
     @Override
     void labelSizeChanged() {
-        font = Font.font(labelSize());
+        // The bundled typeface, or the system font where it did not load (an unknown family).
+        font = Font.font(Typefaces.FAMILY, labelSize());
         minCellWidth = -1;
         requestLayout();
     }
@@ -138,9 +143,9 @@ public final class HistoryGrid extends CanvasGraph {
             return;
         }
         graphics.setFill(surfaceColor());
-        graphics.fillRect(x, y, width, height);
+        graphics.fillRoundRect(x, y, width, height, CELL_RADIUS * 2, CELL_RADIUS * 2);
         graphics.setStroke(gridColor());
-        graphics.strokeRect(x + 0.5, y + 0.5, width - 1, height - 1);
+        graphics.strokeRoundRect(x + 0.5, y + 0.5, width - 1, height - 1, CELL_RADIUS * 2, CELL_RADIUS * 2);
 
         // The label set back and the value in the color of text, so the two read as two things.
         double textY = y + 1 + TEXT_ROOM / 2.0;

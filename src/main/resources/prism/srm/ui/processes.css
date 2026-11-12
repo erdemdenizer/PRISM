@@ -8,62 +8,76 @@
   -fx-spacing: 12;
 }
 
-/* The filter and the number of processes: one line, as high as a control. */
+/* The filter, as high as a control, with the number of processes and the tools of the page. */
 .process-toolbar {
   -fx-spacing: 8;
-  -fx-alignment: center-left;
-}
-
-.process-filter {
-  -fx-min-width: 160;
-  -fx-pref-width: 260;
-  -fx-max-width: 260;
+  -fx-alignment: center-right;
 }
 
 /*
- * The selected row keeps the selection color while the table does not have the focus, as while
- * the user types in the filter: the details below describe that row, so it has to be found. The
- * row the keyboard is on is still told apart by its accent ring and the accent frame of the table.
+ * The inspector of the selected process (fix round G, K2): a panel (the raised surface, a hairline, the
+ * 1 px top highlight, radius 10) whose frame (ui.control.InspectorFrame) holds the pinned part, which
+ * never scrolls away (the name, the actions, the line about them), and under a hairline the details,
+ * which scroll inside the panel. Its lines are 20 px, so the pane is as high whatever it shows.
  */
-.process-table .table-row-cell:selected {
-  -fx-background-color: -srm-selection;
-}
-
-/* On the selection color the muted unit would fall below the contrast the guide asks for. */
-.process-table .table-row-cell:selected .quantity-unit {
-  -fx-text-fill: -srm-text;
-}
-
-/* The details of the selected process: a flat region, set apart from the table by spacing. */
 .process-details {
-  -fx-spacing: 4;
+  -fx-spacing: 0;
+  -fx-background-color: -srm-inspector-edge, -srm-panel-highlight, -srm-surface-raised;
+  -fx-background-insets: 0, 1, 2 1 1 1;
+  -fx-background-radius: 10, 9, 9;
+  -fx-padding: 1;
+}
+
+/* The name, the actions and the line about them: 12 px in, 16 at the sides, a hairline under them. */
+.process-details-pinned {
+  -fx-padding: 12 16 12 16;
+  -fx-border-color: transparent transparent -srm-inspector-rule transparent;
+  -fx-border-width: 0 0 1 0;
+}
+
+/* The details under them: Now and Executable. */
+.process-details-facts {
+  -fx-padding: 12 16 16 16;
 }
 
 .process-details-heading {
   -fx-spacing: 8;
   -fx-alignment: baseline-left;
+  -fx-min-height: 20;
+  -fx-pref-height: 20;
+  -fx-max-height: 20;
 }
 
 .process-details-title {
-  -fx-font-weight: bold;
+  -fx-font-family: "IBM Plex Sans SmBld";
 }
 
 /* "No process selected" is not a name. */
 .process-details-title:placeholder {
-  -fx-font-weight: normal;
+  -fx-font-family: "IBM Plex Sans";
   -fx-text-fill: -srm-text-muted;
 }
 
 .process-details-lines {
   -fx-hgap: 8;
-  -fx-vgap: 4;
+  -fx-vgap: 0;
+  -fx-padding: 8 0 0 0;
 }
 
-/* Never more than three facts on a line, so the two I/O rates stay together in any window. */
-.process-details-facts {
-  -fx-hgap: 16;
-  -fx-vgap: 4;
-  -fx-max-width: 58em;
+/* The caption of the path and of the command line: one width, so the two values begin at one edge. */
+.detail-line-caption {
+  -fx-min-width: 96;
+  -fx-pref-width: 96;
+  -fx-max-width: 96;
+  -fx-min-height: 20;
+  -fx-pref-height: 20;
+  -fx-max-height: 20;
+}
+
+.process-details-lines > .detail-value {
+  -fx-min-height: 20;
+  -fx-pref-height: 20;
+  -fx-max-height: 20;
 }
 
 /* A path is cut in its middle, so that the file name stays readable. A sentence is not a path. */
@@ -75,29 +89,305 @@
   -fx-text-overrun: ellipsis;
 }
 
-.detail-fact {
-  -fx-spacing: 8;
-  -fx-alignment: baseline-left;
-}
-
 /* "Reading...", a dash and the reason why a value is missing are not the value. */
 .detail-value:placeholder {
   -fx-text-fill: -srm-text-muted;
 }
 
-/* Every caption is as wide as the longest one, "Private memory", so all values begin at one edge. */
-.detail-caption {
-  -fx-min-width: 7.5em;
-  -fx-pref-width: 7.5em;
-  -fx-max-width: 7.5em;
+/*
+ * The actions on the selected process, in the pinned part under the name: plain buttons 8 px apart in
+ * their groups, each group under its caption, and the line under them (the spacing is in code).
+ */
+.process-actions {
+  -fx-padding: 0;
+}
+
+/* The line is a group of its own: 16 px after Force kill, as the two groups of buttons are apart. */
+.process-action-message {
+  -fx-padding: 0 0 0 8;
+}
+
+/* Under the buttons it starts where they start. */
+.process-action-message:below {
+  -fx-padding: 0;
+}
+
+/* The confirmation of End task and Force kill: the question, then what follows from it. */
+.confirm-content {
+  -fx-spacing: 8;
+  -fx-pref-width: 400;
+  -fx-max-width: 400;
+}
+
+.confirm-consequence {
+  -fx-text-fill: -srm-text-muted;
+}
+
+/* What cannot be undone is read first: the text color, no color of its own. */
+.confirm-consequence-lasting {
+  -fx-text-fill: -srm-text;
+}
+
+/* The process on a line of its own: the name, cut where it must be, and its PID, never cut. */
+.confirm-process {
+  -fx-spacing: 8;
+  -fx-alignment: baseline-left;
 }
 
 /*
- * The value of a fact has a part of a fixed width, wide enough for the longest value, a date
- * with its time. So every fact is as wide as every other, and the facts stand in columns.
+ * After process monitoring stopped: the processes Prism still holds suspended, each with Resume.
+ * Below the notice, 8 px between its lines; the name, its PID and the button 8 px apart; a plain
+ * button, as everywhere.
  */
-.detail-fact > .detail-value {
-  -fx-min-width: 10em;
-  -fx-pref-width: 10em;
-  -fx-max-width: 10em;
+.held-suspensions {
+  -fx-spacing: 8;
+}
+
+.held-suspensions-list {
+  -fx-hgap: 8;
+  -fx-vgap: 8;
+  -fx-alignment: center-left;
+}
+
+/*
+ * What an earlier session may have left suspended: the caption, then each entry on a line, its
+ * name, PID, reasons, what Prism could check (cut, with the whole in a tooltip) and its buttons,
+ * 8 px apart; then the line about the last request.
+ */
+.recovered-suspensions {
+  -fx-spacing: 8;
+}
+
+.recovered-suspensions-caption {
+  -fx-text-fill: -srm-text;
+}
+
+.recovered-suspensions-list {
+  -fx-hgap: 8;
+  -fx-vgap: 8;
+  -fx-alignment: center-left;
+}
+
+/* At the right of the filter line: how many an earlier session may have left suspended, and Review…. */
+.recovered-summary {
+  -fx-spacing: 8;
+  -fx-alignment: center-right;
+}
+
+/* Still checking an earlier session, nothing listed yet: a note on its way, muted. */
+.recovered-summary-text:pending {
+  -fx-text-fill: -srm-text-muted;
+}
+
+/* Prism has stopped looking for an unread journal of an earlier session: the list may be incomplete. */
+.recovered-summary-text:warning,
+.recovered-suspensions-incomplete:warning {
+  -fx-text-fill: -srm-warning;
+}
+
+.recovered-suspensions-incomplete {
+  -fx-text-fill: -srm-text;
+}
+
+/*
+ * UI lab v2: the filter is on the title line, 260 px; it gives way to 160 px in a narrow line and
+ * then folds into its search button (in code). The summary before it is cut first.
+ */
+.process-toolbar > .filter-field {
+  -fx-min-width: 160;
+  -fx-pref-width: 260;
+}
+
+/* The list in its dialog. */
+.recovered-dialog > .content {
+  -fx-pref-width: 760;
+}
+
+/*
+ * UI lab v2: the inspector beside the table. The divider is the 12 px gutter between them, with a
+ * hairline while the pointer is on it; the inspector is a panel, as high as the table, and scrolls
+ * inside where its sections are taller. No shadow: its values change every second, and the panel is
+ * told apart by its border and its surface. Fix round H: the dock (ProcessDock) lays them out in every
+ * mode; the divider is its own, no split pane.
+ */
+.process-divider {
+  -fx-background-color: transparent;
+}
+
+.process-divider:hover,
+.process-divider:pressed {
+  -fx-background-color: transparent, -srm-border-strong;
+  -fx-background-insets: 0, 0 5.5 0 5.5;
+}
+
+.process-details:narrow .process-details-heading {
+  -fx-min-height: 24;
+  -fx-pref-height: 24;
+  -fx-max-height: 24;
+}
+
+.process-details:narrow .process-details-title {
+  -fx-font-size: 15px;
+}
+
+.process-details-marks {
+  -fx-spacing: 8;
+}
+
+/* A hairline 12 px under the section above and 12 px over the title of the next. */
+.inspector-section-separator {
+  -fx-background-color: -srm-inspector-rule;
+  -fx-background-insets: 12 0 12 0;
+  -fx-min-height: 25;
+  -fx-pref-height: 25;
+  -fx-max-height: 25;
+}
+
+/* "Now": the values in two columns, each caption at the left of its value on one line. */
+.process-details-now {
+  -fx-hgap: 16;
+  -fx-vgap: 4;
+}
+
+.inspector-fact {
+  -fx-spacing: 8;
+  -fx-alignment: baseline-left;
+}
+
+/* Path and command line: the caption above the value, the value as wide as the inspector. */
+.process-details:narrow .process-details-lines {
+  -fx-padding: 0;
+  -fx-vgap: 0;
+}
+
+.process-details:narrow .detail-line-caption {
+  -fx-min-width: -1;
+  -fx-pref-width: -1;
+  -fx-max-width: -1;
+  -fx-min-height: 18;
+  -fx-pref-height: 18;
+  -fx-max-height: 18;
+}
+
+/*
+ * Limits & protection, and the danger zone at the foot: stacked, each 12 px under a hairline. In columns
+ * under the table they stand beside Control, their titles on its line, and no rule cuts across the pinned
+ * part (fix round G, PR-09): the one hairline is under the whole of it.
+ */
+.inspector-limits {
+  -fx-spacing: 8;
+  -fx-padding: 0;
+}
+
+.process-details:narrow .inspector-limits {
+  -fx-border-color: -srm-inspector-rule transparent transparent transparent;
+  -fx-border-width: 1 0 0 0;
+  -fx-padding: 12 0 0 0;
+}
+
+/* The section's spacing is the 8 px under its title. */
+.inspector-limits > .inspector-section-caption {
+  -fx-padding: 0;
+}
+
+/* Three lines, each with its caption at the left, the buttons in one column after them. */
+.inspector-limits-buttons {
+  -fx-hgap: 12;
+  -fx-vgap: 8;
+}
+
+.inspector-limits-row-caption {
+  -fx-min-width: 72;
+}
+
+/*
+ * Fix round H (PR-03): the compact section of a low frame. The menu "Limits & protection" and the state of
+ * the process on one line, 12 px apart; the reasons under them, as in the whole section.
+ */
+.inspector-limits-compact {
+  -fx-spacing: 12;
+  -fx-alignment: center-left;
+}
+
+/* The 8 px under it are the bar's (ProcessActionBar.CAPTION_GAP). */
+.process-actions-end-caption {
+  -fx-padding: 0;
+}
+
+.process-details:narrow .process-actions-end-caption {
+  -fx-border-color: -srm-inspector-rule transparent transparent transparent;
+  -fx-border-width: 1 0 0 0;
+  -fx-padding: 12 0 0 0;
+}
+
+/* The buttons of the narrow inspector are 30 px, as in a low window: it holds more of them. */
+.process-details:narrow .button,
+.process-details:narrow .menu-button {
+  -fx-min-height: 30;
+  -fx-pref-height: 30;
+  -fx-max-height: 30;
+}
+
+/*
+ * The sheet over the page, below 900 px wide or 560 px high: from the right, on the raised
+ * surface with a hairline at its left edge, over a scrim. No shadow, as beside the table.
+ */
+.process-sheet-scrim {
+  -fx-background-color: -srm-scrim;
+}
+
+/* The hairline is a 1 px border, so the content begins 16 px after it. */
+.process-sheet {
+  -fx-background-color: -srm-surface-raised;
+  -fx-border-color: transparent transparent transparent -srm-edge;
+  -fx-border-width: 0 0 0 1;
+}
+
+/* In the sheet the inspector takes the sheet's surface; the sheet's bar is above it. */
+.process-details:sheet {
+  -fx-background-color: transparent;
+  -fx-padding: 0;
+}
+
+.process-details:sheet .process-details-pinned {
+  -fx-padding: 10 16 12 16;
+}
+
+/* The name stands on the line of the sheet's close button: room for it at the right (LO-25). */
+.process-details:sheet .process-details-heading {
+  -fx-padding: 0 36 0 0;
+}
+
+/* The empty, loading and failed states of the table: one muted line in the middle of it. */
+.process-table .placeholder .label {
+  -fx-font-size: 13px;
+  -fx-padding: 24;
+}
+
+/*
+ * Under the table the details stand in two columns, Now and Executable, 24 px apart, their captions on
+ * one line at the top of the details (PR-09: one hairline, the one under the pinned part).
+ */
+.process-details-columns {
+  -fx-spacing: 24;
+  -fx-padding: 0;
+}
+
+.inspector-column {
+  -fx-padding: 0;
+}
+
+/*
+ * Where the inspector is a sheet: the selected process and the line about its last action, under the
+ * table, so a result is never only in a closed sheet (PR-02, PR-07). One 20 px line, 8 px between parts.
+ */
+.process-selection-line {
+  -fx-spacing: 8;
+  -fx-alignment: baseline-left;
+  -fx-min-height: 20;
+  -fx-padding: 0 2 0 2;
+}
+
+.selection-line-name {
+  -fx-font-family: "IBM Plex Sans SmBld";
 }

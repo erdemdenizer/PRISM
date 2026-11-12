@@ -3,6 +3,7 @@ package prism.srm.app;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Consumer;
 import prism.srm.application.ActivityLog;
 import prism.srm.domain.ActivitySeverity;
 
@@ -18,10 +19,20 @@ final class ShutdownSequence {
     private record Step(String name, Runnable action) {}
 
     private final ActivityLog activity;
+    private final Consumer<String> beforeStep;
     private final List<Step> steps = new ArrayList<>();
 
     ShutdownSequence(ActivityLog activity) {
+        this(activity, name -> {});
+    }
+
+    /**
+     * @param beforeStep told the name of each step before it runs; what it throws is that step
+     *     failing, which is how the tests fail every step in turn (LIFE-3)
+     */
+    ShutdownSequence(ActivityLog activity, Consumer<String> beforeStep) {
         this.activity = Objects.requireNonNull(activity, "activity");
+        this.beforeStep = Objects.requireNonNull(beforeStep, "beforeStep");
     }
 
     /**
@@ -39,6 +50,7 @@ final class ShutdownSequence {
         List<String> failed = new ArrayList<>();
         for (Step step : steps) {
             try {
+                beforeStep.accept(step.name());
                 step.action().run();
             } catch (RuntimeException e) {
                 failed.add(step.name());

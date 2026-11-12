@@ -14,7 +14,6 @@ import javafx.event.EventType;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.Label;
-import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TableView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
@@ -44,7 +43,7 @@ class ShellNavigationTest {
     private static final String LOG_FOLDER = "C:\\Users\\alice\\AppData\\Local\\Prism\\SystemResourceManager\\logs";
 
     @Test
-    void overviewProcessesAndPerformanceHaveAPageAndTheOtherDestinationsAreStillDisabled() {
+    void everyDestinationHasAPageAndNoneIsDisabled() {
         List<Object> seen = inShell(shell -> {
             List<Object> facts = new ArrayList<>();
             facts.add(page(shell).getClass());
@@ -54,7 +53,52 @@ class ShellNavigationTest {
             return facts;
         });
 
-        assertThat(seen).containsExactly(OverviewPage.class, false, false, false, true, true, true, true);
+        // Overview, Processes, Performance, Limits, OOM Guard, Logs, Settings.
+        assertThat(seen).containsExactly(OverviewPage.class, false, false, false, false, false, false, false);
+    }
+
+    /** UI-7: the Settings page comes with milestone 13. */
+    @Test
+    void selectingSettingsPutsItsPageIntoThePageArea() {
+        List<Object> seen = inShell(shell -> {
+            select(shell, Destination.SETTINGS);
+            return List.of(page(shell).getClass(), selected(shell));
+        });
+
+        assertThat(seen).containsExactly(prism.srm.ui.settings.SettingsPage.class, Destination.SETTINGS);
+    }
+
+    /** UI-5: the OOM Guard page comes with milestone 11. */
+    @Test
+    void selectingOomGuardPutsItsPageIntoThePageArea() {
+        List<Object> seen = inShell(shell -> {
+            select(shell, Destination.OOM_GUARD);
+            return List.of(page(shell).getClass(), selected(shell));
+        });
+
+        assertThat(seen).containsExactly(prism.srm.ui.oom.OomGuardPage.class, Destination.OOM_GUARD);
+    }
+
+    /** UI-4: the Limits page comes with milestone 9. */
+    @Test
+    void selectingLimitsPutsTheLimitsPageIntoThePageArea() {
+        List<Object> seen = inShell(shell -> {
+            select(shell, Destination.LIMITS);
+            return List.of(page(shell).getClass(), selected(shell));
+        });
+
+        assertThat(seen).containsExactly(prism.srm.ui.limits.LimitsPage.class, Destination.LIMITS);
+    }
+
+    /** UI-6: the Logs page comes with milestone 7. */
+    @Test
+    void selectingLogsPutsTheLogsPageIntoThePageArea() {
+        List<Object> seen = inShell(shell -> {
+            select(shell, Destination.LOGS);
+            return List.of(page(shell).getClass(), selected(shell));
+        });
+
+        assertThat(seen).containsExactly(prism.srm.ui.logs.LogsPage.class, Destination.LOGS);
     }
 
     @Test
@@ -421,7 +465,7 @@ class ShellNavigationTest {
     }
 
     private static Sidebar sidebar(Shell shell) {
-        return (Sidebar) shell.getLeft();
+        return shell.navigation();
     }
 
     private static Destination selected(Shell shell) {
@@ -433,7 +477,7 @@ class ShellNavigationTest {
     }
 
     private static Node page(Shell shell) {
-        return ((ScrollPane) shell.getCenter()).getContent();
+        return shell.pageArea().getContent();
     }
 
     /** The number of rows of the process table of the page on screen. */
@@ -459,7 +503,7 @@ class ShellNavigationTest {
     /** The texts of the labels a user can see on the page on screen. */
     private static List<String> visibleTexts(Shell shell) {
         List<String> texts = new ArrayList<>();
-        collectVisibleTexts(page(shell), texts);
+        collectVisibleTexts(shell.getCenter(), texts);
         return texts;
     }
 
@@ -479,5 +523,76 @@ class ShellNavigationTest {
 
     private static KeyEvent key(EventType<KeyEvent> type, KeyCode code) {
         return new KeyEvent(type, "", "", code, false, false, false, false);
+    }
+
+    /** UI-8 on the Logs page: it reads until the log arrives, then says what there is. */
+    @Test
+    void theLogsPageSaysItIsReadingUntilTheLogArrives() {
+        List<Object> seen = inShell(shell -> {
+            select(shell, Destination.LOGS);
+            List<Object> facts = new ArrayList<>();
+            facts.add(placeholder(shell));
+            shell.showActivity(List.of());
+            facts.add(placeholder(shell));
+            return facts;
+        });
+
+        assertThat(seen).containsExactly("Reading the activity log…", "Nothing has been logged yet.");
+    }
+
+    /** The end of a request to open a folder is said on the page whose button asked, not on the other. */
+    @Test
+    void aFolderThatDidNotOpenIsSaidOnThePageThatAskedForIt() {
+        List<Object> seen = inShell(shell -> {
+            List<Object> facts = new ArrayList<>();
+            select(shell, Destination.LOGS);
+            button(shell.getCenter(), "Open log folder").fire();
+            shell.showFolderOpened(Optional.of("The system could not open this folder: logs"));
+            facts.add("logs: " + shownText(page(shell), ".logs-problem"));
+            select(shell, Destination.SETTINGS);
+            facts.add("settings: " + shownText(page(shell), ".settings-problem"));
+
+            button(shell.getCenter(), "Open settings folder").fire();
+            shell.showFolderOpened(Optional.of("The system could not open this folder: settings"));
+            facts.add("settings: " + shownText(page(shell), ".settings-problem"));
+            select(shell, Destination.LOGS);
+            facts.add("logs: " + shownText(page(shell), ".logs-problem"));
+
+            button(shell.getCenter(), "Open log folder").fire();
+            shell.showFolderOpened(Optional.empty());
+            facts.add("logs: " + shownText(page(shell), ".logs-problem"));
+            return facts;
+        });
+
+        assertThat(seen)
+                .containsExactly(
+                        // The Logs line names the button it answers (LS-13); Settings has its own in place.
+                        "logs: [Open log folder: The system could not open this folder: logs]",
+                        "settings: []",
+                        "settings: [The system could not open this folder: settings]",
+                        "logs: [Open log folder: The system could not open this folder: logs]",
+                        "logs: []");
+    }
+
+    private static String placeholder(Shell shell) {
+        TableView<?> table = (TableView<?>) page(shell).lookup(".logs-table");
+        return ((Label) table.getPlaceholder()).getText();
+    }
+
+    private static javafx.scene.control.Button button(Node page, String text) {
+        return page.lookupAll(".button").stream()
+                .filter(javafx.scene.control.Button.class::isInstance)
+                .map(javafx.scene.control.Button.class::cast)
+                .filter(button -> text.equals(button.getText()))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("no button " + text));
+    }
+
+    /** The texts of the visible nodes of a style class. */
+    private static List<String> shownText(Node page, String selector) {
+        return page.lookupAll(selector).stream()
+                .filter(Node::isVisible)
+                .map(node -> ((Label) node).getText())
+                .toList();
     }
 }

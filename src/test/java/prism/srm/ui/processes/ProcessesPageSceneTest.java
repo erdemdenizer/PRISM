@@ -345,7 +345,9 @@ class ProcessesPageSceneTest {
 
     @Test
     void theArrowKeysHomeAndEndMoveTheSelectionThroughTheRows() {
-        List<Integer> seen = inPage(1100, 700, scene -> {
+        // UI lab v2: 900 px high, so that a page of rows is more than five: at 1100 x 700 the inspector
+        // under the table, its sections in columns, leaves the page alone about five rows.
+        List<Integer> seen = inPage(1100, 900, scene -> {
             scene.page().show(ProcessListings.windows(394, 0));
             scene.settle();
             TableView<ProcessRow> table = scene.table();
@@ -411,6 +413,7 @@ class ProcessesPageSceneTest {
      */
     @Test
     void scrolledAsFarAsItGoesTheTableBeginsWithAWholeColumnAtEveryWidthTooNarrowForAllColumns() {
+        int widthsThatScroll = 0;
         for (int width = 420; width <= 880; width += 23) {
             List<Double> seen = inPage(width, 392, scene -> {
                 scene.page().show(ProcessListings.windows(394, 0));
@@ -427,12 +430,18 @@ class ProcessesPageSceneTest {
                 return facts;
             });
 
-            assertThat(seen.get(0)).as("scrolls sideways at width %d", width).isEqualTo(1.0);
+            if (seen.get(0) != 1.0) {
+                // Wide enough for every column: nothing to scroll. The widths the columns need
+                // come from the font, so which widths these are is not fixed here.
+                continue;
+            }
+            widthsThatScroll++;
             assertThat(seen.subList(2, seen.size()))
                     .as("the place a column begins, at width %d", width)
                     .contains(seen.get(1));
             assertThat(seen.get(1)).isPositive();
         }
+        assertThat(widthsThatScroll).as("widths too narrow for all columns").isGreaterThan(5);
     }
 
     /** The details describe the selected row, so it has to be found while the filter has the focus. */
@@ -447,16 +456,18 @@ class ProcessesPageSceneTest {
             for (Node node : scene.table().lookupAll(".table-row-cell")) {
                 javafx.scene.control.TableRow<?> row = (javafx.scene.control.TableRow<?>) node;
                 if (row.getIndex() == 2 || row.getIndex() == 3) {
+                    // The surface is the last layer; the selected row has the accent bar under it.
                     fills.add(row.getIndex() + " "
-                            + row.getBackground().getFills().get(0).getFill());
+                            + row.getBackground().getFills().getLast().getFill() + " "
+                            + row.getBackground().getFills().size());
                 }
             }
             fills.add(scene.table().isFocused());
             return fills;
         });
 
-        // -srm-selection and -srm-surface of the light theme.
-        assertThat(seen).containsExactlyInAnyOrder("2 0xd9eceeff", "3 0xffffffff", false);
+        // -srm-selection-inactive with the bar, and -srm-surface, of the light theme.
+        assertThat(seen).containsExactlyInAnyOrder("2 0xe6e8eeff 2", "3 0xffffffff 1", false);
     }
 
     @Test
@@ -466,6 +477,8 @@ class ProcessesPageSceneTest {
             scene.settle();
             scene.table().getSelectionModel().select(scene.row(4120));
             scene.page().show(ProcessListings.longNames().subList(1, 5));
+            // The inspector of this narrow page is the sheet, given the inspector when it opens (round G).
+            scene.page().openInspector();
             scene.settle();
             Parent heading = (Parent) scene.page().lookup(".process-details-heading");
             Label title = (Label) heading.getChildrenUnmodifiable().get(0);

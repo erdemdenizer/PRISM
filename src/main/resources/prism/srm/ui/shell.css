@@ -1,75 +1,235 @@
 /*
- * Shell: navigation and status bar. Sizes are on the spacing scale of docs/UI_GUIDE.md
- * (4, 8, 12, 16, 24); colors are tokens from app.css only.
+ * Shell, UI lab v2: the navigation (rail or sidebar), the page area and the status line.
+ * The navigation and the status line are on the chrome surface, the color the Windows caption takes
+ * (platform title bar code), so caption, rail and status line frame the canvas as one piece.
  */
 
-/* Navigation: a fixed column, set apart from the page by one border. */
-.sidebar {
-  -fx-background-color: -srm-surface-alt;
-  -fx-border-color: -srm-border;
-  -fx-border-width: 0 1 0 0;
-  -fx-padding: 8;
-  -fx-spacing: 4;
-  -fx-min-width: 160;
-  -fx-pref-width: 160;
-  -fx-max-width: 160;
-}
-
-/* Directly below the entries it explains: 8 px here and the 4 px of the list make 12. */
-.sidebar-legend {
-  -fx-padding: 8 8 0 8;
+.shell {
+  -fx-background-color: -srm-bg;
 }
 
 /*
- * A navigation entry is a toggle button stripped of its button look: 28 px high like every
- * control, text at the left. It has two borders that are always there and only take a color
- * when they mean something, so neither selection nor focus moves the text: a 1 px ring for
- * keyboard focus, and a 2 px square bar at the left edge for the selected entry. The bar and
- * 6 px of padding put the text 8 px from the edge.
+ * The navigation (K1) in its two forms (Sidebar.Mode), one design: the rail of every window below the
+ * wide one, and the sidebar of a wide one. Both name every destination (owner decision after fix round
+ * H). The widths are Breakpoints.RAIL_WIDTH and Breakpoints.SIDEBAR_WIDTH, the hairline included
+ * (ShellNavigationLayoutSceneTest).
+ *
+ * The rail: 80 px of chrome, one hairline toward the page. Entries are 70 x 54, 4 px from the left edge
+ * and 5 px from the hairline, 6 px apart, the icon over its name in Plex 11 px: the focus ring stands
+ * 1 px outside an entry and keeps 3 px from the next one (SH-13). In a low window the entries are 44 px high, 4 px apart, so the seven
+ * fit the room a real 720 x 480 window leaves the navigation.
+ */
+.nav-rail {
+  -fx-background-color: -srm-chrome;
+  -fx-border-color: transparent -srm-hairline transparent transparent;
+  -fx-border-width: 0 1 0 0;
+  -fx-padding: 8 5 8 4;
+  -fx-spacing: 6;
+  -fx-alignment: top-center;
+  -fx-min-width: 80;
+  -fx-pref-width: 80;
+  -fx-max-width: 80;
+}
+
+.shell:low .nav-rail {
+  -fx-spacing: 4;
+}
+
+/* The sidebar: 200 px, 8 px at the sides, 36 px rows 6 px apart. */
+.nav-rail:labelled {
+  -fx-padding: 8 8 8 8;
+  -fx-alignment: top-left;
+  -fx-min-width: 200;
+  -fx-pref-width: 200;
+  -fx-max-width: 200;
+}
+
+/* A group boundary: a short hairline with 6 px above and below. */
+.nav-separator {
+  -fx-background-color: -srm-hairline;
+  -fx-background-insets: 6 8 6 8;
+  -fx-min-height: 13;
+  -fx-pref-height: 13;
+  -fx-max-height: 13;
+  -fx-min-width: 24;
+  -fx-pref-width: 40;
+  -fx-max-width: 40;
+}
+
+/* With names the line spans the row, from the icon's left edge to the row's right end. */
+.nav-rail:labelled .nav-separator {
+  -fx-min-width: 184;
+  -fx-pref-width: 184;
+  -fx-max-width: 184;
+  -fx-background-insets: 6 10 6 10;
+}
+
+.sidebar-legend {
+  -fx-padding: 8 0 0 0;
+}
+
+/*
+ * An entry of the rail: 70 x 54, radius 8, the icon over its name, both centered; the name in Plex
+ * 11 px in the muted text color, SemiBold in the text color when selected. The selected entry: the
+ * selection surface of the navigation, the icon in the accent color, and a 3 px accent bar at the list's
+ * left edge, drawn as a background layer outside the entry so nothing moves; the bar is what tells the
+ * selection at 3:1 (WCAG 1.4.11, lab-docs/CONTRAST.md). Focus: the 2 px ring 1 px outside the entry, its
+ * radius the entry's and 3 more.
  */
 .nav-item {
   -fx-background-color: transparent;
   -fx-background-insets: 0;
-  -fx-background-radius: 4;
-  -fx-border-color: transparent, transparent;
-  -fx-border-width: 1, 0 0 0 2;
-  -fx-border-insets: 0, 4 0 4 0;
-  -fx-border-radius: 4, 0;
-  -fx-padding: 0 8 0 6;
-  -fx-min-height: 28;
-  -fx-pref-height: 28;
-  -fx-max-height: 28;
-  -fx-alignment: center-left;
-  -fx-text-fill: -srm-text;
+  -fx-background-radius: 8;
+  -fx-border-color: transparent;
+  -fx-border-width: 2;
+  -fx-border-insets: -3;
+  -fx-border-radius: 11;
+  -fx-padding: 0;
+  -fx-min-width: 70;
+  -fx-pref-width: 70;
+  -fx-max-width: 70;
+  -fx-min-height: 54;
+  -fx-pref-height: 54;
+  -fx-max-height: 54;
+  -fx-alignment: center;
+  -fx-text-alignment: center;
+  -fx-graphic-text-gap: 4;
+  -fx-text-fill: -srm-text-muted;
+  -fx-font-family: "IBM Plex Sans";
+  -fx-font-size: 11px;
+  -srm-icon: -srm-text-muted;
+}
+
+.shell:low .nav-item {
+  -fx-min-height: 44;
+  -fx-pref-height: 44;
+  -fx-max-height: 44;
+  -fx-graphic-text-gap: 2;
 }
 
 .nav-item:hover {
-  -fx-background-color: -srm-surface-sunken;
+  -fx-background-color: -srm-nav-hover;
+  -fx-text-fill: -srm-text;
+  -srm-icon: -srm-text;
 }
 
-/* Selected: the selection color, and the accent bar so that color is not the only sign. */
-.nav-item:selected {
-  -fx-background-color: -srm-selection;
-  -fx-border-color: transparent, transparent transparent transparent -srm-accent;
+.nav-item:pressed {
+  -fx-background-color: -srm-control-pressed;
+}
+
+.nav-item:selected,
+.nav-item:selected:hover {
+  -fx-background-color: -srm-accent, -srm-nav-selected;
+  -fx-background-insets: 17 71 17 -4, 0;
+  -fx-background-radius: 0 2 2 0, 8;
+  -fx-text-fill: -srm-text;
+  -fx-font-family: "IBM Plex Sans SmBld";
+  -srm-icon: -srm-accent;
+}
+
+.shell:low .nav-item:selected,
+.shell:low .nav-item:selected:hover {
+  -fx-background-insets: 12 71 12 -4, 0;
 }
 
 .nav-item:focus-visible {
-  -fx-border-color: -srm-accent, transparent;
-}
-
-.nav-item:selected:focus-visible {
-  -fx-border-color: -srm-accent, transparent transparent transparent -srm-accent;
+  -fx-border-color: -srm-focus-ring;
 }
 
 .nav-item:disabled {
   -fx-opacity: 1;
   -fx-text-fill: -srm-text-disabled;
+  -srm-icon: -srm-text-disabled;
 }
 
 /*
- * The area of the current page: a scroll pane without a look of its own. Its scroll bars appear
- * only when the window is too small for the page. With keyboard focus it shows the accent ring,
- * drawn as a background layer so that focus does not move the page.
+ * In the sidebar an entry is a 184 x 36 row, radius 6: 10 px, the icon, 12 px, the name in Plex 13 px
+ * in the text color (SemiBold when selected), and its shortcut at the right end. The bar stands at the
+ * list's left edge, 8 px out of the row, 20 px high. The ring is 2 px outside the row, as on every
+ * control (app.css).
+ */
+.nav-rail:labelled .nav-item {
+  -fx-min-width: 184;
+  -fx-pref-width: 184;
+  -fx-max-width: 184;
+  -fx-min-height: 36;
+  -fx-pref-height: 36;
+  -fx-max-height: 36;
+  -fx-padding: 0 10 0 10;
+  -fx-alignment: center-left;
+  -fx-text-alignment: left;
+  -fx-graphic-text-gap: 12;
+  -fx-text-fill: -srm-text;
+  -fx-font-size: 13px;
+  -fx-background-radius: 6;
+  -fx-border-insets: -4;
+  -fx-border-radius: 10;
+}
+
+.nav-rail:labelled .nav-item:selected,
+.nav-rail:labelled .nav-item:selected:hover {
+  -fx-background-insets: 8 189 8 -8, 0;
+  -fx-background-radius: 0 2 2 0, 6;
+}
+
+/*
+ * The shortcut of an entry with its name: 12 px in the subtle text color, at the row's right end, only
+ * while the pointer is on the row or the keyboard focus is (the rail says it in the name beside it).
+ */
+.nav-shortcut {
+  -fx-font-size: 12px;
+  -fx-text-fill: -srm-text-subtle;
+  -fx-opacity: 0;
+}
+
+.nav-rail:labelled .nav-item:hover .nav-shortcut,
+.nav-rail:labelled .nav-item:focus-visible .nav-shortcut {
+  -fx-opacity: 1;
+}
+
+/*
+ * The badge: a 7 px dot on the upper right corner of the icon, in the warning color, or the error color
+ * for a state that is an error, as the status bar says it; a ring of the list's surface sets it off.
+ */
+.nav-badge {
+  -fx-background-color: -srm-chrome, -srm-warning;
+  -fx-background-insets: -1.5, 0;
+  -fx-background-radius: 5, 4;
+}
+
+.nav-item:badged-error .nav-badge {
+  -fx-background-color: -srm-chrome, -srm-error;
+}
+
+/*
+ * The page toolbar (UI lab v2): the page header is drawn as a full-bleed band of chrome with a
+ * hairline at its foot, so the native caption (DWM-colored to -srm-chrome), the rail and the toolbar
+ * read as one frame around the canvas. The band is a background with negative side insets that reach
+ * the edges of the page area (the side padding of each width: 12, 16, 24) and changes no layout. The
+ * header is 56 px: the 52 px band with the title centered in it, then 4 px that, with the 12 px the
+ * page puts between its parts, leave 16 px from the hairline to the content. The selectors are on the
+ * header's own class, so they hold wherever the header sits (inside the page or above it).
+ */
+.shell .page-header {
+  -fx-min-height: 56;
+  -fx-pref-height: 56;
+  -fx-max-height: 56;
+  -fx-padding: 0 0 4 0;
+  -fx-background-color: -srm-hairline, -srm-chrome;
+  -fx-background-insets: 0 -16 4 -16, 0 -16 5 -16;
+}
+
+.shell:narrow .page-header {
+  -fx-background-insets: 0 -12 4 -12, 0 -12 5 -12;
+}
+
+.shell:wide .page-header {
+  -fx-background-insets: 0 -24 4 -24, 0 -24 5 -24;
+}
+
+/*
+ * The area of the current page: a scroll pane without a look of its own on the canvas. With keyboard
+ * focus it shows the ring, drawn as a background layer so that focus does not move the page.
  */
 .page-area {
   -fx-background-color: transparent;
@@ -78,20 +238,109 @@
 }
 
 .page-area > .viewport {
-  -fx-background-color: transparent;
+  -fx-background-color: -srm-bg;
 }
 
 .page-area:focus-visible {
-  -fx-background-color: -srm-accent, -srm-surface-alt;
-  -fx-background-insets: 0, 1;
+  -fx-background-color: -srm-focus-ring, -srm-bg;
+  -fx-background-insets: 0, 2;
 }
 
-/* Status bar: square corners, one border toward the page. */
+/*
+ * The page margins follow the width: 12 px at the sides in a narrow window, 16 from 820, 24 from
+ * 1100. The header band stands in the page toolbar above the page (Shell); the page begins 12 px
+ * under it, which with the 4 px at the foot of the header leaves 16 px from the hairline to the content.
+ */
+.shell .page {
+  -fx-padding: 12 16 16 16;
+}
+
+.shell:narrow .page {
+  -fx-padding: 12 12 12 12;
+}
+
+.shell:wide .page {
+  -fx-padding: 12 24 16 24;
+}
+
+/*
+ * A compact page (the OOM Guard page in a low window) keeps 8 px under the toolbar, the gap it kept
+ * under its header when the header stood inside the page, so the smallest window shows what it did.
+ */
+.shell .page:compact {
+  -fx-padding: 8 16 16 16;
+}
+
+.shell:narrow .page:compact {
+  -fx-padding: 8 12 12 12;
+}
+
+.shell:wide .page:compact {
+  -fx-padding: 8 24 16 24;
+}
+
+/*
+ * A low window (below 560 px, as the smallest one): the page header and the panels give back the
+ * height v2 added, so every page fits as it did (UI-8).
+ */
+/* A low window: a 40 px band and no extra room under it, so the content begins where it did. */
+.shell:low .page-header {
+  -fx-min-height: 40;
+  -fx-pref-height: 40;
+  -fx-max-height: 40;
+  -fx-padding: 0;
+  -fx-background-insets: 0 -16 0 -16, 0 -16 1 -16;
+}
+
+.shell:low:narrow .page-header {
+  -fx-background-insets: 0 -12 0 -12, 0 -12 1 -12;
+}
+
+.shell:low:wide .page-header {
+  -fx-background-insets: 0 -24 0 -24, 0 -24 1 -24;
+}
+
+.shell:low .text-page-title {
+  -fx-font-size: 19px;
+}
+
+.shell:low .panel {
+  -fx-padding: 10 14 10 14;
+}
+
+.shell:low .text-key-readout {
+  -fx-font-size: 22px;
+}
+
+/* Denser controls and process rows in a low window: 30 px controls, 28 px rows. */
+.shell:low .button,
+.shell:low .menu-button,
+.shell:low .toggle-button,
+.shell:low .text-field {
+  -fx-min-height: 30;
+  -fx-pref-height: 30;
+  -fx-max-height: 30;
+}
+
+.shell:low .process-table,
+.shell:low .oom-table {
+  -fx-fixed-cell-size: 28;
+}
+
+.shell:low .process-table .table-row-cell,
+.shell:low .oom-table .table-row-cell {
+  -fx-cell-size: 28;
+}
+
+/* Status line: 24 px of chrome, one hairline toward the page; only real state, in words. */
 .status-bar {
-  -fx-background-color: -srm-surface-alt;
-  -fx-border-color: -srm-border;
+  -fx-background-color: -srm-chrome;
+  -fx-border-color: -srm-hairline transparent transparent transparent;
   -fx-border-width: 1 0 0 0;
-  -fx-padding: 4 8 4 8;
+  -fx-padding: 0 12 0 12;
+  -fx-min-height: 24;
+  -fx-pref-height: 24;
+  -fx-max-height: 24;
   -fx-alignment: center-left;
 }
 
@@ -101,4 +350,84 @@
 
 .status-text:failed {
   -fx-text-fill: -srm-error;
+}
+
+/* Memory pressure from OOM Guard: in the same line, in words, in the warning or error color (O11). */
+.status-pressure {
+  -fx-padding: 0 0 0 16;
+}
+
+.status-text:warning {
+  -fx-text-fill: -srm-warning;
+}
+
+/* The lab mark: neutral, at the right end. */
+.status-lab {
+  -fx-padding: 0 0 0 16;
+  -fx-text-fill: -srm-text-subtle;
+}
+
+/* The surface and the icon color of an entry change with a short transition, never the text. */
+@media (prefers-reduced-motion: no-preference) {
+  .nav-item {
+    transition: -fx-background-color 120ms ease-out, -fx-border-color 120ms ease-out;
+  }
+
+  .nav-item .icon-shape {
+    transition: -fx-stroke 120ms ease-out;
+  }
+}
+
+.shell:low .metric-header {
+  -fx-min-height: 30;
+  -fx-pref-height: 30;
+  -fx-max-height: 30;
+}
+
+.shell:low .metric-panel:stacked .metric-header {
+  -fx-min-height: 22;
+  -fx-pref-height: 22;
+  -fx-max-height: 22;
+}
+
+/* In the 30 px header of a low window the legend gives up the room of its descenders. */
+.shell:low .series {
+  -fx-min-height: 30;
+  -fx-pref-height: 30;
+  -fx-max-height: 30;
+}
+
+/* There the legend keeps the 11 px it had before captions became 12 px, so its line still fits. */
+.shell:low .series-legend {
+  -fx-min-height: 12;
+  -fx-pref-height: 12;
+  -fx-max-height: 12;
+  -fx-font-size: 11px;
+}
+
+/*
+ * An ultrawide window (from 2200 px): running text directly on a page (notices, notes) keeps a
+ * readable measure instead of one line across the screen. Lists, tables and graphs keep the full
+ * width: a log entry is one line cut with an ellipsis, and a narrower table would only cut more.
+ */
+.shell:ultrawide .page > .page-error,
+.shell:ultrawide .page > .text-small {
+  -fx-max-width: 1200;
+}
+
+/*
+ * The page toolbar (UI lab v2, H3): the title line of the page on screen stands above the area that
+ * scrolls, so the title and the page tools stay in view while the page scrolls. The header draws the
+ * band itself (above); the toolbar gives it the side margins of the page, which its band reaches over.
+ */
+.page-toolbar {
+  -fx-padding: 0 16 0 16;
+}
+
+.shell:narrow .page-toolbar {
+  -fx-padding: 0 12 0 12;
+}
+
+.shell:wide .page-toolbar {
+  -fx-padding: 0 24 0 24;
 }

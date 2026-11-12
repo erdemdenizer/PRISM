@@ -21,6 +21,14 @@ public final class Stylesheets {
         return location("app.css");
     }
 
+    /**
+     * The stylesheet that puts every type role on the system font, for a scene whose bundled
+     * typeface could not be loaded. It goes on the scene after {@link #app()}.
+     */
+    public static String fontsFallback() {
+        return location("fonts-fallback.css");
+    }
+
     /** The stylesheet of the shell: navigation and status bar. */
     public static String shell() {
         return location("shell.css");
@@ -41,9 +49,34 @@ public final class Stylesheets {
         return location("processes.css");
     }
 
+    /** The stylesheet of the Logs page. */
+    public static String logs() {
+        return location("logs.css");
+    }
+
     /** The stylesheet the pages of system metrics share: metric panel, facts, page notice. */
     public static String metric() {
         return location("metric.css");
+    }
+
+    /** The stylesheet of the controls pages share: the line about an action. */
+    public static String control() {
+        return location("control.css");
+    }
+
+    /** The stylesheet of the Settings page. */
+    public static String settings() {
+        return location("settings.css");
+    }
+
+    /** The stylesheet of the Limits page. */
+    public static String limits() {
+        return location("limits.css");
+    }
+
+    /** The stylesheet of the OOM Guard page and its dialogs. */
+    public static String oom() {
+        return location("oom.css");
     }
 
     /** The stylesheet of tables. */
@@ -54,6 +87,11 @@ public final class Stylesheets {
     /** The stylesheet of the history graph. */
     public static String graph() {
         return location("graph.css");
+    }
+
+    /** The token mapping of a Windows high-contrast theme ({@link HighContrast}). */
+    public static String highContrast() {
+        return location("hc.css");
     }
 
     private static String location(String resource) {

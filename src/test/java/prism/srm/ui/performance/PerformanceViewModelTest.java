@@ -134,7 +134,8 @@ class PerformanceViewModelTest {
 
         model.update(Snapshots.nothingAvailable());
         assertThat(model.cpu().processorsProperty().get()).isEqualTo(GridData.EMPTY);
-        assertThat(model.cpu().processorsStatusProperty().get()).isEqualTo(UNAVAILABLE);
+        // OP-07: "Unavailable" with the reason, not alone.
+        assertThat(model.cpu().processorsStatusProperty().get()).isEqualTo(CpuModel.NO_PROCESSOR_VALUES);
         assertThat(model.cpu().processorsScaleProperty().get()).isEmpty();
     }
 
@@ -289,7 +290,8 @@ class PerformanceViewModelTest {
         assertThat(model.disk().rates().unitProperty().get()).isEqualTo("MiB/s");
         assertThat(model.disk().rates().secondValueProperty().get()).isEqualTo("512.0");
         assertThat(model.disk().rates().secondUnitProperty().get()).isEqualTo("KiB/s");
-        assertThat(model.disk().rates().scaleProperty().get()).isEqualTo("2.0 MiB/s");
+        // OP-12: the top of the scale is a whole step and is written without a decimal.
+        assertThat(model.disk().rates().scaleProperty().get()).isEqualTo("2 MiB/s");
         assertThat(model.disk().fileSystems())
                 .extracting(
                         row -> row.nameProperty().get(),
@@ -439,7 +441,8 @@ class PerformanceViewModelTest {
         assertThat(model.network().rates().valueProperty().get()).isEqualTo("240.0");
         assertThat(model.network().rates().unitProperty().get()).isEqualTo("KiB/s");
         assertThat(model.network().rates().secondValueProperty().get()).isEqualTo("12.0");
-        assertThat(model.network().rates().scaleProperty().get()).isEqualTo("500.0 KiB/s");
+        // OP-12: the top of the scale is a whole step and is written without a decimal.
+        assertThat(model.network().rates().scaleProperty().get()).isEqualTo("500 KiB/s");
         assertThat(model.network().rates().graphProperty().get().primary())
                 .isEqualTo(live.history().networkDownloadBytesPerSecond());
         assertThat(model.network().rates().graphProperty().get().secondary())
@@ -794,7 +797,8 @@ class PerformanceViewModelTest {
             assertThat(fact.textProperty().get()).isEqualTo(UNAVAILABLE);
         }
         assertThat(model.cpu().processorsProperty().get()).isEqualTo(GridData.EMPTY);
-        assertThat(model.cpu().processorsStatusProperty().get()).isEqualTo(UNAVAILABLE);
+        // OP-07: "Unavailable" with the reason, not alone.
+        assertThat(model.cpu().processorsStatusProperty().get()).isEqualTo(CpuModel.NOT_RUNNING);
         assertThat(model.cpu().processorsScaleProperty().get()).isEmpty();
         assertThat(model.disk().fileSystems()).isEmpty();
         assertThat(model.disk().fileSystemsStatusProperty().get()).isEqualTo(UNAVAILABLE);

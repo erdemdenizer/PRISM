@@ -11,7 +11,6 @@ import java.util.Locale;
 import java.util.function.Consumer;
 import java.util.function.IntFunction;
 import javafx.scene.Node;
-import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
@@ -89,7 +88,7 @@ class ProcessesUpdateCostProbe {
         long[][] nanos =
                 SnapshotHarness.inspect(Theme.LIGHT, 1100, 700, ProcessesUpdateCostProbe::shellOnProcesses, root -> {
                     Shell shell = (Shell) root;
-                    Node page = ((ScrollPane) shell.getCenter()).getContent();
+                    Node page = shell.pageArea().getContent();
                     TextField filter = (TextField) page.lookup(".process-filter");
                     shell.showProcesses(ProcessListings.windows(PROCESSES, 0));
                     settle(shell);
@@ -133,7 +132,7 @@ class ProcessesUpdateCostProbe {
         Cost cost =
                 SnapshotHarness.inspect(Theme.LIGHT, 1100, 700, ProcessesUpdateCostProbe::shellOnProcesses, root -> {
                     Shell shell = (Shell) root;
-                    state.accept(((ScrollPane) shell.getCenter()).getContent());
+                    state.accept(shell.pageArea().getContent());
                     long[] rows = new long[UPDATES];
                     long[] laidOut = new long[UPDATES];
                     long[] rendered = new long[UPDATES];
@@ -174,7 +173,7 @@ class ProcessesUpdateCostProbe {
     private static Shell shellOnProcesses() {
         Shell shell =
                 new Shell(new ValueFormatter(Locale.US), ZoneOffset.UTC, Snapshots.CAPACITY, "logs", identity -> {});
-        ((Sidebar) shell.getLeft()).entry(Destination.PROCESSES).fire();
+        shell.navigation().entry(Destination.PROCESSES).fire();
         return shell;
     }
 

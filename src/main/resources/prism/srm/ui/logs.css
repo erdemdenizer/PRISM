@@ -1,0 +1,149 @@
+/*
+ * Logs page. Sizes are on the spacing scale of docs/UI_GUIDE.md (4, 8, 12, 16, 24); colors are
+ * tokens from app.css only.
+ */
+
+.logs {
+  -fx-padding: 12;
+  -fx-spacing: 12;
+}
+
+.logs-trailing {
+  -fx-spacing: 12;
+  -fx-alignment: center-right;
+}
+
+.logs-toolbar {
+  -fx-spacing: 8;
+  -fx-alignment: center-left;
+}
+
+/* Warning and error colors only on the value they describe. */
+.logs-table .table-cell:warning {
+  -fx-text-fill: -srm-warning;
+}
+
+.logs-table .table-cell:error {
+  -fx-text-fill: -srm-error;
+}
+
+/* Why the log folder did not open: in the warning color, as on the Settings page. */
+.logs-problem {
+  -fx-text-fill: -srm-warning;
+}
+
+/* Info is the common case: set back to the muted text, so Warning and Error are found. */
+.logs-table .table-cell:info {
+  -fx-text-fill: -srm-text-muted;
+}
+
+/*
+ * The detail pane under the table (LS-01, K3): a panel 12 px under the table, a fixed height so a
+ * selection moves nothing: the head row (24 px) and three lines of the message (about 19 px each),
+ * with 12 px padding at the sides and 8 px at the top and bottom. In a low window (under 560 px of
+ * scene) two lines; a longer message scrolls inside the pane.
+ */
+.logs-detail {
+  -fx-padding: 8 12 8 12;
+  -fx-spacing: 4;
+  -fx-min-height: 112;
+  -fx-pref-height: 112;
+  -fx-max-height: 112;
+}
+
+.shell:low .logs-detail {
+  -fx-min-height: 92;
+  -fx-pref-height: 92;
+  -fx-max-height: 92;
+}
+
+.logs-detail-head {
+  -fx-spacing: 12;
+  -fx-alignment: center-left;
+  -fx-min-height: 24;
+  -fx-pref-height: 24;
+  -fx-max-height: 24;
+}
+
+.logs-detail-severity {
+  -fx-font-family: "IBM Plex Sans Medm";
+}
+
+.logs-detail-severity:info {
+  -fx-text-fill: -srm-text-muted;
+}
+
+.logs-detail-severity:warning {
+  -fx-text-fill: -srm-warning;
+}
+
+.logs-detail-severity:error {
+  -fx-text-fill: -srm-error;
+}
+
+/* The button of the head row: 24 px, the height of the row, so the message keeps its lines. */
+.logs-detail-head > .logs-copy,
+.shell:low .logs-detail-head > .logs-copy {
+  -fx-min-height: 24;
+  -fx-pref-height: 24;
+  -fx-max-height: 24;
+  -fx-padding: 0 8 0 8;
+}
+
+/*
+ * The message: read-only text, so no field look (no edge, no surface of its own); it can still be
+ * selected and copied, and the focus ring of every text input shows where the keyboard is.
+ */
+.logs-detail-message,
+.logs-detail-message:focused {
+  -fx-background-color: transparent;
+  -fx-background-insets: 0;
+  -fx-background-radius: 0;
+  -fx-padding: 0;
+  -fx-text-fill: -srm-text;
+  -fx-highlight-fill: -srm-selection;
+  -fx-highlight-text-fill: -srm-text;
+  -fx-prompt-text-fill: -srm-text-muted;
+}
+
+.logs-detail-message:focused {
+  -fx-border-color: -srm-focus-ring;
+  -fx-border-width: 2;
+  -fx-border-insets: -4;
+  -fx-border-radius: 8;
+}
+
+.logs-detail-message .scroll-pane,
+.logs-detail-message .scroll-pane > .viewport,
+.logs-detail-message .content,
+.logs-detail-message:focused .content {
+  -fx-background-color: transparent;
+  -fx-background-insets: 0;
+  -fx-padding: 0;
+}
+
+.logs-detail-message .scroll-pane > .corner {
+  -fx-background-color: transparent;
+}
+
+/* In an ultrawide window the message wraps at a readable measure, as the message column ends. */
+.shell:ultrawide .logs-detail-message {
+  -fx-max-width: 960;
+}
+
+/*
+ * KB-2: tabbed into before a row has the focus, or empty, the table draws the focus ring of every
+ * control around its frame (TableFocus): 2 px, 2 px outside, a border with negative insets that is
+ * there in every state, so taking the focus moves nothing. A focused row draws its own ring
+ * (table.css). The same rule for every table belongs in table.css.
+ */
+.logs-table {
+  -fx-border-color: transparent;
+  -fx-border-width: 2;
+  -fx-border-insets: -4;
+  -fx-border-radius: 14;
+}
+
+.logs-table:focus-visible:no-focused-row {
+  -fx-border-color: -srm-focus-ring;
+}

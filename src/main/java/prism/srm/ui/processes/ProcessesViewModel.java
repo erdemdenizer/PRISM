@@ -7,9 +7,19 @@ import java.util.function.Consumer;
 import javafx.beans.property.ReadOnlyStringProperty;
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.collections.ObservableList;
+import prism.srm.domain.ControlProfile;
+import prism.srm.domain.ControlRequest;
+import prism.srm.domain.LimitRequest;
+import prism.srm.domain.LimitResult;
+import prism.srm.domain.LimitsSnapshot;
+import prism.srm.domain.ProcessControlResult;
 import prism.srm.domain.ProcessDetailsResult;
 import prism.srm.domain.ProcessIdentity;
 import prism.srm.domain.ProcessSnapshot;
+import prism.srm.domain.RecoveredSuspension;
+import prism.srm.domain.RecoveryRequest;
+import prism.srm.domain.RecoveryResult;
+import prism.srm.domain.SuspendedProcess;
 import prism.srm.ui.format.ValueFormatter;
 import prism.srm.ui.metric.MetricState;
 import prism.srm.ui.metric.PageStatus;
@@ -20,8 +30,9 @@ import prism.srm.ui.processes.ProcessOrder.SortKey;
  * JavaFX node and does no monitoring: it is given each listing on the JavaFX Application Thread
  * and brings its rows up to date.
  *
- * <p>The page is read-only. Nothing here acts on a process; the only thing it ever asks for is
- * the path and the command line of the selected one.
+ * <p>Nothing here acts on a process itself: it asks for the path and the command line of the
+ * selected one, and hands the actions the user chooses to the function it was given ({@link
+ * ProcessActions}).
  */
 final class ProcessesViewModel {
 
@@ -37,6 +48,10 @@ final class ProcessesViewModel {
     private final PageStatus status = new PageStatus();
     private final ProcessTableModel table = new ProcessTableModel();
     private final ProcessDetailsModel details;
+    private final ProcessActions actions;
+    private final HeldSuspensions held;
+    private final ManagedActions managed;
+    private final RecoveredSuspensions recovered;
     private final ReadOnlyStringWrapper whenEmpty = new ReadOnlyStringWrapper(READING);
     private final ReadOnlyStringWrapper count = new ReadOnlyStringWrapper("");
 
@@ -54,10 +69,83 @@ final class ProcessesViewModel {
      */
     ProcessesViewModel(
             ValueFormatter formatter, ZoneId zone, String logFolder, Consumer<ProcessIdentity> detailsRequest) {
+        this(formatter, zone, logFolder, detailsRequest, request -> {});
+    }
+
+    /**
+     * @param controlRequests carries out an action on a process and returns at once; the result
+     *     comes back through {@link #showControlResult}
+     */
+    ProcessesViewModel(
+            ValueFormatter formatter,
+            ZoneId zone,
+            String logFolder,
+            Consumer<ProcessIdentity> detailsRequest,
+            Consumer<ControlRequest> controlRequests) {
+        this(formatter, zone, logFolder, detailsRequest, controlRequests, request -> {}, request -> {});
+    }
+
+    /**
+     * @param limitRequests manages a process or sets its limit and returns at once; the result comes
+     *     back through {@link #showLimitResult}
+     * @param recoveryRequests resumes or dismisses a process an earlier session may have left
+     *     suspended and returns at once; the result comes back through {@link #showRecoveryResult}
+     */
+    ProcessesViewModel(
+            ValueFormatter formatter,
+            ZoneId zone,
+            String logFolder,
+            Consumer<ProcessIdentity> detailsRequest,
+            Consumer<ControlRequest> controlRequests,
+            Consumer<LimitRequest> limitRequests,
+            Consumer<RecoveryRequest> recoveryRequests) {
         this.formatter = Objects.requireNonNull(formatter, "formatter");
         this.logFolder = Objects.requireNonNull(logFolder, "logFolder");
         this.text = new ProcessText(formatter, zone);
         this.details = new ProcessDetailsModel(text, logFolder, detailsRequest);
+        this.actions = new ProcessActions(controlRequests);
+        this.held = new HeldSuspensions(controlRequests);
+        Objects.requireNonNull(limitRequests, "limitRequests");
+        this.managed = new ManagedActions(request -> {
+            actions.limitRequested(request);
+            limitRequests.accept(request);
+        });
+        this.recovered = new RecoveredSuspensions(recoveryRequests);
+    }
+
+    /** Manage, Set CPU limit and Unmanage for the selected process, and its mark in the inspector. */
+    ManagedActions managed() {
+        return managed;
+    }
+
+    /** What an earlier session may have left suspended, with Resume and Dismiss. */
+    RecoveredSuspensions recovered() {
+        return recovered;
+    }
+
+    void showLimits(LimitsSnapshot snapshot) {
+        managed.showLimits(Objects.requireNonNull(snapshot, "snapshot"));
+        // The State column marks them from the next listing on.
+        text.showManaged(snapshot.processes().stream()
+                .map(prism.srm.domain.ManagedProcessView::identity)
+                .collect(java.util.stream.Collectors.toUnmodifiableSet()));
+    }
+
+    void showLimitResult(LimitResult result) {
+        managed.accept(Objects.requireNonNull(result, "result"));
+        actions.acceptLimit(result);
+    }
+
+    void showRecovered(List<RecoveredSuspension> entries) {
+        recovered.show(Objects.requireNonNull(entries, "entries"));
+    }
+
+    void showRecoveryCheck(prism.srm.domain.RecoveryCheck check) {
+        recovered.showCheck(Objects.requireNonNull(check, "check"));
+    }
+
+    void showRecoveryResult(RecoveryResult result) {
+        recovered.accept(Objects.requireNonNull(result, "result"));
     }
 
     /** The texts of the values of a process, for the cells that show them. */
@@ -84,6 +172,36 @@ final class ProcessesViewModel {
         return details;
     }
 
+    /** What the actions on the selected process may do, and what the last one came to. */
+    ProcessActions actions() {
+        return actions;
+    }
+
+    /** The PID of Prism itself: no action of the page is offered on it (CAP-2). */
+    void showOwnProcess(long pid) {
+        actions.showOwnProcess(pid);
+        managed.showOwnProcess(pid);
+    }
+
+    void showControlProfile(ControlProfile profile) {
+        actions.showProfile(profile);
+    }
+
+    void showControlResult(ProcessControlResult result) {
+        actions.accept(Objects.requireNonNull(result, "result"));
+        held.accept(result);
+    }
+
+    /** What Prism holds suspended, and Resume for it once monitoring has stopped. */
+    HeldSuspensions held() {
+        return held;
+    }
+
+    /** The processes Prism holds suspended, from its own record. */
+    void showHeld(List<SuspendedProcess> processes) {
+        held.show(Objects.requireNonNull(processes, "processes"));
+    }
+
     /** What to show in place of the rows while there are none. */
     ReadOnlyStringProperty whenEmptyProperty() {
         return whenEmpty.getReadOnlyProperty();
@@ -100,6 +218,7 @@ final class ProcessesViewModel {
         status.live();
         listed = true;
         changeRows(() -> table.update(processes));
+        actions.listingArrived();
     }
 
     /** Filters the rows by a text, as they are; nothing is read. */
@@ -122,6 +241,8 @@ final class ProcessesViewModel {
         ProcessRow before = table.selected();
         table.select(row);
         ProcessRow now = table.selected();
+        actions.select(now);
+        managed.select(now);
         if (now == before) {
             // Also when nothing was selected and nothing is: the pane keeps what it says.
             return;
@@ -140,6 +261,8 @@ final class ProcessesViewModel {
 
     /** Shows that monitoring could not start. */
     void startupFailed() {
+        actions.monitoringEnded();
+        managed.monitoringEnded();
         status.startupFailed(logFolder);
         showNoProcesses();
     }
@@ -149,6 +272,9 @@ final class ProcessesViewModel {
      * left in place, they would look current.
      */
     void monitoringStopped() {
+        actions.monitoringEnded();
+        managed.monitoringEnded();
+        held.monitoringStopped();
         status.processMonitoringStopped(logFolder);
         showNoProcesses();
     }
@@ -175,9 +301,12 @@ final class ProcessesViewModel {
         ProcessRow before = table.selected();
         change.run();
         if (before != null && table.selected() == null) {
+            managed.select(null);
             if (table.isRunning(before)) {
+                actions.select(null);
                 details.showNothing();
             } else {
+                actions.selectedExited();
                 details.showExited(before);
             }
         }

@@ -8,10 +8,31 @@
   -srm-graph-line: -srm-accent;
   -srm-graph-secondary: -srm-text-muted;
   -srm-graph-grid: -srm-border;
+  /* The cursor that reads a past value: a 1 px line, and around each dot the surface of the graph. */
+  -srm-graph-cursor: -srm-text-muted;
+  -srm-graph-surface: -srm-surface;
 
+  /*
+   * No frame of its own: the graph lies inside a panel, and the lines of its grid at the top
+   * and the bottom of the scale bound it. The 1 px padding keeps the plot where the frame was.
+   */
   -fx-background-color: -srm-surface;
-  -fx-border-color: -srm-border;
-  -fx-border-width: 1;
+  -fx-padding: 1;
+}
+
+/*
+ * A graph that holds the keyboard focus for itself (Performance): the ring of every control, 2 px,
+ * outside the plot, there in every state and colored only with the keyboard focus, so nothing moves.
+ */
+.history-graph.focusable {
+  -fx-border-color: transparent;
+  -fx-border-width: 2;
+  -fx-border-insets: -4;
+  -fx-border-radius: 6;
+}
+
+.history-graph.focusable:focus-visible {
+  -fx-border-color: -srm-focus-ring;
 }
 
 /*
@@ -26,4 +47,29 @@
   -srm-graph-label: -srm-text-muted;
   -srm-graph-value: -srm-text;
   -srm-graph-label-size: 11px;
+}
+
+/*
+ * Per-resource data colors (UI lab v2, spec section 4). A page puts the class of the resource on the
+ * panel or section that holds the graph; every graph and grid inside takes the hue. The second series
+ * of a pair (write, upload) is drawn dashed by HistoryGraph as well.
+ */
+.metric-cpu .history-graph,
+.metric-cpu .history-grid {
+  -srm-graph-line: -srm-data-cpu;
+}
+
+.metric-memory .history-graph,
+.metric-memory .history-grid {
+  -srm-graph-line: -srm-data-memory;
+}
+
+.metric-disk .history-graph {
+  -srm-graph-line: -srm-data-disk-read;
+  -srm-graph-secondary: -srm-data-disk-write;
+}
+
+.metric-network .history-graph {
+  -srm-graph-line: -srm-data-net-down;
+  -srm-graph-secondary: -srm-data-net-up;
 }

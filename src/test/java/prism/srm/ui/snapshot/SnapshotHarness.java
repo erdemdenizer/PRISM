@@ -14,6 +14,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import javafx.application.ColorScheme;
 import javafx.application.Platform;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -21,6 +22,7 @@ import javafx.scene.image.PixelFormat;
 import javafx.scene.image.WritableImage;
 import javax.imageio.ImageIO;
 import prism.srm.ui.Stylesheets;
+import prism.srm.ui.Typefaces;
 
 /**
  * Development-only harness that renders a JavaFX node tree to a PNG file so a screen can be
@@ -110,15 +112,26 @@ public final class SnapshotHarness {
         return scene.snapshot(null);
     }
 
+    /**
+     * The scene is given the color scheme of the theme outright, whatever the platform prefers,
+     * so that a render is the same on every machine: that is what the application does for a
+     * forced mode, and what a scene that follows the platform does on a platform of that scheme.
+     */
     private static Scene scene(Theme theme, int width, int height, Supplier<Parent> content) {
         Parent root = content.get();
-        if (theme == Theme.DARK) {
-            root.getStyleClass().add("theme-dark");
-        }
         Scene scene = new Scene(root, width, height);
+        scene.getPreferences().setColorScheme(colorScheme(theme));
+        // No motion: a render must show a state, never the middle of a transition to it. The
+        // motion itself is the subject of tests of its own.
+        scene.getPreferences().setReducedMotion(true);
         scene.getStylesheets().add(Stylesheets.app());
         layOut(root);
         return scene;
+    }
+
+    /** The color scheme a theme renders with. */
+    public static ColorScheme colorScheme(Theme theme) {
+        return theme == Theme.DARK ? ColorScheme.DARK : ColorScheme.LIGHT;
     }
 
     /**
@@ -185,6 +198,12 @@ public final class SnapshotHarness {
                 throw new IllegalStateException("Interrupted while starting the JavaFX toolkit", e);
             }
             Platform.setImplicitExit(false);
+            // Once, as the application does: without it every render would silently use the
+            // system font in place of the bundled typeface.
+            Typefaces typefaces = Typefaces.load();
+            if (!typefaces.bundled()) {
+                throw new IllegalStateException("The bundled typeface did not load: " + typefaces.problem());
+            }
             toolkitStarted = true;
         }
     }

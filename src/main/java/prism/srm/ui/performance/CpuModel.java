@@ -32,6 +32,12 @@ final class CpuModel implements SectionModel {
 
     private static final double PERCENT_SCALE = 100;
 
+    /** In place of the cells once monitoring runs and the system gave none: why (OP-07). */
+    static final String NO_PROCESSOR_VALUES = "Unavailable: the system gave no values per logical processor.";
+
+    /** In place of the cells while monitoring is not running; the top of the page says why. */
+    static final String NOT_RUNNING = "Unavailable: monitoring is not running.";
+
     private final ValueFormatter formatter;
     private final SystemReadouts readouts;
     private final MetricReadout total = new MetricReadout();
@@ -95,7 +101,7 @@ final class CpuModel implements SectionModel {
     @Override
     public void showNothing() {
         SystemReadouts.showNothing(total);
-        showProcessors(GridData.EMPTY, MetricState.UNAVAILABLE.placeholder(), "");
+        showProcessors(GridData.EMPTY, NOT_RUNNING, "");
         name.showUnavailable();
         logicalProcessors.showUnavailable();
         physicalCores.showUnavailable();
@@ -108,7 +114,9 @@ final class CpuModel implements SectionModel {
      */
     private void updateProcessors(Optional<CpuUsage> cpu, List<MetricHistory> histories, int cycles) {
         if (histories.isEmpty()) {
-            showProcessors(GridData.EMPTY, MetricState.of(false, cycles).placeholder(), "");
+            MetricState state = MetricState.of(false, cycles);
+            showProcessors(
+                    GridData.EMPTY, state == MetricState.UNAVAILABLE ? NO_PROCESSOR_VALUES : state.placeholder(), "");
             return;
         }
         List<OptionalDouble> current = cpu.map(CpuUsage::perProcessorPercent).orElse(List.of());

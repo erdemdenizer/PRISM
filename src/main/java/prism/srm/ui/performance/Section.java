@@ -1,7 +1,10 @@
 package prism.srm.ui.performance;
 
-/** The resources the Performance page has a view for, in the order they are listed. */
-enum Section {
+/**
+ * The resources the Performance page has a view for, in the order they are listed. Public so that
+ * another page can lead to one of them ({@link PerformancePage#select}).
+ */
+public enum Section {
     CPU("CPU"),
     MEMORY("Memory"),
     DISK("Disk"),

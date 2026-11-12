@@ -42,7 +42,13 @@ public final class FakeSystemMetricsSource implements SystemMetricsSource {
     ProcessorInfo processorInfo = new ProcessorInfo(2, OptionalInt.of(1), OptionalInt.of(1), Optional.of("Fake CPU"));
     OperatingSystemInfo operatingSystem = new OperatingSystemInfo("FakeOS", Optional.of("1"), Optional.of("100"));
     CpuSample cpu = new CpuSample(new CpuTicks(0, 0), List.of(new CpuTicks(0, 0), new CpuTicks(0, 0)));
-    MemorySample memory = new MemorySample(8 * GIB, 6 * GIB, Optional.of(new SwapUsage(2 * GIB, GIB)));
+    volatile MemorySample memory = new MemorySample(8 * GIB, 6 * GIB, Optional.of(new SwapUsage(2 * GIB, GIB)));
+
+    /** Sets what the following memory readings return; for tests outside this package (milestone 11). */
+    public void memory(MemorySample sample) {
+        memory = sample;
+    }
+
     List<FileSystemUsage> fileSystems = List.of(new FileSystemUsage("root", "/", 100 * GIB, 40 * GIB));
     List<DiskCounters> disks = List.of(disk("disk0", 0, 0));
     List<NetworkCounters> interfaces = List.of(nic("eth0", "Fake Ethernet", 0, 0));

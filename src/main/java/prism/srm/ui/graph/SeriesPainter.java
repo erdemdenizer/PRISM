@@ -4,14 +4,14 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 
 /**
- * Draws the samples of one history as a 1 px line, with an optional flat fill below it. The plot
+ * Draws the samples of one history as a line of the current width, with an optional flat fill below it. The plot
  * area starts at the origin of the graphics context; a caller that draws several plots moves the
  * origin first.
  */
 final class SeriesPainter {
 
     /** How much of the line color the flat fill below a line has (docs/UI_GUIDE.md, Graphs). */
-    static final double FILL_OPACITY = 0.12;
+    static final double FILL_OPACITY = 0.08;
 
     private SeriesPainter() {}
 
