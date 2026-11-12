@@ -42,7 +42,32 @@ public final class LinuxUserFolders implements UserFolders {
 
     @Override
     public Path logs() {
-        return stateHome().resolve("prism-srm").resolve("logs");
+        return stateHome().resolve("prism-srm-uilab").resolve("logs");
+    }
+
+    /**
+     * Under the same state home: the suspension journal is state that "should persist between
+     * (application) restarts, but that is not important or portable enough" for the data home.
+     */
+    @Override
+    public Path state() {
+        return stateHome().resolve("prism-srm-uilab").resolve("state");
+    }
+
+    /**
+     * Settings are configuration: "$XDG_CONFIG_HOME defines the base directory relative to which
+     * user-specific configuration files should be stored. If $XDG_CONFIG_HOME is either not set or
+     * empty, a default equal to $HOME/.config should be used" (ADR-0014). A relative value is ignored,
+     * as for the state home.
+     */
+    @Override
+    public Path settings() {
+        Path configHome = absolute(environment.apply("XDG_CONFIG_HOME"));
+        if (configHome == null) {
+            Path homeVariable = absolute(environment.apply("HOME"));
+            configHome = (homeVariable != null ? homeVariable : home).resolve(".config");
+        }
+        return configHome.resolve("prism-srm-uilab");
     }
 
     private Path stateHome() {
