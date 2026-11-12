@@ -1,0 +1,171 @@
+/*
+ * Settings page. Sizes are on the spacing scale of docs/UI_GUIDE.md (4, 8, 12, 16, 24); colors are
+ * tokens from app.css only.
+ */
+
+.settings {
+  -fx-padding: 12;
+  -fx-spacing: 24;
+}
+
+.settings-section {
+  -fx-spacing: 8;
+}
+
+/*
+ * Left aligned, at most 880 px wide: a line of settings is read, not scanned across a wide window.
+ * The sections stand under one another, or in two columns in a low and wide page (SettingsPage,
+ * LS-17); the gap between the columns is the gap between the sections, 24.
+ */
+.settings-column {
+  -fx-spacing: 24;
+}
+
+.settings-column > .settings-section,
+.settings-columns > .settings-section {
+  -fx-max-width: 880;
+}
+
+/* A group of rows on a panel; the panel's padding, rows 12 px apart. */
+.settings-group {
+  -fx-spacing: 12;
+}
+
+/* A row of a group and the note under it: 4 px apart. */
+.settings-group > .settings-section {
+  -fx-spacing: 4;
+}
+
+.settings-row {
+  -fx-spacing: 12;
+  -fx-alignment: center-left;
+  -fx-min-height: 32;
+}
+
+/*
+ * The appearance as a segmented control: the radio buttons keep their role and their keyboard
+ * (arrows, Space) and lose the dot; the track is the sunken surface with the soft control border, the
+ * chosen entry the raised thumb with the 3:1 control edge, as the selector of the Performance page.
+ * The segments are equal, as wide as the widest name (SettingsPage measures it), touching; radius 6
+ * for the track (a control), 4 for a segment inside it.
+ */
+.settings-choices {
+  -fx-background-color: -srm-control-border, -srm-surface-sunken;
+  -fx-background-insets: 0, 1;
+  -fx-background-radius: 6, 5;
+  -fx-padding: 2;
+  -fx-spacing: 0;
+  -fx-alignment: center-left;
+}
+
+.settings-appearance {
+  -fx-background-color: transparent;
+  -fx-background-radius: 4;
+  -fx-padding: 0 12 0 12;
+  -fx-min-height: 26;
+  -fx-pref-height: 26;
+  -fx-max-height: 26;
+  -fx-alignment: center;
+  -fx-label-padding: 0;
+  -fx-text-fill: -srm-text-muted;
+  -fx-font-family: "IBM Plex Sans Medm";
+  -fx-border-color: transparent;
+  -fx-border-width: 2;
+  -fx-border-insets: -4;
+  -fx-border-radius: 8;
+}
+
+.settings-appearance > .radio {
+  -fx-padding: 0;
+  -fx-min-width: 0;
+  -fx-pref-width: 0;
+  -fx-max-width: 0;
+  -fx-background-color: transparent;
+  -fx-border-color: transparent;
+}
+
+.settings-appearance > .radio > .dot {
+  -fx-padding: 0;
+}
+
+.settings-appearance:hover {
+  -fx-text-fill: -srm-text;
+}
+
+.settings-appearance:selected {
+  -fx-background-color: -srm-control-edge, -srm-control-highlight, -srm-control;
+  -fx-background-insets: 0, 1, 2 1 1 1;
+  -fx-text-fill: -srm-text;
+}
+
+.settings-appearance:focus-visible {
+  -fx-border-color: -srm-focus-ring;
+}
+
+/*
+ * The folders: a row each, 12 px apart; the name over the whole path (12 px, muted, wrapped, never
+ * cut), the button at the right. Both buttons as wide as the wider one, so the paths wrap at the
+ * same line.
+ */
+.settings-locations {
+  -fx-spacing: 12;
+}
+
+.settings-folder {
+  -fx-spacing: 12;
+}
+
+.settings-folder-text {
+  -fx-spacing: 2;
+}
+
+.settings-folder > .settings-open {
+  -fx-min-width: 11.5em;
+  -fx-pref-width: 11.5em;
+}
+
+/* The path takes the keyboard for Ctrl+C: the focus ring of every control, drawn outside it. */
+.settings-folder-path {
+  -fx-border-color: transparent;
+  -fx-border-width: 2;
+  -fx-border-insets: -4;
+  -fx-border-radius: 6;
+}
+
+.settings-folder-path:focus-visible {
+  -fx-border-color: -srm-focus-ring;
+}
+
+.settings-problem {
+  -fx-text-fill: -srm-warning;
+}
+
+/*
+ * The summary as a table: a header row (12 px medium, muted, as a table header), a hairline, then a
+ * row per function; columns 16 px apart (SettingsPage measures with that gap), rows 8 px apart.
+ */
+.settings-capabilities {
+  -fx-spacing: 8;
+}
+
+.settings-capability-header {
+  -fx-font-size: 12px;
+  -fx-font-family: "IBM Plex Sans Medm";
+  -fx-text-fill: -srm-text-muted;
+}
+
+.settings-capability-rule {
+  -fx-background-color: -srm-hairline;
+  -fx-min-height: 1;
+  -fx-pref-height: 1;
+  -fx-max-height: 1;
+}
+
+.settings-capability-unavailable,
+.settings-capability-reading {
+  -fx-text-fill: -srm-text-muted;
+}
+
+.settings-appearance:focus-visible > .radio {
+  -fx-border-color: transparent;
+}

@@ -1,0 +1,229 @@
+/*
+ * Limits page. Sizes are on the spacing scale of docs/UI_GUIDE.md (4, 8, 12, 16, 24); colors are
+ * tokens from app.css only.
+ */
+
+.limits {
+  -fx-padding: 12;
+  -fx-spacing: 12;
+}
+
+/* Why limits are off or unavailable: a sentence above the table, in the error color only when it is a failure. */
+.limits-notice {
+  -fx-text-fill: -srm-text-muted;
+}
+
+.limits-notice:error {
+  -fx-text-fill: -srm-error;
+}
+
+/* A limit that may still be in force where Prism cannot reach it: a warning, not a failure. */
+.limits-notice:warning {
+  -fx-text-fill: -srm-warning;
+}
+
+/* Each notice on a line of its own. */
+.limits-notices {
+  -fx-spacing: 4;
+}
+
+/* The empty, loading and failed states of the table: off its frame, centered, a readable measure. */
+.limits-table .placeholder .label {
+  -fx-padding: 24;
+  -fx-text-alignment: center;
+  -fx-max-width: 440;
+}
+
+/* A status in the tone of what it says; color is never the only sign, the words say it too. */
+.limits-table .table-cell:muted {
+  -fx-text-fill: -srm-text-muted;
+}
+
+.limits-table .table-cell:warning {
+  -fx-text-fill: -srm-warning;
+}
+
+.limits-table .table-cell:error {
+  -fx-text-fill: -srm-error;
+}
+
+.limits-table .table-row-cell:selected .table-cell:muted {
+  -fx-text-fill: -srm-text;
+}
+
+/* The raised panel of the inspector, as on the Processes page: a hairline, the 1 px top highlight, radius 10. */
+.limit-editor {
+  -fx-background-color: -srm-inspector-edge, -srm-panel-highlight, -srm-surface-raised;
+  -fx-background-insets: 0, 1, 2 1 1 1;
+  -fx-background-radius: 10, 9, 9;
+  -fx-padding: 1;
+}
+
+.inspector-layout:overlay .limit-editor {
+  -fx-background-color: -srm-border-strong, -srm-panel-highlight, -srm-surface-raised;
+}
+
+/*
+ * Fix round G (K2): the pinned part of the panel, which never scrolls away: the name, the three groups of
+ * actions with their reasons, the line about the last action; a hairline under it, the facts scroll below.
+ */
+.limit-editor-pinned {
+  -fx-padding: 12 16 12 16;
+  -fx-spacing: 12;
+  -fx-border-color: transparent transparent -srm-inspector-rule transparent;
+  -fx-border-width: 0 0 1 0;
+}
+
+/* The heading of the inspector, as on the Processes page: the name, 15 px SemiBold, and the PID beside it. */
+.limit-editor-header {
+  -fx-padding: 0;
+  -fx-spacing: 8;
+  -fx-alignment: center-left;
+}
+
+.limit-editor-names {
+  -fx-spacing: 8;
+  -fx-alignment: baseline-left;
+}
+
+/* With no process selected, the sentence that says what to do stands under the title. */
+.limit-editor-heading {
+  -fx-spacing: 4;
+}
+
+.limit-editor-title {
+  -fx-font-size: 15px;
+}
+
+.limit-editor:empty .limit-editor-title {
+  -fx-text-fill: -srm-text-muted;
+  -fx-font-size: 13px;
+}
+
+.limit-editor-body {
+  -fx-padding: 12 16 16 16;
+  -fx-spacing: 16;
+}
+
+.limit-editor-facts-box {
+  -fx-spacing: 8;
+}
+
+/*
+ * What the CPU limit does now: the status in the tone it has in the table, then the whole of it. It heads
+ * the facts as a section caption heads its section: 13 px SemiBold (fix round H, SH-09: was 14 px, off the
+ * type scale).
+ */
+.limit-editor-status {
+  -fx-font-family: "IBM Plex Sans SmBld";
+  -fx-font-size: 13px;
+}
+
+.limit-editor-status:muted {
+  -fx-text-fill: -srm-text-muted;
+}
+
+.limit-editor-status:warning {
+  -fx-text-fill: -srm-warning;
+}
+
+.limit-editor-status:error {
+  -fx-text-fill: -srm-error;
+}
+
+.limit-editor-facts {
+  -fx-hgap: 12;
+  -fx-vgap: 8;
+  -fx-padding: 4 0 0 0;
+}
+
+.limit-editor-key {
+  -fx-padding: 2 0 0 0;
+}
+
+.limit-editor-value:muted {
+  -fx-text-fill: -srm-text-muted;
+}
+
+.limit-editor-value-box {
+  -fx-spacing: 4;
+  -fx-alignment: top-left;
+}
+
+/* The three groups of actions: a title, then the buttons 8 px apart, then their reasons; 12 px between groups. */
+.limit-editor-actions {
+  -fx-spacing: 12;
+}
+
+/* The title of a group is the inspector's section title (app.css); 8 px to its buttons, 8 to its reasons. */
+.limit-editor-group {
+  -fx-spacing: 8;
+}
+
+/* The section title carries 8 px under it in app.css; the group's spacing takes its place here. */
+.limit-editor-group > .inspector-section-caption {
+  -fx-padding: 0;
+}
+
+/* The count and, while the panel is a sheet, the button that opens it: one row at the right of the title. */
+.limits-header-tools {
+  -fx-spacing: 12;
+  -fx-alignment: center-right;
+}
+
+/* The line about the last action, under the groups in the panel (LO-09). */
+.limits-action-message {
+  -fx-padding: 0;
+}
+
+/* Where the panel is a sheet: the selected process and the line about its last action, under the table. */
+.limits-selection-line {
+  -fx-spacing: 8;
+  -fx-alignment: baseline-left;
+  -fx-min-height: 20;
+  -fx-padding: 0 2 0 2;
+}
+
+/* Low windows: the panel and its groups move closer. */
+.shell:low .limit-editor-pinned {
+  -fx-padding: 8 12 8 12;
+  -fx-spacing: 8;
+}
+
+.shell:low .limit-editor-body {
+  -fx-padding: 8 12 12 12;
+  -fx-spacing: 8;
+}
+
+.shell:low .limit-editor-actions {
+  -fx-spacing: 8;
+}
+
+/*
+ * UI lab v2 (one inspector rule): in the sheet the panel takes the sheet's surface; under the table its
+ * facts and its three groups stand in columns; the reasons of the disabled actions under them (CAP-2).
+ */
+.sheet .limit-editor {
+  -fx-background-color: transparent;
+  -fx-padding: 0;
+}
+
+/* Under the table the three groups stand side by side, 24 px apart (LimitEditorPanel.GroupsPane). */
+
+/*
+ * Fix round H (LO-06): the compact panel of a low window. Each group on one line, its title at the left of
+ * its buttons (in code), its reasons under them; the groups 8 px apart.
+ */
+.limit-editor:compact .limit-editor-actions {
+  -fx-spacing: 8;
+}
+
+/* In the sheet, the name stands on the line of the close button: room for it at the right (LO-25). */
+.sheet .limit-editor-pinned {
+  -fx-padding: 8 16 12 16;
+}
+
+.sheet .limit-editor-header {
+  -fx-padding: 0 36 0 0;
+  -fx-min-height: 28;
+}

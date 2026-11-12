@@ -1,0 +1,324 @@
+/*
+ * OOM Guard page and its dialogs. Sizes are on the spacing scale of docs/UI_GUIDE.md (4, 8, 12, 16,
+ * 24); colors are tokens from app.css only. Color appears on a value only where a real condition
+ * stands behind it, and the words always say it too.
+ */
+
+.oom {
+  -fx-padding: 12;
+  -fx-spacing: 12;
+}
+
+/* In a low area (the smallest window) the groups move closer, as on the Processes page. */
+.oom:compact {
+  -fx-padding: 8 12 8 12;
+  -fx-spacing: 8;
+}
+
+.oom:compact .oom-managed,
+.oom:compact .oom-action-area {
+  -fx-spacing: 4;
+}
+
+/*
+ * Fix round H: the navigation with names takes 80 px at the left of the smallest window too; 16 px
+ * between the switches keeps the three on one line there.
+ */
+.oom:compact .oom-switches {
+  -fx-hgap: 16;
+  -fx-vgap: 0;
+}
+
+/*
+ * The group of switches without its own top space or gaps, each switch as high as its box and words
+ * need: with the tighter state band below, this gives back the two lines a wrapped notice takes, so
+ * the managed table and its actions stay in view (plan A11) while no notice is cut (critique M10).
+ */
+.oom:compact .oom-interventions {
+  -fx-padding: 0;
+  -fx-spacing: 0;
+}
+
+.oom:compact .oom-switches > .check-box {
+  -fx-min-height: 22;
+}
+
+/* Monitoring and its thresholds: one 30 px line, the thresholds in muted words. */
+.oom-monitoring {
+  -fx-spacing: 8;
+  -fx-alignment: center-left;
+  -fx-min-height: 30;
+}
+
+/* The thresholds wrap to two lines at most in a narrow window (13 px text, 17 px lines). */
+.oom-thresholds {
+  -fx-padding: 0 0 0 8;
+  -fx-max-height: 36;
+}
+
+/* Automatic intervention: apart from monitoring by space and a heading, not by a frame (UI-5). */
+.oom-interventions {
+  -fx-spacing: 4;
+  -fx-padding: 4 0 0 0;
+}
+
+.oom-group-heading {
+  -fx-spacing: 8;
+  -fx-alignment: baseline-left;
+}
+
+.oom-switches {
+  -fx-hgap: 24;
+  -fx-vgap: 4;
+}
+
+.oom-switches > .check-box {
+  -fx-min-height: 28;
+}
+
+/* The managed processes: notices above the table, the actions below it. */
+.oom-managed {
+  -fx-spacing: 8;
+}
+
+.oom-notices {
+  -fx-spacing: 4;
+}
+
+/* A notice wraps to two lines at most; beyond them it is cut and its tooltip has it whole. */
+.oom-notice {
+  -fx-text-fill: -srm-text-muted;
+  -fx-max-height: 36;
+}
+
+.oom-notice:warning {
+  -fx-text-fill: -srm-warning;
+}
+
+.oom-notice:error {
+  -fx-text-fill: -srm-error;
+}
+
+.oom-action-area {
+  -fx-spacing: 8;
+}
+
+.oom-recent-section {
+  -fx-spacing: 8;
+}
+
+/* A cell in the tone of what it says; configuration is never colored, only results. */
+.oom-table .table-cell:muted,
+.oom-recent .table-cell:muted {
+  -fx-text-fill: -srm-text-muted;
+}
+
+.oom-table .table-cell:warning {
+  -fx-text-fill: -srm-warning;
+}
+
+.oom-table .table-cell:error,
+.oom-recent .table-cell:error {
+  -fx-text-fill: -srm-error;
+}
+
+.oom-table .table-row-cell:selected .table-cell:muted {
+  -fx-text-fill: -srm-text;
+}
+
+/* The state of OOM Guard: its value in the warning or error color, only while that is the state. */
+.oom .fact:warning .fact-value {
+  -fx-text-fill: -srm-warning;
+}
+
+.oom .fact:error .fact-value {
+  -fx-text-fill: -srm-error;
+}
+
+.oom .fact:muted .fact-value {
+  -fx-text-fill: -srm-text-muted;
+}
+
+.oom .fact .fact-value {
+  -fx-font-family: "IBM Plex Sans Medm";
+}
+
+/*
+ * UI lab v2: the state band. The memory available is the figure of the page (22 px); the state word
+ * and the time beside it are 15 px, calm, the state in color only while it is Warning or worse. The
+ * safe-default chip is neutral and follows the facts, 24 px after them (UI audit LO-24).
+ *
+ * The values stand on one baseline (UI audit LO-13): each is a line as high as the 22 px figure with
+ * its text at the bottom, and a 15 px value is raised by the 1 px its smaller descent leaves (as
+ * measured by OomPageLayoutSceneTest). A value that is no figure ("–", "Reading…", "Unavailable")
+ * is set in 15 px and muted, so a dash does not read as an underscore.
+ */
+.oom-state {
+  -fx-spacing: 24;
+  -fx-padding: 12 16 12 16;
+}
+
+.oom-state .fact-value {
+  -fx-font-size: 15px;
+  -fx-min-height: 29;
+  -fx-pref-height: 29;
+  -fx-max-height: 29;
+  -fx-alignment: bottom-left;
+  -fx-padding: 0 0 1 0;
+}
+
+.oom-state .oom-available .fact-value {
+  -fx-font-size: 22px;
+  -fx-padding: 0;
+}
+
+.oom-state .oom-available .fact-value:no-figure {
+  -fx-font-size: 15px;
+  -fx-padding: 0 0 1 0;
+}
+
+.oom-state .fact-value:no-figure {
+  -fx-text-fill: -srm-text-muted;
+}
+
+/* The chip on the line of the values, centered on it: 29 px line, 22 px chip. */
+.oom-safe-default-box {
+  -fx-alignment: bottom-left;
+  -fx-padding: 0 0 4 0;
+}
+
+/* A group title at the head of its line: monitoring, then automatic intervention. */
+.oom-group-title {
+  -fx-padding: 0 4 0 0;
+}
+
+.oom:compact .oom-state {
+  -fx-padding: 4 12 4 12;
+}
+
+/* Compact: an 18 px figure on a 24 px line; there a 15 px value needs no raise. */
+.oom:compact .oom-state .fact-value {
+  -fx-min-height: 24;
+  -fx-pref-height: 24;
+  -fx-max-height: 24;
+  -fx-padding: 0;
+}
+
+.oom:compact .oom-state .oom-available .fact-value {
+  -fx-font-size: 18px;
+  -fx-padding: 0;
+}
+
+.oom:compact .oom-state .oom-available .fact-value:no-figure {
+  -fx-font-size: 15px;
+  -fx-padding: 0;
+}
+
+.oom:compact .oom-safe-default-box {
+  -fx-padding: 0 0 1 0;
+}
+
+/* Dialogs: the OOM management of a process, the thresholds, the consent to termination. */
+.oom-dialog-content {
+  -fx-spacing: 8;
+}
+
+.oom-dialog-caption {
+  -fx-padding: 4 0 0 0;
+}
+
+.oom-dialog-priorities {
+  -fx-spacing: 16;
+}
+
+.oom-dialog-actions {
+  -fx-spacing: 0;
+}
+
+/* What an action does on this system, under it, aligned with its text (16 px box and 8 px gap). */
+.oom-dialog-note {
+  -fx-padding: 0 0 4 24;
+}
+
+/* What cannot be undone is read first: the text color, no color of its own. */
+.oom-terminate-consequence {
+  -fx-text-fill: -srm-text;
+}
+
+.oom-consent-content {
+  -fx-spacing: 8;
+  -fx-pref-width: 400;
+  -fx-max-width: 400;
+}
+
+.thresholds-grid {
+  -fx-hgap: 8;
+  -fx-vgap: 8;
+}
+
+.thresholds-field {
+  -fx-pref-width: 64;
+  -fx-max-width: 64;
+  -fx-alignment: center-right;
+}
+
+/* The words of an empty table keep off its frame, centered as the table centers them. */
+.oom-placeholder {
+  -fx-padding: 0 16 0 16;
+  -fx-text-alignment: center;
+}
+
+/*
+ * With OOM management off the choices stay in view (CAP-2) and readable: the name of a choice in the
+ * muted text color, the line under it ("Not in effect: …") one step quieter, so the note never reads
+ * above the choice it describes (UI audit LO-20). The round box of the choice shows it is disabled.
+ */
+.oom-management-dialog .radio-button:disabled {
+  -fx-text-fill: -srm-text-muted;
+}
+
+.oom-dialog-note:disabled {
+  -fx-opacity: 1;
+  -fx-text-fill: -srm-text-subtle;
+}
+
+/*
+ * CAP-2: why the buttons of the managed processes are disabled, on screen, right under them: no room of
+ * its own above it, so that the smallest window keeps the actions of the managed table in view.
+ */
+.oom-action-reasons {
+  -fx-padding: 0;
+}
+
+/*
+ * The thresholds dialog with numbers it cannot take (UI audit LO-16): the fields that break the rule
+ * have an edge in the error color, and the rule under them is said in that color, next to them.
+ */
+.thresholds-field:invalid,
+.thresholds-field:invalid:hover,
+.thresholds-field:invalid:focused {
+  -fx-background-color: -srm-error, -srm-surface;
+}
+
+.thresholds-dialog .thresholds-rule {
+  -fx-text-fill: -srm-error;
+}
+
+/*
+ * KB-2: while a table has rows but none of them has the focus (TableFocus), the table draws the focus
+ * ring of every control around its frame: 2 px, 2 px outside, as a border with negative insets that is
+ * there in every state, so taking the focus moves nothing. An empty table draws the ring on its
+ * placeholder instead (table.css, KB-1); with a row focused, the row draws its ring (table.css).
+ */
+.oom-table,
+.oom-recent {
+  -fx-border-color: transparent;
+  -fx-border-width: 2;
+  -fx-border-insets: -4;
+  -fx-border-radius: 14;
+}
+
+.oom-table:focus-visible:no-focused-row,
+.oom-recent:focus-visible:no-focused-row {
+  -fx-border-color: -srm-focus-ring;
+}
