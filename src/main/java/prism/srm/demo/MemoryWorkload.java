@@ -115,6 +115,31 @@ final class MemoryWorkload implements AutoCloseable {
         return allocatedBytes;
     }
 
+    /**
+     * Interactive OOM trigger: allocates and touches {@code bytes} more native memory on the
+     * creating thread. Returns {@code false} if the OS or a memory limit refuses the allocation.
+     */
+    boolean growBy(long bytes) {
+        if (released || bytes <= 0) {
+            return false;
+        }
+        long remaining = bytes;
+        while (remaining > 0) {
+            long size = Math.min(chunkBytes, remaining);
+            MemorySegment segment;
+            try {
+                segment = allocator.allocate(size);
+            } catch (OutOfMemoryError e) {
+                return false;
+            }
+            touch(segment);
+            segments.add(segment);
+            allocatedBytes += size;
+            remaining -= size;
+        }
+        return true;
+    }
+
     /** Gives the memory back. Safe to call more than once; must be called on the creating thread. */
     @Override
     public void close() {

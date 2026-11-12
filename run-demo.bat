@@ -7,10 +7,10 @@ echo ============================================================
 echo   PRISM - Demo Workload ^& Test Launcher
 echo ============================================================
 echo.
-echo   [1] Start Demo Workload (CPU 50%%, RAM 512MiB, 5m) [Default]
-echo       - Best for CPU Limit, Suspend/Resume, Priority, Kill
+echo   [1] Start Demo Workload (CPU 50%%, RAM 256MiB, 5m) [Default]
+echo       - Starts calmly; press [R] + Enter anytime to spike RAM and trigger OOM Guard
 echo   [2] Start Heavy Memory Demo (CPU 25%%, RAM 1GiB, 5m)
-echo       - Best for OOM Guard Memory Policy ^& Pressure Testing
+echo       - Heavy baseline; press [R] + Enter anytime to spike RAM further
 echo   [3] Launch PRISM Desktop App (mvnw javafx:run)
 echo   [4] Run Diagnostic Probes (HostProcessProbe ^& HostMonitoringProbe)
 echo   [5] Run Full Test Suite ^& Quality Gate (mvnw verify)
@@ -33,10 +33,11 @@ echo.
 echo Compiling project...
 call mvnw.cmd -q compile
 if errorlevel 1 goto :fail
-echo Starting DemoWorkload (CPU 50%%, RAM 512MiB, 5m)...
+echo Starting DemoWorkload (CPU 50%%, RAM 256MiB, 5m) [Interactive Mode]...
 echo Note the PID printed below to locate it in PRISM!
+echo Tip: Press [R] + Enter while running to spike RAM and trigger OOM Guard!
 echo ------------------------------------------------------------
-java -cp target\classes prism.srm.demo.DemoWorkload --cpu 50 --memory 512MiB --duration 5m
+java -Dprism.demo.interactive=true -cp target\classes prism.srm.demo.DemoWorkload --cpu 50 --memory 256MiB --duration 5m
 goto :end
 
 :demo_heavy
@@ -44,10 +45,11 @@ echo.
 echo Compiling project...
 call mvnw.cmd -q compile
 if errorlevel 1 goto :fail
-echo Starting Heavy DemoWorkload (CPU 25%%, RAM 1GiB, 5m)...
+echo Starting Heavy DemoWorkload (CPU 25%%, RAM 1GiB, 5m) [Interactive Mode]...
 echo Note the PID printed below to locate it in PRISM!
+echo Tip: Press [R] + Enter while running to spike RAM and trigger OOM Guard!
 echo ------------------------------------------------------------
-java -cp target\classes prism.srm.demo.DemoWorkload --cpu 25 --memory 1GiB --duration 5m
+java -Dprism.demo.interactive=true -cp target\classes prism.srm.demo.DemoWorkload --cpu 25 --memory 1GiB --duration 5m
 goto :end
 
 :run_app
