@@ -45,9 +45,40 @@ Built in Java 25 and JavaFX 25, PRISM demonstrates core operating-system mechani
 
 ## Compile and Run
 
-PowerShell (Windows):
+## Overview
+
+**PRISM** combines low-latency whole-system telemetry with robust, crash-resilient process control. It features native operating system integrations (Win32 JNA, Linux cgroups v2, macOS sysctl), a responsive JavaFX desktop interface, and multi-tier safety mechanisms to prevent accidental system instability.
+
+---
+
+## Key Features
+
+- **Real-Time Telemetry:** Continuous sampling of CPU, memory, disk, and network throughput with monotonic rate calculations.
+- **Process Management:** Real-time process listing immune to OS PID recycling anomalies via `(PID, StartTime)` identity pairs.
+- **Process Control:** Safe process termination (`WM_CLOSE` / `SIGTERM` / force kill), suspension/resumption, and priority adjustments.
+- **Native & Emulated Limiting:**
+  - **Windows:** Native Job Objects memory and CPU rate limits.
+  - **Linux:** Cgroups v2 scope management and CPU quotas via systemd `sd-bus`.
+  - **Fallback:** Adaptive emulated CPU duty-cycle limiting for unsupported environments.
+- **Crash Recovery & Journaling:** Persistent append-only journaling to restore suspended processes and clean up orphaned native limits across unexpected crashes.
+- **Safety Policy Engine:** Blocks destructive actions against critical system processes, protected tasks, and PRISM itself.
+- **High-Performance UI:** JavaFX desktop client with non-blocking concurrency relays, real-time Canvas charts, and reactive search/filter tables.
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- **JDK 25** (Eclipse Temurin 25 LTS recommended)
+- Set `JAVA_HOME` pointing to your JDK 25 installation.
+
+### Compile and Run
+
+#### Windows (PowerShell)
 
 ```powershell
+# Set Java 25 environment
 $env:JAVA_HOME = 'C:\path\to\jdk-25'
 
 .\mvnw.cmd -q compile          # compile with warnings as errors
@@ -79,8 +110,11 @@ PRISM includes a dedicated, safe target workload (`prism.srm.demo`) designed for
 ### Console Probes (Historical Checkpoint 1 & Lifecycle Tests)
 
 ```powershell
-.\mvnw.cmd -q test -Dtest=HostMonitoringProbe   # samples CPU, memory, disk and network rates
-.\mvnw.cmd -q test -Dtest=HostProcessProbe      # tests process listing, thread load, child JVM lifecycle
+# Sample hardware metrics (CPU, RAM, Disk, Network)
+.\mvnw.cmd -q test -Dtest=HostMonitoringProbe
+
+# Inspect process discovery, identity stability, and child JVM lifecycle
+.\mvnw.cmd -q test -Dtest=HostProcessProbe
 ```
 
 ---
