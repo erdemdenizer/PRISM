@@ -34,6 +34,7 @@ class ArchitectureTest {
     private static final String APPLICATION = "prism.srm.application..";
     private static final String DOMAIN = "prism.srm.domain..";
     private static final String PLATFORM = "prism.srm.platform..";
+    private static final String DEMO = "prism.srm.demo..";
     private static final String[] PLATFORM_IMPLEMENTATIONS = {
         "prism.srm.platform.oshi..",
         "prism.srm.platform.windows..",
@@ -55,12 +56,14 @@ class ArchitectureTest {
         // Also keeps the layer rule below from passing vacuously after a package rename.
         classes()
                 .should()
-                .resideInAnyPackage(APP, UI, APPLICATION, DOMAIN, PLATFORM)
+                .resideInAnyPackage(APP, UI, APPLICATION, DOMAIN, PLATFORM, DEMO)
                 .check(production);
     }
 
     @Test
     void layersDependOnlyInTheAllowedDirection() {
+        // The demo workload is a layer of its own that nothing may reach; that it reaches nothing
+        // is the rule below, which also names the only packages outside Prism it may use.
         layeredArchitecture()
                 .consideringOnlyDependenciesInLayers()
                 .layer("App")
@@ -73,6 +76,10 @@ class ArchitectureTest {
                 .definedBy(DOMAIN)
                 .layer("Platform")
                 .definedBy(PLATFORM)
+                .layer("Demo")
+                .definedBy(DEMO)
+                .whereLayer("Demo")
+                .mayNotBeAccessedByAnyLayer()
                 .whereLayer("App")
                 .mayNotBeAccessedByAnyLayer()
                 .whereLayer("Ui")
@@ -83,6 +90,19 @@ class ArchitectureTest {
                 .mayOnlyBeAccessedByLayers("App", "Application")
                 .whereLayer("Domain")
                 .mayOnlyBeAccessedByLayers("App", "Ui", "Application", "Platform")
+                .check(production);
+    }
+
+    @Test
+    void theDemoWorkloadUsesOnlyTheJdk() {
+        // DEMO-1: a separate program. It is started on its own, so it may use nothing of Prism, no
+        // logger and no library; com.sun.management is the JDK's way to the physical memory size.
+        classes()
+                .that()
+                .resideInAPackage(DEMO)
+                .should()
+                .onlyDependOnClassesThat()
+                .resideInAnyPackage("java..", "com.sun.management..", DEMO)
                 .check(production);
     }
 
