@@ -34,6 +34,7 @@ class ArchitectureTest {
     private static final String APPLICATION = "prism.srm.application..";
     private static final String DOMAIN = "prism.srm.domain..";
     private static final String PLATFORM = "prism.srm.platform..";
+    private static final String DEMO = "prism.srm.demo..";
     private static final String[] PLATFORM_IMPLEMENTATIONS = {
         "prism.srm.platform.oshi..",
         "prism.srm.platform.windows..",
@@ -55,7 +56,7 @@ class ArchitectureTest {
         // Also keeps the layer rule below from passing vacuously after a package rename.
         classes()
                 .should()
-                .resideInAnyPackage(APP, UI, APPLICATION, DOMAIN, PLATFORM)
+                .resideInAnyPackage(APP, UI, APPLICATION, DOMAIN, PLATFORM, DEMO)
                 .check(production);
     }
 
@@ -73,6 +74,10 @@ class ArchitectureTest {
                 .definedBy(DOMAIN)
                 .layer("Platform")
                 .definedBy(PLATFORM)
+                .layer("Demo")
+                .definedBy(DEMO)
+                .whereLayer("Demo")
+                .mayNotBeAccessedByAnyLayer()
                 .whereLayer("App")
                 .mayNotBeAccessedByAnyLayer()
                 .whereLayer("Ui")
