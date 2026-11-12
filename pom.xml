@@ -3,12 +3,12 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>prism</groupId>
-  <artifactId>system-resource-manager</artifactId>
+  <artifactId>prism</artifactId>
   <version>0.1.0</version>
   <packaging>jar</packaging>
 
-  <name>System Resource Manager</name>
-  <description>Desktop system resource manager for the Operating Systems course project (team Prism).</description>
+  <name>PRISM</name>
+  <description>PRISM — Process &amp; Resource Interactive System Manager: a desktop system utility for Windows, Linux and macOS (Operating Systems course project, team Prism).</description>
 
   <properties>
     <!-- Frozen baseline. See docs/adr/0001-technology-baseline.md before changing any pin. -->
@@ -18,6 +18,7 @@
 
     <app.mainClass>prism.srm.app.App</app.mainClass>
     <app.launcherClass>prism.srm.app.Launcher</app.launcherClass>
+    <demo.mainClass>prism.srm.demo.DemoWorkload</demo.mainClass>
     <!-- JNA and JavaFX load native code; JDK 24+ warns unless access is granted explicitly. -->
     <app.nativeAccess.classpath>--enable-native-access=ALL-UNNAMED</app.nativeAccess.classpath>
     <app.nativeAccess.modular>--enable-native-access=javafx.graphics,ALL-UNNAMED</app.nativeAccess.modular>
@@ -37,6 +38,9 @@
     <maven-enforcer-plugin.version>3.6.3</maven-enforcer-plugin.version>
     <maven-install-plugin.version>3.2.0</maven-install-plugin.version>
     <maven-jar-plugin.version>3.5.1</maven-jar-plugin.version>
+    <!-- Only in the package-image profile (ADR-0017). -->
+    <maven-dependency-plugin.version>3.11.0</maven-dependency-plugin.version>
+    <exec-maven-plugin.version>3.6.4</exec-maven-plugin.version>
     <maven-resources-plugin.version>3.5.0</maven-resources-plugin.version>
     <maven-site-plugin.version>3.22.0</maven-site-plugin.version>
     <maven-surefire-plugin.version>3.6.0</maven-surefire-plugin.version>
@@ -237,9 +241,33 @@
           <archive>
             <manifest>
               <mainClass>${app.launcherClass}</mainClass>
+              <!-- The demo launcher of the image runs from this jar and reports its version. -->
+              <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
             </manifest>
           </archive>
         </configuration>
+        <executions>
+          <execution>
+            <!-- The demo workload (DEMO-1 to DEMO-3): only its package, no dependencies, runnable with java -jar. -->
+            <id>demo-jar</id>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+            <phase>package</phase>
+            <configuration>
+              <classifier>demo</classifier>
+              <includes>
+                <include>prism/srm/demo/**</include>
+              </includes>
+              <archive>
+                <manifest>
+                  <mainClass>${demo.mainClass}</mainClass>
+                  <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                </manifest>
+              </archive>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
 
       <plugin>
@@ -333,6 +361,62 @@
   </build>
 
   <profiles>
+    <profile>
+      <!--
+        The Windows application image and its ZIP, in target/package (ADR-0017). Not part of verify:
+        ./mvnw -Ppackage-image -DskipTests package
+        An image counts only after packaging/windows/verify-image.ps1 has passed on it.
+      -->
+      <id>package-image</id>
+      <properties>
+        <prism.package.unverifiedJdk>false</prism.package.unverifiedJdk>
+      </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-dependency-plugin</artifactId>
+            <version>${maven-dependency-plugin.version}</version>
+            <executions>
+              <execution>
+                <id>image-dependencies</id>
+                <goals>
+                  <goal>copy-dependencies</goal>
+                </goals>
+                <phase>package</phase>
+                <configuration>
+                  <includeScope>runtime</includeScope>
+                  <outputDirectory>${project.build.directory}/package-dependencies</outputDirectory>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>exec-maven-plugin</artifactId>
+            <version>${exec-maven-plugin.version}</version>
+            <executions>
+              <execution>
+                <id>image</id>
+                <goals>
+                  <goal>exec</goal>
+                </goals>
+                <phase>package</phase>
+                <configuration>
+                  <executable>${java.home}/bin/java</executable>
+                  <workingDirectory>${project.basedir}</workingDirectory>
+                  <arguments>
+                    <argument>-Dprism.package.unverifiedJdk=${prism.package.unverifiedJdk}</argument>
+                    <argument>packaging/windows/PackageImage.java</argument>
+                    <argument>${project.version}</argument>
+                  </arguments>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
     <profile>
       <!-- Renders UI snapshot PNGs to target/ui-snapshots. Needs a display. See docs/TESTING.md. -->
       <id>ui-snapshots</id>

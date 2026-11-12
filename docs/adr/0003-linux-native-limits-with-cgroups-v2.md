@@ -1,10 +1,10 @@
 # 0003. Linux native limits with cgroups v2
 
-- Status: Proposed
+- Status: Superseded by [0016](0016-linux-native-limits-through-systemd-scopes.md) (2026-11-07)
 - Date: 2026-10-05
 
-This record stays Proposed until the mechanism has been run on a real Linux system. The
-team has no Linux machine yet; nothing below has been executed.
+The product owner accepted [ADR-0016](0016-linux-native-limits-through-systemd-scopes.md) with milestone 12 on
+2026-11-07, and it replaces this record. The mechanism below was never implemented or executed.
 
 ## Context
 
