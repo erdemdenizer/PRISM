@@ -33,6 +33,11 @@ class ProcessDetailsServiceTest {
         final List<ProcessIdentity> asked = new ArrayList<>();
 
         @Override
+        public prism.srm.domain.CpuTimeReading cpuTime(ProcessIdentity identity) {
+            throw new AssertionError("Reading details must never read processor time");
+        }
+
+        @Override
         public List<ProcessReading> processes() {
             throw new AssertionError("Reading details must never list all processes");
         }

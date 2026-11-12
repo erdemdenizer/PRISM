@@ -27,4 +27,29 @@ public record GraphData(MetricHistory primary, MetricHistory secondary, double m
     public static GraphData single(MetricHistory series, double maximum) {
         return new GraphData(series, MetricHistory.empty(), maximum);
     }
+
+    /**
+     * Returns what the graph shows {@code age} samples before its newest: the sample of each
+     * series there, as a cursor reads it.
+     *
+     * @param age 0 for the newest sample
+     */
+    public Reading readingAt(int age) {
+        int primaryIndex = PlotGeometry.indexOfAge(age, primary.size());
+        int secondaryIndex = PlotGeometry.indexOfAge(age, secondary.size());
+        return new Reading(primaryIndex >= 0, sampleAt(primary, primaryIndex), sampleAt(secondary, secondaryIndex));
+    }
+
+    private static double sampleAt(MetricHistory series, int index) {
+        return index < 0 ? Double.NaN : series.sample(index).orElse(Double.NaN);
+    }
+
+    /**
+     * The samples of one moment of a graph.
+     *
+     * @param inHistory whether the history reaches back to that moment; if not, there are no samples
+     * @param primary the sample of the primary series; {@code NaN} if it was skipped or is not there
+     * @param secondary the sample of the second series; {@code NaN} if it was skipped or is not there
+     */
+    public record Reading(boolean inHistory, double primary, double secondary) {}
 }

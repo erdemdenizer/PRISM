@@ -8,22 +8,94 @@
   -fx-text-fill: -srm-error;
 }
 
-/* A metric: a flat region, set apart from its neighbors by spacing, not by a border or a card. */
+/* A metric on a panel of its own (the .panel of app.css gives it the surface and the border). */
 .metric-panel {
-  -fx-spacing: 4;
+  -fx-spacing: 0;
+}
+
+/*
+ * A part of a summary that leads to its page (UI-1, OpenablePart): under the pointer the hairline
+ * of the panel takes the strong border; with the keyboard focus the ring of every control stands
+ * 4 px outside it. The ring is a border that is there in every state, transparent without the
+ * focus, outside the panel: nothing moves when it appears. The graph inside keeps its surface.
+ */
+.metric-panel.openable {
+  -fx-border-color: transparent;
+  -fx-border-width: 2;
+  -fx-border-insets: -4;
+  -fx-border-radius: 14;
+}
+
+.metric-panel.openable:hover {
+  -fx-background-color: -srm-border-strong, -srm-panel-highlight, -srm-surface;
+}
+
+.metric-panel.openable:focus-visible {
+  -fx-border-color: -srm-focus-ring;
+}
+
+/*
+ * A fact that leads to its page: under the pointer a hover surface around it, with the keyboard focus
+ * the ring; both outside its bounds, in the room between the facts, so nothing moves.
+ */
+.fact.openable {
+  -fx-border-color: transparent;
+  -fx-border-width: 2;
+  -fx-border-insets: -4 -8 -4 -8;
+  -fx-border-radius: 8;
+}
+
+.fact.openable:hover {
+  -fx-background-color: -srm-surface-hover;
+  -fx-background-insets: -2 -6 -2 -6;
+  -fx-background-radius: 6;
+}
+
+.fact.openable:focus-visible {
+  -fx-border-color: -srm-focus-ring;
 }
 
 /*
  * The header is as high in every panel and in every state, so that the graphs of all four
  * panels have the same size and stay where they are when a value arrives or goes missing.
- * 32 px is the height of the tallest content: a series name above its value.
+ * 38 px is the height of the tallest content: the key readout, 30 px, on its line (30 px tall in
+ * a low window, where the readout is 22 px).
  */
 .metric-header {
   -fx-spacing: 8;
   -fx-alignment: baseline-left;
-  -fx-min-height: 32;
-  -fx-pref-height: 32;
-  -fx-max-height: 32;
+  -fx-min-height: 38;
+  -fx-pref-height: 38;
+  -fx-max-height: 38;
+}
+
+/*
+ * Stacked (a dual panel in a window below 900 px): the title on its line, the two series on the
+ * next, from the left edge, 4 px under it.
+ */
+.metric-panel:stacked .metric-header {
+  -fx-min-height: 22;
+  -fx-pref-height: 22;
+  -fx-max-height: 22;
+}
+
+.metric-values-line {
+  -fx-alignment: top-left;
+  -fx-padding: 4 0 4 0;
+}
+
+.metric-panel:stacked .metric-series {
+  -fx-alignment: top-left;
+  -fx-spacing: 16;
+}
+
+.metric-panel:stacked .series,
+.metric-panel:stacked .metric-readout {
+  -fx-alignment: top-left;
+}
+
+.metric-panel:stacked .series-value {
+  -fx-alignment: baseline-left;
 }
 
 /* The values, and over them the text that takes their place while there are none. */
@@ -41,22 +113,79 @@
   -fx-alignment: baseline-right;
 }
 
+/* The line between the header and the graph: 16 px of 12 px caption text and 4 px to the graph. */
 .metric-axis {
+  -fx-spacing: 8;
   -fx-alignment: baseline-left;
+  -fx-min-height: 20;
+  -fx-pref-height: 20;
+  -fx-max-height: 20;
+  -fx-padding: 0 0 4 0;
+}
+
+/*
+ * The reading of a past value (K5), in the place of the caption: how long ago, muted, then the value
+ * or the two values after the marks of their series, in the color of text, so that the line reads as
+ * a value and not as a caption.
+ */
+.metric-reading {
+  -fx-spacing: 12;
+  -fx-alignment: baseline-left;
+}
+
+.metric-reading-value {
+  -fx-text-fill: -srm-text;
+  -fx-graphic-text-gap: 4;
 }
 
 /* Two series: each value under the name and the line color of its series. */
 .metric-series {
-  -fx-spacing: 16;
+  -fx-spacing: 8;
   -fx-alignment: baseline-right;
 }
 
+/*
+ * A series: its legend over its value, 17 and 18 px, inside the 38 px of the header. The legend is
+ * as high as the line of its 12 px text, descenders included: a label lower than its text cuts it,
+ * and "Upload" read "Uoload" (OP-04). With the 17 px the name of a panel with two series stands on
+ * the line of the name beside a single readout (OP-06).
+ */
 .series {
   -fx-alignment: top-right;
+  -fx-min-height: 35;
+  -fx-pref-height: 35;
+  -fx-max-height: 35;
 }
 
 .series-legend {
   -fx-graphic-text-gap: 4;
+  -fx-min-height: 17;
+  -fx-pref-height: 17;
+  -fx-max-height: 17;
+}
+
+/*
+ * In the 30 px header of a low window (shell.css) the legend keeps its 11 px text and the whole of
+ * its line, 16 px: the series gives back the room by letting the empty top of the value's line run
+ * under the legend's, 4 px, so the descenders are not cut (OP-04). The selectors name the panel, to
+ * stand above the rules of the low window in shell.css.
+ */
+.shell:low .metric-panel .series {
+  -fx-spacing: -4;
+}
+
+.shell:low .metric-panel .series-legend {
+  -fx-min-height: 16;
+  -fx-pref-height: 16;
+  -fx-max-height: 16;
+}
+
+/*
+ * There the single readout stands 3 px lower in its header, so that the name of its panel stands on
+ * the line of the names of the panels with two series beside it (OP-06).
+ */
+.shell:low .metric-panel .metric-values {
+  -fx-padding: 3 0 0 0;
 }
 
 .series-swatch {
@@ -72,26 +201,68 @@
   -fx-background-color: -srm-accent;
 }
 
+/* The swatch of the second series is two short dashes, as its line is drawn. */
 .series-secondary {
-  -fx-background-color: -srm-text-muted;
+  -fx-background-color: -srm-text-muted, -srm-text-muted;
+  -fx-background-insets: 0 5 0 0, 0 0 0 5;
 }
 
-/* Wide enough for the longest rate, so the digits do not move as the value changes. */
+.metric-disk .series-primary {
+  -fx-background-color: -srm-data-disk-read;
+}
+
+.metric-disk .series-secondary {
+  -fx-background-color: -srm-data-disk-write, -srm-data-disk-write;
+}
+
+.metric-network .series-primary {
+  -fx-background-color: -srm-data-net-down;
+}
+
+.metric-network .series-secondary {
+  -fx-background-color: -srm-data-net-up, -srm-data-net-up;
+}
+
+/*
+ * Wide enough for the longest rate, "1023.9 GiB/s" (about 82 px in Plex), so the digits do not move
+ * as it changes and no part of it is cut; where a window is too narrow for two of them beside the
+ * title, they go under it (MetricPanel, stacked).
+ */
 .series-value {
-  -fx-min-width: 6.5em;
+  -fx-min-width: 7em;
+  -fx-pref-width: 7em;
   -fx-spacing: 4;
   -fx-alignment: baseline-right;
+  -fx-min-height: 18;
+  -fx-pref-height: 18;
+  -fx-max-height: 18;
 }
 
-.facts {
-  -fx-spacing: 4;
+.series-value > .text-muted {
+  -fx-font-family: "IBM Plex Sans Medm";
 }
 
-.fact-row {
+/* A row of facts on a surface of its own; 24 px between the facts. */
+.facts-panel {
   -fx-spacing: 24;
+  -fx-alignment: top-left;
+}
+
+/* A fact: the caption above its value, as the metric panel has its caption above its graph. */
+.fact {
+  -fx-spacing: 0;
 }
 
 /* "Reading..." and "Unavailable" in place of a fact are not the fact. */
 .fact-value:placeholder {
   -fx-text-fill: -srm-text-muted;
+}
+
+/* A fact that states a condition (the state of OOM Guard): its value in the warning or error color. */
+.fact:warning .fact-value {
+  -fx-text-fill: -srm-warning;
+}
+
+.fact:error .fact-value {
+  -fx-text-fill: -srm-error;
 }

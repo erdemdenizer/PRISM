@@ -371,6 +371,11 @@ class HostProcessProbe {
         }
 
         @Override
+        public prism.srm.domain.CpuTimeReading cpuTime(ProcessIdentity identity) {
+            return delegate.cpuTime(identity);
+        }
+
+        @Override
         public Optional<ProcessDetails> details(ProcessIdentity identity) {
             return delegate.details(identity);
         }

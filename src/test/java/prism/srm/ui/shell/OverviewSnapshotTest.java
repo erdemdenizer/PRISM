@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.file.Path;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -69,6 +70,15 @@ class OverviewSnapshotTest {
                 }));
             }
             cases.add(Arguments.of("overview-live", theme, MINIMUM_INSIDE_FRAME, showing(Snapshots.live())));
+            // Milestone 9: the managed processes and what an earlier session may have left suspended.
+            cases.add(Arguments.of("overview-limits", theme, MINIMUM_INSIDE_FRAME, (Consumer<Shell>) shell -> {
+                shell.showSnapshot(Snapshots.live());
+                shell.showLimits(prism.srm.ui.LimitsFixtures.snapshot(
+                        prism.srm.ui.LimitsFixtures.managed(prism.srm.ui.LimitsFixtures.identity(10), "a"),
+                        prism.srm.ui.LimitsFixtures.throttling(prism.srm.ui.LimitsFixtures.identity(20), "b", 30, 30)));
+                shell.showRecovered(List.of(
+                        prism.srm.ui.LimitsFixtures.userLeft(prism.srm.ui.LimitsFixtures.identity(30), "java.exe")));
+            }));
             // The failure states where they have the least room.
             cases.add(Arguments.of("overview-system-stopped", theme, MINIMUM_INSIDE_FRAME, (Consumer<Shell>) shell -> {
                 shell.showSnapshot(Snapshots.live());
@@ -136,8 +146,13 @@ class OverviewSnapshotTest {
      */
     @Test
     void aPageThatDoesNotFitScrollsAndLeavesTheStatusBarInPlace() {
-        String folder = "C:\\Users\\a-user-with-a-rather-long-account-name\\AppData\\Local\\Prism"
-                + "\\SystemResourceManager\\logs-of-a-redirected-profile-on-a-network-share\\logs";
+        // Fix round H (OP-08): a compact page and lower graphs while monitoring is not running fit the
+        // three lines of the long folder of the other cases in this window; a folder four times as
+        // long still does not fit, and the page has to scroll.
+        String folder = ("C:\\Users\\a-user-with-a-rather-long-account-name\\AppData\\Local\\Prism"
+                                + "\\SystemResourceManager\\logs-of-a-redirected-profile-on-a-network-share")
+                        .repeat(4)
+                + "\\logs";
         double[] seen = SnapshotHarness.inspect(
                 Theme.LIGHT,
                 MINIMUM_INSIDE_FRAME.width(),
@@ -145,7 +160,7 @@ class OverviewSnapshotTest {
                 () -> failedStart(folder),
                 root -> {
                     Shell shell = (Shell) root;
-                    ScrollPane area = (ScrollPane) shell.getCenter();
+                    ScrollPane area = shell.pageArea();
                     Bounds status = shell.getBottom().getBoundsInParent();
                     return new double[] {
                         status.getMaxY(),
@@ -168,7 +183,7 @@ class OverviewSnapshotTest {
                 MINIMUM_INSIDE_FRAME.height(),
                 () -> shell(showing(Snapshots.extreme())),
                 root -> {
-                    ScrollPane area = (ScrollPane) ((Shell) root).getCenter();
+                    ScrollPane area = ((Shell) root).pageArea();
                     return new double[] {
                         area.getContent().getLayoutBounds().getHeight(),
                         area.getViewportBounds().getHeight(),
@@ -190,13 +205,16 @@ class OverviewSnapshotTest {
         assertThat(png).isRegularFile().isNotEmptyFile();
     }
 
-    /** The ring a keyboard user sees on the navigation; the harness has no real focus to give. */
+    /**
+     * The ring a keyboard user sees on the navigation; the harness has no real focus to give. In the
+     * default window, which has the rail (SH-07, OP-03).
+     */
     @ParameterizedTest
     @MethodSource("themes")
     void rendersTheKeyboardFocusOfTheNavigation(Theme theme) {
-        Path png = SnapshotHarness.render("overview-focus", theme, MINIMUM.width(), MINIMUM.height(), () -> {
+        Path png = SnapshotHarness.render("overview-focus", theme, DEFAULT.width(), DEFAULT.height(), () -> {
             Shell shell = shell(showing(Snapshots.live()));
-            Sidebar sidebar = (Sidebar) shell.getLeft();
+            Sidebar sidebar = shell.navigation();
             sidebar.entry(Destination.OVERVIEW)
                     .pseudoClassStateChanged(PseudoClass.getPseudoClass("focus-visible"), true);
             return shell;

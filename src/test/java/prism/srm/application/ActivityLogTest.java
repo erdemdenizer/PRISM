@@ -147,4 +147,52 @@ class ActivityLogTest {
         assertThat(entries).hasSize(threads * perThread);
         assertThat(entries).extracting(ActivityEntry::message).doesNotHaveDuplicates();
     }
+
+    @Test
+    void aListenerThatFailsDoesNotReachTheCallerAndTheEntryIsKept() {
+        ActivityLog log = new ActivityLog(10, clock);
+        log.setListener(() -> {
+            throw new IllegalStateException("the user interface is gone");
+        });
+
+        log.record(ActivitySeverity.INFO, "Suspend: done.");
+        log.record(ActivitySeverity.INFO, "Resume: done.");
+
+        assertThat(log.entries()).extracting(ActivityEntry::message).containsExactly("Suspend: done.", "Resume: done.");
+    }
+
+    /** Four threads record at once: every call of the listener reads more entries than the one before. */
+    @Test
+    void theListenerNeverReadsAnOlderLogThanItReadBefore() throws InterruptedException {
+        int threads = 4;
+        int perThread = 300;
+        ActivityLog log = new ActivityLog(threads * perThread, clock);
+        List<Integer> seen = java.util.Collections.synchronizedList(new ArrayList<>());
+        log.setListener(() -> seen.add(log.entries().size()));
+        CountDownLatch go = new CountDownLatch(1);
+        CountDownLatch done = new CountDownLatch(threads);
+        for (int thread = 0; thread < threads; thread++) {
+            Thread writer = new Thread(
+                    () -> {
+                        try {
+                            if (go.await(PATIENCE_SECONDS, TimeUnit.SECONDS)) {
+                                for (int event = 0; event < perThread; event++) {
+                                    log.record(ActivitySeverity.INFO, "event " + event);
+                                }
+                            }
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                        } finally {
+                            done.countDown();
+                        }
+                    },
+                    "writer-" + thread);
+            writer.setDaemon(true);
+            writer.start();
+        }
+        go.countDown();
+        assertThat(done.await(PATIENCE_SECONDS, TimeUnit.SECONDS)).isTrue();
+
+        assertThat(seen).hasSize(threads * perThread).isSorted().doesNotHaveDuplicates();
+    }
 }

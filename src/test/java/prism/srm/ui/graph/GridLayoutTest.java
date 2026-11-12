@@ -33,6 +33,10 @@ class GridLayoutTest {
         "16, 724, 8, 2",
         // More cells than any machine of today has still get a place each.
         "256, 916, 16, 16",
+        // OP-10: 128 where 13 fit stand in rows of 12 (rows begin at 0, 12, 24), not of 13; where 9
+        // fit, in rows of 8.
+        "128, 724, 12, 11",
+        "128, 520, 8, 16",
         // Too narrow for one cell: one column, and the cells are as narrow as the grid.
         "3, 10, 1, 3",
         "3, 0, 1, 3"
@@ -130,8 +134,9 @@ class GridLayoutTest {
     @Test
     void aWiderSmallestCellGivesFewerColumns() {
         assertThat(GridLayout.of(64, DEFAULT_WIDTH, 52).columns()).isEqualTo(16);
-        assertThat(GridLayout.of(64, DEFAULT_WIDTH, 60).columns()).isEqualTo(13);
-        assertThat(GridLayout.of(64, DEFAULT_WIDTH, 60).rows()).isEqualTo(5);
+        // 14 fit; 12 is the regular number below (OP-10): it was 13 columns in 5 rows.
+        assertThat(GridLayout.of(64, DEFAULT_WIDTH, 60).columns()).isEqualTo(12);
+        assertThat(GridLayout.of(64, DEFAULT_WIDTH, 60).rows()).isEqualTo(6);
     }
 
     @ParameterizedTest(name = "{0} cells in {1} x {2} px: {3} columns, {4} rows")
@@ -149,8 +154,11 @@ class GridLayoutTest {
         "4, 916, 232, 4, 1",
         // 64 in four rows of 53 x 72 are no strips yet.
         "64, 916, 300, 16, 4",
-        // With the height for it the fifth row is taken.
-        "64, 916, 400, 13, 5",
+        // With more height, the next regular arrangement is 8 rows of 8, too low here (OP-10): it
+        // stays 16 in 4 rows. Before, a fifth row of 13 was taken, which split the groups of four.
+        "64, 916, 400, 16, 4",
+        // Where 8 rows of 8 have their height, they are taken.
+        "64, 916, 600, 8, 8",
         // At the least height nothing is added: the fewest rows are what fits.
         "16, 520, 132, 8, 2",
         "64, 916, 268, 16, 4",

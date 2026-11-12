@@ -1,0 +1,4 @@
+# The JDK whose jpackage launcher this image was last verified with (ADR-0017). PackageImage refuses
+# another JDK until the checks of verify-image.ps1 have been run again with it and this file says so.
+java.version=25.0.4.1
+java.vendor=Eclipse Adoptium

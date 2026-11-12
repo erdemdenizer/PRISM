@@ -48,6 +48,20 @@ public final class ValueFormatter {
         return scaled(bytesPerSecond, "/s");
     }
 
+    /**
+     * Formats the top of the scale of a rate graph: as {@link #bytesPerSecond}, but without the
+     * decimal where the number is whole, as the steps of a scale are: "100 KiB/s", "2 MiB/s". A
+     * number that is not whole keeps its decimal.
+     */
+    public Quantity rateScale(double bytesPerSecond) {
+        Quantity rate = bytesPerSecond(bytesPerSecond);
+        String whole = oneDecimal(0).substring(1);
+        String number = rate.number();
+        return number.endsWith(whole) && number.length() > whole.length()
+                ? new Quantity(number.substring(0, number.length() - whole.length()), rate.unit())
+                : rate;
+    }
+
     /** Formats a whole number with the grouping of the locale: "1,234". */
     public String count(long count) {
         return String.format(locale, "%,d", count);

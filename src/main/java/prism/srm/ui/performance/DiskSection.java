@@ -16,14 +16,22 @@ import prism.srm.ui.metric.MetricPanel;
  */
 final class DiskSection extends VBox {
 
-    static final String NO_TOTAL_REASON = "No total was produced for this cycle. The total is the sum over the"
-            + " physical disks. If reading failed, the log file says why.";
+    /**
+     * Why there is no total, in full. A snapshot does not say why: on a system that does not say
+     * which disks are physical there is never one, and a failed reading leaves one out. The note
+     * under the graph names the reason where the snapshot shows it (OP-07).
+     */
+    static final String NO_TOTAL_REASON = "There is no total: it is the sum over the physical disks, and the system"
+            + " did not say which disks are physical, or reading them failed (then the log file says why).";
+
+    /** The same on the page, in the axis line of the graph, where the sentence would be cut. */
+    static final String NO_TOTAL_CAPTION = "No total for the physical disks";
 
     /** Wide enough for the largest size, as "1023.9", and the part its unit has. */
     private static final double SIZE_COLUMN_WIDTH = 96;
 
     DiskSection(DiskModel model, int historyCapacity) {
-        getStyleClass().add("performance-section");
+        getStyleClass().addAll("performance-section", "metric-disk");
 
         MetricPanel rates = MetricPanel.dual(
                 "Physical disks, total",
@@ -32,6 +40,7 @@ final class DiskSection extends VBox {
                 "Write",
                 model.rates(),
                 historyCapacity,
+                NO_TOTAL_CAPTION,
                 NO_TOTAL_REASON);
         VBox.setVgrow(rates, Priority.ALWAYS);
 
@@ -45,7 +54,7 @@ final class DiskSection extends VBox {
         note.textProperty().bind(model.totalNoteProperty());
         note.getStyleClass().addAll("text-small", "text-muted");
         HBox heading = new HBox(title, gap, note);
-        heading.getStyleClass().add("device-list-heading");
+        heading.getStyleClass().add("section-heading");
 
         DeviceTable<FileSystemRow> table =
                 new DeviceTable<>(model.fileSystems(), model.fileSystemsStatusProperty(), "File systems");

@@ -41,23 +41,23 @@ class HistoryGridRenderingTest {
     void drawsWithTheTokenColorsOfTheLightTheme() {
         Pixels pixels = render(Theme.LIGHT);
 
-        assertSameColor(pixels.frame(), Color.web("#d5d9dd"));
+        assertSameColor(pixels.frame(), Color.web("#e1e4e9"));
         assertSameColor(pixels.surface(), Color.web("#ffffff"));
-        assertSameColor(pixels.line(), Color.web("#0e7c86"));
-        assertSameColor(pixels.halfLine(), Color.web("#d5d9dd"));
+        assertSameColor(pixels.line(), Color.web("#4f5bd5"));
+        assertSameColor(pixels.halfLine(), Color.web("#e1e4e9"));
         // Between two cells the grid draws nothing: the background behind it shows.
-        assertSameColor(pixels.between(), Color.web("#f6f7f8"));
+        assertSameColor(pixels.between(), Color.web("#f6f7f9"));
     }
 
     @Test
     void drawsWithTheTokenColorsOfTheDarkTheme() {
         Pixels pixels = render(Theme.DARK);
 
-        assertSameColor(pixels.frame(), Color.web("#363b41"));
-        assertSameColor(pixels.surface(), Color.web("#1e2124"));
-        assertSameColor(pixels.line(), Color.web("#3fb3bd"));
-        assertSameColor(pixels.halfLine(), Color.web("#363b41"));
-        assertSameColor(pixels.between(), Color.web("#25292d"));
+        assertSameColor(pixels.frame(), Color.web("#2d3138"));
+        assertSameColor(pixels.surface(), Color.web("#20242b"));
+        assertSameColor(pixels.line(), Color.web("#7c8cff"));
+        assertSameColor(pixels.halfLine(), Color.web("#2d3138"));
+        assertSameColor(pixels.between(), Color.web("#1b1e24"));
     }
 
     /** The fill is the line color at low opacity: neither the surface nor the line itself. */
@@ -94,7 +94,7 @@ class HistoryGridRenderingTest {
     void aHistoryThatIsNotFullIsDrawnAgainstTheRightEdgeOfItsCell() {
         boolean[] drawn = SnapshotHarness.inspect(Theme.LIGHT, WIDTH, HEIGHT, () -> grid(cells(30)), root -> {
             PixelReader reader = root.snapshot(null, null).getPixelReader();
-            Color line = Color.web("#0e7c86");
+            Color line = Color.web("#4f5bd5");
             return new boolean[] {
                 // The second cell holds six samples of sixty: the last tenth of its width.
                 isClose(reader.getColor(SECOND_CELL + 10, 86), line),
@@ -115,7 +115,7 @@ class HistoryGridRenderingTest {
                 () -> grid(GridData.EMPTY),
                 root -> root.snapshot(null, null).getPixelReader().getColor(10, 30));
 
-        assertSameColor(where, Color.web("#f6f7f8"));
+        assertSameColor(where, Color.web("#f6f7f9"));
     }
 
     /** The cells are there before a scale is: frames and text, no history. */
@@ -127,7 +127,7 @@ class HistoryGridRenderingTest {
                     return new Color[] {reader.getColor(0, 60), reader.getColor(10, 86), reader.getColor(10, 100)};
                 });
 
-        assertSameColor(seen[0], Color.web("#d5d9dd"));
+        assertSameColor(seen[0], Color.web("#e1e4e9"));
         assertSameColor(seen[1], Color.web("#ffffff"));
         assertSameColor(seen[2], Color.web("#ffffff"));
     }
@@ -167,7 +167,7 @@ class HistoryGridRenderingTest {
         HistoryGrid grid = new HistoryGrid(CAPACITY);
         grid.show(data);
         StackPane page = new StackPane(grid);
-        page.setStyle("-fx-background-color: -srm-surface-alt;");
+        page.setStyle("-fx-background-color: -srm-bg;");
         return page;
     }
 

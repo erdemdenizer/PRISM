@@ -16,11 +16,13 @@ import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import oshi.software.os.OSProcess;
+import prism.srm.domain.CpuTimeReading;
 import prism.srm.domain.ProcessDetails;
 import prism.srm.domain.ProcessIdentity;
 import prism.srm.domain.ProcessReading;
 import prism.srm.domain.ProcessState;
 import prism.srm.platform.HostSystem;
+import prism.srm.platform.ProcessCpuTimeSource;
 import prism.srm.platform.ProcessSource;
 import prism.srm.platform.ProcessVirtualSizeSource;
 
@@ -35,6 +37,7 @@ final class OshiProcessSource implements ProcessSource {
     private final IntFunction<OSProcess> oneProcess;
     private final HostSystem system;
     private final ProcessVirtualSizeSource windowsVirtualSizes;
+    private final Optional<ProcessCpuTimeSource> systemCpuTimes;
 
     // Belong to the listing thread; details() must not touch them.
     private final Map<ProcessIdentity, Optional<String>> windowsUsers = new HashMap<>();
@@ -46,16 +49,20 @@ final class OshiProcessSource implements ProcessSource {
      * @param oneProcess OSHI's lookup of one process by PID; null when there is none
      * @param windowsVirtualSizes where the virtual sizes come from on Windows; not asked on any
      *     other system
+     * @param systemCpuTimes where the processor time of one process comes from instead of OSHI's
+     *     lookup; empty where OSHI's is used
      */
     OshiProcessSource(
             Supplier<List<OSProcess>> allProcesses,
             IntFunction<OSProcess> oneProcess,
             HostSystem system,
-            ProcessVirtualSizeSource windowsVirtualSizes) {
+            ProcessVirtualSizeSource windowsVirtualSizes,
+            Optional<ProcessCpuTimeSource> systemCpuTimes) {
         this.allProcesses = allProcesses;
         this.oneProcess = oneProcess;
         this.system = system;
         this.windowsVirtualSizes = windowsVirtualSizes;
+        this.systemCpuTimes = systemCpuTimes;
     }
 
     @Override
@@ -110,6 +117,38 @@ final class OshiProcessSource implements ProcessSource {
             return Optional.empty();
         }
         return Optional.of(new ProcessDetails(identity, path, commandLine));
+    }
+
+    /**
+     * Callable from any thread, like {@link #details}. Where the system supplies the time (Windows)
+     * it is asked; elsewhere OSHI looks up the one process, which on Linux reads its files under
+     * {@code /proc} and on macOS asks {@code proc_pidinfo}, and computes its start time the way its
+     * listing does, so the identity is checked against the same value. A process OSHI cannot read
+     * as a whole (its state INVALID, or no start time) may still run: unreadable, not gone.
+     */
+    @Override
+    public CpuTimeReading cpuTime(ProcessIdentity identity) {
+        if (systemCpuTimes.isPresent()) {
+            return systemCpuTimes.get().cpuTime(identity);
+        }
+        if (identity.pid() > Integer.MAX_VALUE) {
+            return CpuTimeReading.GONE;
+        }
+        OSProcess process = oneProcess.apply((int) identity.pid());
+        if (process == null) {
+            return CpuTimeReading.GONE;
+        }
+        Optional<ProcessIdentity> read = identityOf(process);
+        if (read.isEmpty()) {
+            return new CpuTimeReading.Unreadable("the process could not be read as a whole");
+        }
+        if (!read.get().equals(identity)) {
+            return CpuTimeReading.GONE;
+        }
+        OptionalLong millis = cpuTimeMillis(process);
+        return millis.isPresent()
+                ? new CpuTimeReading.Read(millis.getAsLong())
+                : new CpuTimeReading.Unreadable("its processor time was not reported");
     }
 
     private static boolean isProcess(OSProcess process, ProcessIdentity identity) {

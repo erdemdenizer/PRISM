@@ -1,15 +1,21 @@
 package prism.srm.ui.shell;
 
+import java.util.Optional;
 import java.util.Set;
 import javafx.css.PseudoClass;
 import javafx.scene.control.Label;
+import javafx.scene.control.OverrunStyle;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import prism.srm.domain.MonitoringFailure;
+import prism.srm.ui.format.OomWords;
 
 /**
  * The line at the bottom of the window. It says whether monitoring runs, and if a part of it does
- * not, which part.
+ * not, which part; and at its right end, in words and only from WARNING up, the memory pressure OOM
+ * Guard sees (plan O11). No indicator stands there for nothing.
  */
 final class StatusBar extends HBox {
 
@@ -92,15 +98,43 @@ final class StatusBar extends HBox {
     }
 
     private static final PseudoClass FAILED = PseudoClass.getPseudoClass("failed");
+    private static final PseudoClass WARNING = PseudoClass.getPseudoClass("warning");
 
     private final Label monitoring = new Label();
     private final Tooltip whereToLook = new Tooltip();
+    private final Label pressure = new Label();
 
     StatusBar() {
         getStyleClass().add("status-bar");
         monitoring.getStyleClass().addAll("status-text", "text-small");
-        getChildren().add(monitoring);
+        // The monitoring sentence gives way, cut with its tooltip; the pressure sentence never does.
+        monitoring.setMinWidth(0);
+        monitoring.setTextOverrun(OverrunStyle.ELLIPSIS);
+        pressure.getStyleClass().addAll("status-text", "status-pressure", "text-small");
+        pressure.setMinWidth(Region.USE_PREF_SIZE);
+        pressure.setVisible(false);
+        pressure.managedProperty().bind(pressure.visibleProperty());
+        Region gap = new Region();
+        HBox.setHgrow(gap, Priority.ALWAYS);
+        getChildren().addAll(monitoring, gap, pressure);
         show(Monitoring.STARTING, "");
+    }
+
+    /** The sentence about memory pressure, in its tone; empty takes it away. */
+    void showPressure(Optional<OomWords.Line> line) {
+        pressure.setVisible(line.isPresent());
+        pressure.setText(line.map(OomWords.Line::text).orElse(""));
+        pressure.setAccessibleText(pressure.getText());
+        pressure.pseudoClassStateChanged(
+                WARNING,
+                line.map(found -> found.tone() == OomWords.Tone.WARNING).orElse(false));
+        pressure.pseudoClassStateChanged(
+                FAILED, line.map(found -> found.tone() == OomWords.Tone.ERROR).orElse(false));
+    }
+
+    /** Returns the pressure sentence shown, empty when none is; for tests. */
+    String pressureText() {
+        return pressure.isVisible() ? pressure.getText() : "";
     }
 
     /**
@@ -111,7 +145,7 @@ final class StatusBar extends HBox {
         monitoring.setText(state.text);
         monitoring.pseudoClassStateChanged(FAILED, state.failure);
         if (state.failure) {
-            whereToLook.setText("The log file in " + logFolder + " has the details.");
+            whereToLook.setText(state.text + ". The log file in " + logFolder + " has the details.");
             monitoring.setTooltip(whereToLook);
             // A tooltip needs a mouse; a screen reader gets the same sentence as help text.
             monitoring.setAccessibleHelp(whereToLook.getText());

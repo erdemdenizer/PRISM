@@ -598,7 +598,11 @@ class OshiProcessSourceTest {
         int[] lookupsOfPid = {0};
         // The first lookup finds the original; by the second, its PID belongs to another process.
         OshiProcessSource source = new OshiProcessSource(
-                List::of, pid -> lookupsOfPid[0]++ == 0 ? original : reused, HostSystem.WINDOWS, Map::of);
+                List::of,
+                pid -> lookupsOfPid[0]++ == 0 ? original : reused,
+                HostSystem.WINDOWS,
+                Map::of,
+                Optional.empty());
 
         assertThat(source.details(new ProcessIdentity(100, Instant.ofEpochMilli(START))))
                 .isEmpty();
@@ -626,6 +630,60 @@ class OshiProcessSourceTest {
         assertThat(lookups).isZero();
     }
 
+    // ----- The processor time of one process, for the emulated CPU limiter -----
+
+    @Test
+    void theProcessorTimeOfOneProcessIsReadByItsIdentityWithoutAListing() {
+        listed.add(new FakeOsProcess(100, START));
+        // A listing of every process would fail: the read must not make one.
+        listingFails = true;
+
+        assertThat(linux.cpuTime(new ProcessIdentity(100, Instant.ofEpochMilli(START))))
+                .isEqualTo(new prism.srm.domain.CpuTimeReading.Read(1_000));
+        assertThat(lookups).isEqualTo(1);
+    }
+
+    @Test
+    void aPidThatBelongsToAnotherProcessOrToNoneIsGone() {
+        listed.add(new FakeOsProcess(100, START + 5_000));
+
+        assertThat(linux.cpuTime(new ProcessIdentity(100, Instant.ofEpochMilli(START))))
+                .isEqualTo(prism.srm.domain.CpuTimeReading.GONE);
+        assertThat(linux.cpuTime(new ProcessIdentity(101, Instant.ofEpochMilli(START))))
+                .isEqualTo(prism.srm.domain.CpuTimeReading.GONE);
+    }
+
+    @Test
+    void aProcessOshiCannotReadIsUnreadableNotGone() {
+        FakeOsProcess unreadable = new FakeOsProcess(100, START);
+        unreadable.state = OSProcess.State.INVALID;
+        listed.add(unreadable);
+        FakeOsProcess noTimes = new FakeOsProcess(101, START);
+        noTimes.kernelTime = -1;
+        listed.add(noTimes);
+
+        assertThat(linux.cpuTime(new ProcessIdentity(100, Instant.ofEpochMilli(START))))
+                .isInstanceOf(prism.srm.domain.CpuTimeReading.Unreadable.class);
+        assertThat(linux.cpuTime(new ProcessIdentity(101, Instant.ofEpochMilli(START))))
+                .isInstanceOf(prism.srm.domain.CpuTimeReading.Unreadable.class);
+    }
+
+    @Test
+    void whereTheSystemSuppliesTheTimeOshiIsNotAsked() {
+        prism.srm.domain.CpuTimeReading fromSystem = new prism.srm.domain.CpuTimeReading.Read(42);
+        OshiProcessSource source = new OshiProcessSource(
+                List::of,
+                pid -> {
+                    throw new AssertionError("OSHI must not be asked");
+                },
+                HostSystem.WINDOWS,
+                Map::of,
+                Optional.of(identity -> fromSystem));
+
+        assertThat(source.cpuTime(new ProcessIdentity(100, Instant.ofEpochMilli(START))))
+                .isSameAs(fromSystem);
+    }
+
     private OshiProcessSource newSource(HostSystem system) {
         return new OshiProcessSource(
                 () -> {
@@ -651,7 +709,8 @@ class OshiProcessSourceTest {
                         throw virtualSizeFailure;
                     }
                     return virtualSizeSourceReturnsNull ? null : Map.copyOf(virtualSizes);
-                });
+                },
+                Optional.empty());
     }
 
     private static ProcessIdentity identity(long pid, long startMillis) {

@@ -12,7 +12,7 @@ import prism.srm.ui.Stylesheets;
  */
 final class MainWindow {
 
-    static final String TITLE = "Prism System Resource Manager";
+    static final String TITLE = "PRISM \u2014 Process & Resource Interactive System Manager";
 
     /** The size of the content the window opens with. */
     static final double DEFAULT_WIDTH = 1100;
@@ -29,10 +29,16 @@ final class MainWindow {
     /**
      * Gives the stage its title, its content at the default size and its smallest size, which it
      * keeps on every monitor. The stage is not shown. Call on the JavaFX Application Thread.
+     *
+     * @param typefaceBundled whether the bundled typeface was loaded ({@code Typefaces}); if not,
+     *     the scene gets the stylesheet that puts every type role on the system font
      */
-    static void prepare(Stage stage, Parent content) {
+    static void prepare(Stage stage, Parent content, boolean typefaceBundled) {
         Scene scene = new Scene(content, DEFAULT_WIDTH, DEFAULT_HEIGHT);
         scene.getStylesheets().add(Stylesheets.app());
+        if (!typefaceBundled) {
+            scene.getStylesheets().add(Stylesheets.fontsFallback());
+        }
         stage.setTitle(TITLE);
         new MinimumWindowSize(stage.minWidthProperty(), stage.minHeightProperty(), MIN_WIDTH, MIN_HEIGHT)
                 .keep(stage.outputScaleXProperty(), stage.outputScaleYProperty());

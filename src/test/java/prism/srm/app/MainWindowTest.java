@@ -33,7 +33,7 @@ class MainWindowTest {
             Stage stage = new Stage();
             Shell shell = new Shell(new ValueFormatter(Locale.US), ZoneOffset.UTC, 60, "logs", identity -> {});
 
-            MainWindow.prepare(stage, shell);
+            MainWindow.prepare(stage, shell, true);
 
             return List.of(
                     stage.getTitle(),
@@ -48,7 +48,34 @@ class MainWindowTest {
         });
 
         assertThat(seen)
-                .containsExactly("Prism System Resource Manager", 720.0, 480.0, 1100.0, 700.0, true, true, false, true);
+                .containsExactly(
+                        "PRISM \u2014 Process & Resource Interactive System Manager",
+                        720.0,
+                        480.0,
+                        1100.0,
+                        700.0,
+                        true,
+                        true,
+                        false,
+                        true);
+    }
+
+    /** Without the bundled typeface the scene also gets the stylesheet of the system font. */
+    @Test
+    void aPreparedStageWithoutTheBundledTypefaceGetsTheFallbackStylesheet() {
+        List<Boolean> seen = onTheApplicationThread(() -> {
+            Stage withTypeface = new Stage();
+            MainWindow.prepare(withTypeface, new StackPane(), true);
+            Stage without = new Stage();
+            MainWindow.prepare(without, new StackPane(), false);
+            return List.of(
+                    withTypeface.getScene().getStylesheets().contains(Stylesheets.fontsFallback()),
+                    without.getScene().getStylesheets().contains(Stylesheets.fontsFallback()),
+                    without.getScene().getStylesheets().indexOf(Stylesheets.fontsFallback())
+                            > without.getScene().getStylesheets().indexOf(Stylesheets.app()));
+        });
+
+        assertThat(seen).containsExactly(false, true, true);
     }
 
     /** No upper bound is set: the window may be made as large as the monitor allows. */
@@ -56,7 +83,7 @@ class MainWindowTest {
     void aPreparedStageHasNoLargestSize() {
         List<Double> seen = onTheApplicationThread(() -> {
             Stage stage = new Stage();
-            MainWindow.prepare(stage, new StackPane());
+            MainWindow.prepare(stage, new StackPane(), true);
             return List.of(stage.getMaxWidth(), stage.getMaxHeight());
         });
 

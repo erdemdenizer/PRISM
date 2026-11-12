@@ -1,5 +1,6 @@
 package prism.srm.ui.processes;
 
+import java.util.List;
 import java.util.OptionalDouble;
 import prism.srm.domain.ProcessSnapshot;
 import prism.srm.domain.ProcessState;
@@ -161,6 +162,18 @@ enum ProcessColumn {
                 + process.ioWriteBytesPerSecond().getAsDouble());
     }
 
+    /** Every word the State column can show; the widest decides the width of the column. */
+    static List<String> stateNames() {
+        List<String> names = new java.util.ArrayList<>();
+        for (ProcessState state : ProcessState.values()) {
+            names.add(stateName(state));
+        }
+        // The mark of a managed process widens nothing: a state with the mark that is longer than
+        // the longest state alone is cut, with its whole text in the tooltip of the cell.
+        names.add(ProcessText.MANAGED);
+        return List.copyOf(names);
+    }
+
     /** The word the State column shows for a state. */
     static String stateName(ProcessState state) {
         return switch (state) {
@@ -172,6 +185,7 @@ enum ProcessColumn {
             case SUSPENDED -> "Suspended";
             case ZOMBIE -> "Zombie";
             case OTHER -> "Other";
+            case SUSPENDED_BY_PRISM -> "Suspended by Prism";
         };
     }
 }

@@ -1,9 +1,9 @@
 package prism.srm.ui.performance;
 
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import prism.srm.ui.metric.FactView;
+import prism.srm.ui.metric.FactsPanel;
 import prism.srm.ui.metric.MetricPanel;
 
 /**
@@ -15,16 +15,15 @@ import prism.srm.ui.metric.MetricPanel;
 final class MemorySection extends VBox {
 
     MemorySection(MemoryModel model, int historyCapacity) {
-        getStyleClass().add("performance-section");
+        getStyleClass().addAll("performance-section", "metric-memory");
 
         MetricPanel inUse = MetricPanel.single("Physical memory", "In use, last 60 s", model.inUse(), historyCapacity);
         VBox.setVgrow(inUse, Priority.ALWAYS);
 
-        HBox facts = new HBox(
+        FactsPanel facts = new FactsPanel(
                 new FactView("Available", model.available(), null),
                 new FactView("Total", model.total(), null),
                 new FactView("Swap/pagefile in use", model.swap(), null));
-        facts.getStyleClass().add("fact-row");
 
         getChildren().setAll(inUse, facts);
     }
