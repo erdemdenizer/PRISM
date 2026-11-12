@@ -1,0 +1,98 @@
+/*
+ * A Windows high-contrast theme (ui.HighContrast): while one is on, the root of every scene carries
+ * the "high-contrast" class, this stylesheet, and the seven system colors of the theme as looked-up
+ * colors (-hc-window, -hc-windowtext, -hc-highlight, -hc-highlighttext, -hc-graytext, -hc-btnface,
+ * -hc-hotlight). Every token of app.css is mapped to one of them, so the user's colors replace the
+ * lab's everywhere:
+ *
+ * - surfaces take the window color (controls the button face);
+ * - text and every boundary take the window text color, so each edge is a 1 px line of it;
+ * - the accent, the focus ring, primary and danger fills take the highlight, their text the
+ *   highlight text; the selection keeps the window color under its text (the stylesheets draw
+ *   selected text in the text token) and is marked by its highlight bar and the focus ring;
+ * - disabled text takes the gray text color; semantic and data colors take the window text color
+ *   (their meaning is in words and dashes, never in color alone), information the hot light;
+ * - scrims and shadows are removed.
+ *
+ * The selector is more specific than the ".root" of app.css, so it wins wherever both apply.
+ */
+.root.high-contrast {
+  -srm-chrome: -hc-window;
+  -srm-bg: -hc-window;
+  -srm-surface: -hc-window;
+  -srm-surface-raised: -hc-window;
+  -srm-surface-sunken: -hc-window;
+  -srm-surface-hover: -hc-window;
+  -srm-control: -hc-btnface;
+  -srm-control-hover: -hc-btnface;
+  -srm-control-pressed: -hc-btnface;
+  -srm-control-highlight: -hc-btnface;
+  -srm-panel-highlight: -hc-window;
+  -srm-border: -hc-windowtext;
+  -srm-edge: -hc-windowtext;
+  -srm-border-strong: -hc-windowtext;
+  -srm-hairline: -hc-windowtext;
+  -srm-control-edge: -hc-windowtext;
+  -srm-control-border: -hc-windowtext;
+
+  -srm-text: -hc-windowtext;
+  -srm-text-muted: -hc-windowtext;
+  -srm-text-subtle: -hc-windowtext;
+  -srm-text-disabled: -hc-graytext;
+
+  -srm-accent: -hc-highlight;
+  -srm-accent-fill: -hc-highlight;
+  -srm-accent-fill-hover: -hc-highlight;
+  -srm-accent-fill-pressed: -hc-highlight;
+  -srm-accent-highlight: -hc-highlight;
+  -srm-accent-text: -hc-highlighttext;
+  -srm-selection: -hc-window;
+  -srm-selection-inactive: -hc-window;
+  -srm-nav-hover: -hc-window;
+  -srm-nav-selected: -hc-highlight;
+  -srm-ok: -hc-windowtext;
+  -srm-warning: -hc-windowtext;
+  -srm-error: -hc-windowtext;
+  -srm-danger-fill: -hc-highlight;
+  -srm-danger-fill-hover: -hc-highlight;
+  -srm-danger-fill-pressed: -hc-highlight;
+  -srm-danger-text: -hc-highlighttext;
+  -srm-info: -hc-hotlight;
+  -srm-warning-tint: -hc-window;
+  -srm-error-tint: -hc-window;
+
+  -srm-data-cpu: -hc-windowtext;
+  -srm-data-memory: -hc-windowtext;
+  -srm-data-disk-read: -hc-windowtext;
+  -srm-data-disk-write: -hc-windowtext;
+  -srm-data-net-down: -hc-windowtext;
+  -srm-data-net-up: -hc-windowtext;
+
+  -srm-focus-ring: -hc-highlight;
+  -srm-focus-halo: -hc-highlight;
+
+  -srm-shadow: transparent;
+  -srm-scrim: transparent;
+}
+
+/*
+ * The navigation (SH-08): the selected entry in the highlight with its icon and name in the highlight
+ * text, as Windows draws a selected item; the entry under the pointer has a ring of the hot light, the
+ * keyboard focus the ring of the highlight, which wins.
+ */
+.root.high-contrast .nav-item:selected {
+  -fx-text-fill: -hc-highlighttext;
+  -srm-icon: -hc-highlighttext;
+}
+
+.root.high-contrast .nav-item:hover {
+  -fx-border-color: -hc-hotlight;
+}
+
+.root.high-contrast .nav-item:focus-visible {
+  -fx-border-color: -hc-highlight;
+}
+
+.root.high-contrast .nav-item:selected .nav-shortcut {
+  -fx-text-fill: -hc-highlighttext;
+}

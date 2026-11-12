@@ -9,6 +9,11 @@ package prism.srm.ui.graph;
  * needs. Given more height than that, rows are added as long as the cells are tall strips, so a
  * history is not squeezed into a few pixels of width while height goes unused.
  *
+ * <p>The number of columns is a regular one (OP-10): four or fewer, a multiple of four, or a number
+ * that divides the cells into full rows. Processors are numbered in pairs and groups of four or
+ * eight, and a row that begins at 0, 12, 24 or at 0, 8, 16 is read faster than one that begins at 0,
+ * 13, 26: 128 processors where 13 would fit stand in rows of 12, not of 13.
+ *
  * <p>The cells of a row share its width, the rows share the height, and every edge is on a whole
  * pixel, so two neighboring cells differ by one pixel at most.
  *
@@ -44,8 +49,20 @@ record GridLayout(int cells, int columns, int rows) {
         if (cells == 0) {
             return new GridLayout(0, 1, 1);
         }
-        int fitting = (int) Math.floor((width + GAP) / (minCellWidth + GAP));
-        return withRows(cells, ceilDivide(cells, Math.clamp(fitting, 1, cells)));
+        int fitting = Math.clamp((int) Math.floor((width + GAP) / (minCellWidth + GAP)), 1, cells);
+        int columns = fitting;
+        while (!isRegular(cells, columns)) {
+            columns--;
+        }
+        int rows = ceilDivide(cells, columns);
+        // The rows so found shared evenly, where that leaves a regular number of columns.
+        GridLayout even = withRows(cells, rows);
+        return isRegular(cells, even.columns) ? even : new GridLayout(cells, columns, rows);
+    }
+
+    /** Whether a number of columns is one whose rows begin at numbers that are easy to find. */
+    static boolean isRegular(int cells, int columns) {
+        return columns <= 4 || columns % 4 == 0 || cells % columns == 0;
     }
 
     /**
@@ -55,8 +72,8 @@ record GridLayout(int cells, int columns, int rows) {
     static GridLayout of(int cells, double width, double height, double minCellWidth) {
         GridLayout layout = of(cells, width, minCellWidth);
         while (layout.rows < cells && layout.cellHeight(height) > TALLEST_SHAPE * layout.cellWidth(width)) {
-            GridLayout higher = withRows(cells, layout.rows + 1);
-            if (higher.cellHeight(height) < MIN_CELL_HEIGHT) {
+            GridLayout higher = nextRegular(cells, layout);
+            if (higher == null || higher.cellHeight(height) < MIN_CELL_HEIGHT) {
                 break;
             }
             layout = higher;
@@ -80,6 +97,17 @@ record GridLayout(int cells, int columns, int rows) {
         int top = edge(row, rows, height);
         return new Cell(
                 left, top, edge(column + 1, columns, width) - GAP - left, edge(row + 1, rows, height) - GAP - top);
+    }
+
+    /** The arrangement with the fewest rows above those of another and fewer, regular columns. */
+    private static GridLayout nextRegular(int cells, GridLayout layout) {
+        for (int rows = layout.rows + 1; rows <= cells; rows++) {
+            GridLayout higher = withRows(cells, rows);
+            if (higher.columns < layout.columns && isRegular(cells, higher.columns)) {
+                return higher;
+            }
+        }
+        return null;
     }
 
     private static GridLayout withRows(int cells, int rows) {

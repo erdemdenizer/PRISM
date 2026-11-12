@@ -5,11 +5,38 @@
 
 .overview {
   -fx-padding: 12;
+  -fx-spacing: 12;
+}
+
+/* The four metrics, each on its panel, 12 px apart. */
+.metric-grid {
+  -fx-hgap: 12;
+  -fx-vgap: 12;
+}
+
+/* The lower row: the facts of the system and those of Prism, two panels as wide as each other. */
+.overview-facts {
+  -fx-hgap: 12;
+}
+
+/*
+ * Fix round H: beside the navigation with names a narrow window leaves the facts of the system about
+ * 290 px; 16 px between the facts keeps the caption "Operating system" whole there (the value gives
+ * way, with its tooltip).
+ */
+.shell:narrow .overview-facts .facts-panel {
   -fx-spacing: 16;
 }
 
-/* The four metrics: flat regions set apart by spacing, not by borders or cards. */
-.metric-grid {
-  -fx-hgap: 16;
-  -fx-vgap: 16;
+/*
+ * Compact (OverviewPage, OP-08): while the page has no more room than it needs with the gaps above,
+ * the page and the rows of metrics keep 8 px between them; shell.css keeps 8 px under the toolbar for
+ * a compact page. The columns keep their 12 px, so the lower row stays under them.
+ */
+.overview:compact {
+  -fx-spacing: 8;
+}
+
+.overview:compact .metric-grid {
+  -fx-vgap: 8;
 }

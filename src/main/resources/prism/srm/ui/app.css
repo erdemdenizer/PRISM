@@ -1,64 +1,189 @@
 /*
- * Application stylesheet: design tokens and base control styling.
- * The values here are the ones documented in docs/UI_GUIDE.md; change both together.
- * Component-specific rules belong in their own stylesheet, built on these tokens.
+ * Application stylesheet of the Prism System Resource Manager, UI lab v2 (lab-docs/LAB_DESIGN_SPEC.md):
+ * the design tokens, the type roles, and the base look of the stock controls and of the shared
+ * surfaces (panels, segmented selector, filter field, icons). It goes on the scene; component
+ * stylesheets use the tokens only.
+ *
+ * Light tokens are the default; the dark tokens apply when the color scheme of the scene is dark
+ * (javafx.scene.Scene.Preferences, docs/adr/0009). Popups carry the "root" style class, so the
+ * tokens reach them too. Every token is opaque: several components stack a token over another as
+ * background layers (a selection bar over the selection), and a translucent token would mix them.
+ * Contrast ratios are recorded in lab-docs/CONTRAST.md.
+ *
+ * Depth comes from tone steps, hairlines and a 1 px top highlight drawn as a background layer. The
+ * one shadow is on popups, menus and tooltips only, never on a container of live values.
  */
 
 .root {
-  /* Surfaces */
+  /* Surfaces (light) */
+  -srm-chrome: #eef0f3;
+  -srm-bg: #f6f7f9;
   -srm-surface: #ffffff;
-  -srm-surface-alt: #f6f7f8;
-  -srm-surface-sunken: #eef0f2;
-  -srm-border: #d5d9dd;
-  -srm-border-strong: #b6bcc3;
+  -srm-surface-raised: #ffffff;
+  -srm-surface-sunken: #eef0f3;
+  -srm-surface-hover: #f1f3f6;
+  -srm-control: #f3f4f7;
+  -srm-control-hover: #eceef2;
+  -srm-control-pressed: #e4e7ec;
+  -srm-control-highlight: #ffffff;
+  /* The 1 px top highlight of a panel, a background layer (no effect on live content) */
+  -srm-panel-highlight: #ffffff;
+  -srm-border: #e1e4e9;
+  /*
+   * The edge of a surface that stands on the canvas (a panel, the frame of a table, a sheet): the border
+   * in the light theme; a step lighter in the dark one, where the border lies at 1.28:1 on the canvas
+   * and reads as no edge (fix round H, PR-11). Quiet, not held to 3:1: the surface tells the group.
+   */
+  -srm-edge: #e1e4e9;
+  -srm-border-strong: #7f8898;
+  -srm-hairline: #d5d9e0;
 
   /* Text */
-  -srm-text: #1b1f23;
-  -srm-text-muted: #5b636b;
-  -srm-text-disabled: #899098;
+  -srm-text: #15181e;
+  -srm-text-muted: #4a5262;
+  -srm-text-subtle: #5c6474;
+  -srm-text-disabled: #828a97;
 
-  /* Single accent, plus semantic colors used only when they carry meaning */
-  -srm-accent: #0e7c86;
+  /* One accent; semantic colors only where they carry meaning */
+  -srm-accent: #4f5bd5;
+  -srm-accent-fill: #4f5bd5;
+  -srm-accent-fill-hover: #5a66df;
+  -srm-accent-fill-pressed: #4650c4;
+  -srm-accent-highlight: #6a75e0;
   -srm-accent-text: #ffffff;
-  -srm-selection: #d9ecee;
-  -srm-ok: #2e7d32;
-  -srm-warning: #b35c00;
-  -srm-error: #c4281c;
+  -srm-selection: #e6e8f9;
+  -srm-selection-inactive: #e6e8ee;
+  /* The navigation (shell.css): its hover and its selected entry on the chrome, told from it (SH-05) */
+  -srm-nav-hover: #dfe2e8;
+  -srm-nav-selected: #d9def6;
+  -srm-ok: #0e6b42;
+  -srm-warning: #8a5100;
+  -srm-error: #b0222a;
+  -srm-danger-fill: #b0222a;
+  -srm-danger-fill-hover: #bd2a32;
+  -srm-danger-fill-pressed: #9c1d24;
+  /* Text on the danger fill */
+  -srm-danger-text: #ffffff;
+  -srm-info: #0b6e99;
+  -srm-warning-tint: #fbf1e3;
+  -srm-error-tint: #fbe9ea;
+
+  /*
+   * Data: one hue per resource (spec section 4), each at least 3:1 on the panel, the canvas and the
+   * chrome (lab-docs/CONTRAST.md): CPU violet (the accent), memory teal, disk rose, network blue, so
+   * disk is not read as CPU. The second series of a pair is also drawn dashed, so it is never told
+   * by color alone.
+   */
+  -srm-data-cpu: #4f5bd5;
+  -srm-data-memory: #0e7a66;
+  -srm-data-disk-read: #b0306a;
+  -srm-data-disk-write: #8c2a56;
+  -srm-data-net-down: #0b6e99;
+  -srm-data-net-up: #3a7ea3;
+
+  /*
+   * The 3:1 edge where the edge is what identifies the control or its state (text fields, check
+   * boxes, radio buttons, the chosen entry of a segmented control): SC 1.4.11.
+   */
+  -srm-control-edge: #7f8898;
+  /*
+   * The softer edge of a button, a menu button, a toggle and a segmented track: a button is told by
+   * its words, so its outline is not held to 3:1 (lab-docs/CONTRAST.md).
+   */
+  -srm-control-border: #c9ced6;
+
+  /* Focus: a 2 px ring 2 px outside the control */
+  -srm-focus-ring: #4f5bd5;
+  -srm-focus-halo: #4f5bd5;
+
+  /* The one shadow, for popups only */
+  -srm-shadow: rgba(15, 20, 30, 0.16);
+  /* Dims the page under a sheet. */
+  -srm-scrim: rgba(15, 20, 30, 0.2);
+
+  /* The color of an icon in its context; a container sets it for the icons it holds */
+  -srm-icon: -srm-text-muted;
 
   /* Modena hooks, so stock controls follow the tokens */
-  -fx-base: -srm-surface-alt;
-  -fx-background: -srm-surface-alt;
+  -fx-base: -srm-bg;
+  -fx-background: -srm-bg;
   -fx-control-inner-background: -srm-surface;
-  -fx-control-inner-background-alt: -srm-surface-alt;
+  -fx-control-inner-background-alt: -srm-bg;
   -fx-accent: -srm-accent;
   -fx-default-button: -srm-accent;
-  -fx-focus-color: -srm-accent;
+  -fx-focus-color: -srm-focus-ring;
   -fx-faint-focus-color: transparent;
   -fx-selection-bar: -srm-selection;
-  -fx-selection-bar-non-focused: -srm-surface-sunken;
+  -fx-selection-bar-non-focused: -srm-selection-inactive;
   -fx-box-border: -srm-border;
   -fx-text-box-border: -srm-border-strong;
 
+  /* The bundled typeface (ui.Typefaces); fonts-fallback.css replaces it when it did not load */
+  -fx-font-family: "IBM Plex Sans";
   -fx-font-size: 13px;
 }
 
-.root.theme-dark {
-  -srm-surface: #1e2124;
-  -srm-surface-alt: #25292d;
-  -srm-surface-sunken: #181a1d;
-  -srm-border: #363b41;
-  -srm-border-strong: #4a5058;
+@media (prefers-color-scheme: dark) {
+  .root {
+    /* Lifted graphite, not black */
+    -srm-chrome: #16181d;
+    -srm-bg: #1b1e24;
+    -srm-surface: #20242b;
+    -srm-surface-raised: #262b33;
+    -srm-surface-sunken: #181b20;
+    -srm-surface-hover: #2a2e36;
+    -srm-control: #2d323b;
+    -srm-control-hover: #343a44;
+    -srm-control-pressed: #282c34;
+    -srm-control-highlight: #3a404b;
+    -srm-panel-highlight: #2a2f37;
+    -srm-border: #2d3138;
+    -srm-edge: #363a43;
+    -srm-border-strong: #6b7486;
+    -srm-hairline: #2a2e36;
 
-  -srm-text: #e4e7ea;
-  -srm-text-muted: #a0a7ae;
-  -srm-text-disabled: #6b727a;
+    -srm-text: #eceef2;
+    -srm-text-muted: #a9b1be;
+    -srm-text-subtle: #8f98a8;
+    -srm-text-disabled: #7a8292;
 
-  -srm-accent: #3fb3bd;
-  -srm-accent-text: #0b1f21;
-  -srm-selection: #1f4347;
-  -srm-ok: #6fbf73;
-  -srm-warning: #e0a040;
-  -srm-error: #f0736a;
+    -srm-accent: #7c8cff;
+    -srm-accent-fill: #4f5ee3;
+    -srm-accent-fill-hover: #5564e8;
+    -srm-accent-fill-pressed: #4553d6;
+    -srm-accent-highlight: #6774ea;
+    -srm-accent-text: #ffffff;
+    -srm-selection: #343b5a;
+    -srm-selection-inactive: #30343d;
+    -srm-nav-hover: #2a2e36;
+    -srm-nav-selected: #343b5a;
+    -srm-ok: #3fcf8e;
+    -srm-warning: #f2b34b;
+    -srm-error: #ff8585;
+    -srm-danger-fill: #c93a3f;
+    -srm-danger-fill-hover: #d24449;
+    -srm-danger-fill-pressed: #b53237;
+    -srm-danger-text: #ffffff;
+    -srm-info: #5bc8f5;
+    -srm-warning-tint: #33291b;
+    -srm-error-tint: #36211f;
+
+    -srm-data-cpu: #7c8cff;
+    -srm-data-memory: #3ccfb4;
+    -srm-data-disk-read: #f07aa6;
+    -srm-data-disk-write: #c8648c;
+    -srm-data-net-down: #5bc8f5;
+    -srm-data-net-up: #4a9fcb;
+
+    -srm-control-edge: #6b7486;
+    -srm-control-border: #3a3f49;
+
+    -srm-focus-ring: #8e9bff;
+    -srm-focus-halo: #8e9bff;
+
+    -srm-shadow: rgba(0, 0, 0, 0.45);
+    -srm-scrim: rgba(4, 6, 10, 0.55);
+  }
 }
 
 .label,
@@ -71,28 +196,51 @@
 }
 
 .text-input {
-  -fx-prompt-text-fill: -srm-text-muted;
+  -fx-prompt-text-fill: -srm-text-subtle;
 }
 
 /*
- * A text field: 28 px high like every control, flat, with a 1 px border that takes the accent
- * color while the field has the focus. The border is a background layer, so focus moves nothing.
+ * Type roles. Body (13 px regular) is the default and needs no class. The Medium and SemiBold faces
+ * are registered by JavaFX under the family names the font files carry ("IBM Plex Sans Medm",
+ * "IBM Plex Sans SmBld"), so a role names its face directly; -fx-font-weight would not select it.
+ * Plex digits are tabular in every weight (every figure is 0.6 em wide; measured from the bundled
+ * files), so live numbers do not move; JavaFX has no font-feature-settings and needs none here.
+ *
+ * Fix round H (SH-09): the type scale, six sizes, each with one job (lab-docs/DESIGN_DECISIONS_TR.md):
+ *   12  caption and small: captions, column headers (Medium), counts, tooltips, chips
+ *   13  body: all text, cells, controls (Medium); inspector section captions (SemiBold)
+ *   15  section: panel and section titles, the name of a selected process (SemiBold)
+ *   18  compact figure: the title of a page in a low window, the OOM figure in a compact band
+ *   22  page title; the figure of the OOM page; the key readout of a low window
+ *   30  key readout: the one current value of a metric panel
+ * The 11 px axis labels of the graphs are drawn on the Canvas (graph.css), not set as text here.
  */
-.text-field {
-  -fx-background-color: -srm-border-strong, -srm-surface;
-  -fx-background-insets: 0, 1;
-  -fx-background-radius: 4, 3;
-  -fx-padding: 0 8 0 8;
-  -fx-min-height: 28;
-  -fx-pref-height: 28;
-  -fx-max-height: 28;
-  -fx-text-fill: -srm-text;
-  -fx-highlight-fill: -srm-selection;
-  -fx-highlight-text-fill: -srm-text;
+.text-caption {
+  -fx-font-size: 12px;
+  -fx-font-family: "IBM Plex Sans Medm";
 }
 
-.text-field:focused {
-  -fx-background-color: -srm-accent, -srm-surface;
+.text-small {
+  -fx-font-size: 12px;
+}
+
+.text-medium {
+  -fx-font-family: "IBM Plex Sans Medm";
+}
+
+.text-section-title {
+  -fx-font-family: "IBM Plex Sans SmBld";
+  -fx-font-size: 15px;
+}
+
+.text-page-title {
+  -fx-font-family: "IBM Plex Sans SmBld";
+  -fx-font-size: 22px;
+}
+
+.text-key-readout {
+  -fx-font-family: "IBM Plex Sans SmBld";
+  -fx-font-size: 30px;
 }
 
 .text-muted {
@@ -100,11 +248,587 @@
 }
 
 /*
- * Scroll bars: a flat thumb on a flat track, without the gradient, the outline and the arrow
- * buttons of the stock look. The track is as wide as before (12 px), so nothing moves.
+ * The title of a section of an inspector (Processes: "Now", "Executable", "Control", "Limits &
+ * protection", "End process"; Limits: the groups of actions): 13 px SemiBold in the color of text,
+ * 8 px over what it heads, so it reads above the 13 px values under it and below the 15 px name.
+ */
+.inspector-section-caption {
+  -fx-font-family: "IBM Plex Sans SmBld";
+  -fx-font-size: 13px;
+  -fx-text-fill: -srm-text;
+  -fx-padding: 0 0 8 0;
+}
+
+/*
+ * Focus, everywhere: a 2 px ring in -srm-focus-ring, 2 px outside the control, drawn as a border
+ * with negative insets. An outset border does not change the layout of a region, and the border is
+ * there in every state (transparent without the focus), so taking the focus moves nothing.
+ */
+.button,
+.toggle-button,
+.menu-button,
+.split-menu-button,
+.combo-box-base,
+.text-field,
+.password-field,
+.text-area,
+.filter-clear {
+  -fx-border-color: transparent;
+  -fx-border-width: 2;
+  -fx-border-insets: -4;
+  -fx-border-radius: 10;
+}
+
+.button:focus-visible,
+.toggle-button:focus-visible,
+.menu-button:focus-visible,
+.split-menu-button:focus-visible,
+.combo-box-base:focus-visible,
+.filter-clear:focus-visible {
+  -fx-border-color: -srm-focus-ring;
+}
+
+/*
+ * A text field: 32 px high, the control surface with a 1 px border of at least 3:1, a leading
+ * padding for an icon where it has one. With the focus the border takes the accent and the ring
+ * appears outside.
+ */
+.text-field {
+  -fx-background-color: -srm-border-strong, -srm-surface;
+  -fx-background-insets: 0, 1;
+  -fx-background-radius: 6, 5;
+  -fx-padding: 0 10 0 10;
+  -fx-min-height: 32;
+  -fx-pref-height: 32;
+  -fx-max-height: 32;
+  -fx-text-fill: -srm-text;
+  -fx-highlight-fill: -srm-selection;
+  -fx-highlight-text-fill: -srm-text;
+}
+
+.text-field:hover {
+  -fx-background-color: -srm-text-muted, -srm-surface;
+}
+
+.text-field:focused {
+  -fx-background-color: -srm-accent, -srm-surface;
+  -fx-border-color: -srm-focus-ring;
+  -fx-border-width: 2;
+  -fx-border-insets: -4;
+  -fx-border-radius: 10;
+}
+
+.text-field:disabled {
+  -fx-opacity: 1;
+  -fx-background-color: -srm-border, -srm-bg;
+  -fx-text-fill: -srm-text-disabled;
+}
+
+/*
+ * A check box and a radio button: 16 px boxes on the control surface with a 3:1 border; checked
+ * takes the accent fill with a white mark. Rows of them are 28 px high, 8 px between box and text.
+ *
+ * Both are square: 16 x 16 (the check box 4 + 8 + 4 high and 3 + 10 + 3 wide around its mark, the
+ * radio 4 + 8 + 4 around its dot). The mark and the dot are drawn as one layer with no insets:
+ * Modena gives them a second, embossing layer 1 px lower ("1 0 -1 0, 0"), and a single color over
+ * those insets would draw the dot and the tick 1 px low (UI audit LO-03, LO-04). Every rule that
+ * colors them sets the insets again, at the specificity of Modena's rule.
+ */
+.check-box,
+.radio-button {
+  -fx-label-padding: 0 0 0 8;
+  -fx-text-fill: -srm-text;
+  -fx-min-height: 28;
+}
+
+.check-box > .box,
+.radio-button > .radio {
+  -fx-background-color: -srm-border-strong, -srm-surface;
+  -fx-background-insets: 0, 1;
+  -fx-padding: 3;
+  -fx-border-color: transparent;
+  -fx-border-width: 2;
+  -fx-border-insets: -4;
+}
+
+.check-box > .box {
+  -fx-background-radius: 5, 4;
+  -fx-border-radius: 8;
+  -fx-padding: 4 3 4 3;
+}
+
+.radio-button > .radio {
+  -fx-background-radius: 8, 7;
+  -fx-border-radius: 12;
+  -fx-padding: 4;
+}
+
+.check-box:hover > .box,
+.radio-button:hover > .radio {
+  -fx-background-color: -srm-text-muted, -srm-surface;
+}
+
+/*
+ * Checked: a 1 px edge in the accent around the accent fill. The edge keeps the 3:1 the fill alone
+ * lacks on a dark raised surface (2.7:1; the accent is 4.8:1 there), in the same hue, so no grey
+ * ring shows around the fill. In the light theme the accent and its fill are one color.
+ */
+.check-box:selected > .box,
+.radio-button:selected > .radio {
+  -fx-background-color: -srm-accent, -srm-accent-fill;
+}
+
+.check-box:selected:hover > .box,
+.radio-button:selected:hover > .radio {
+  -fx-background-color: -srm-accent, -srm-accent-fill-hover;
+}
+
+.check-box > .box > .mark {
+  -fx-background-color: transparent;
+  -fx-background-insets: 0;
+  -fx-padding: 4 5 4 5;
+}
+
+.check-box:selected > .box > .mark {
+  -fx-background-color: -srm-accent-text;
+  -fx-background-insets: 0;
+}
+
+.radio-button > .radio > .dot {
+  -fx-background-color: transparent;
+  -fx-background-insets: 0;
+  -fx-background-radius: 4;
+  -fx-padding: 4;
+}
+
+.radio-button:selected > .radio > .dot {
+  -fx-background-color: -srm-accent-text;
+  -fx-background-insets: 0;
+}
+
+.check-box:focus-visible > .box,
+.radio-button:focus-visible > .radio {
+  -fx-border-color: -srm-focus-ring;
+}
+
+.check-box:disabled,
+.radio-button:disabled {
+  -fx-opacity: 1;
+  -fx-text-fill: -srm-text-disabled;
+}
+
+.check-box:disabled > .box,
+.radio-button:disabled > .radio {
+  -fx-background-color: -srm-text-disabled, -srm-bg;
+}
+
+.check-box:disabled:selected > .box,
+.radio-button:disabled:selected > .radio {
+  -fx-background-color: -srm-text-disabled, -srm-text-disabled;
+}
+
+.check-box:disabled:selected > .box > .mark,
+.radio-button:disabled:selected > .radio > .dot {
+  -fx-background-color: -srm-surface;
+  -fx-background-insets: 0;
+}
+
+/*
+ * Buttons. Secondary is the default look: the control surface, a 1 px hairline, and a 1 px top
+ * highlight (a background layer: the highlight color fills the button, the control color is laid
+ * over it 1 px lower). Hover lightens, pressed darkens and drops the highlight. 32 px high, radius
+ * 6, 13 px in the medium face. Primary (one per view at most) is the accent fill; quiet has no
+ * surface until hovered; destructive is the secondary anatomy with danger text. A busy button is
+ * disabled and says what it is doing in words (no spinner, no indefinite animation).
+ */
+.button,
+.menu-button,
+.toggle-button {
+  -fx-background-color: -srm-control-border, -srm-control-highlight, -srm-control;
+  -fx-background-insets: 0, 1, 2 1 1 1;
+  -fx-background-radius: 6, 5, 5;
+  -fx-padding: 0 14 0 14;
+  -fx-min-height: 32;
+  -fx-pref-height: 32;
+  -fx-max-height: 32;
+  -fx-graphic-text-gap: 6;
+  -fx-text-fill: -srm-text;
+  -fx-font-family: "IBM Plex Sans Medm";
+  -srm-icon: -srm-text-muted;
+}
+
+.button:hover,
+.menu-button:hover,
+.menu-button:showing,
+.toggle-button:hover {
+  -fx-background-color: -srm-control-border, -srm-control-highlight, -srm-control-hover;
+  -srm-icon: -srm-text;
+}
+
+.button:armed,
+.button:pressed,
+.toggle-button:pressed,
+.toggle-button:selected {
+  -fx-background-color: -srm-control-border, -srm-control-pressed, -srm-control-pressed;
+}
+
+/*
+ * Disabled: the control surface under a hairline, without the highlight, so a disabled button keeps
+ * its place and shape on a raised surface instead of reading as a hole; its words in the disabled
+ * color (at least 3:1 on the control surface, lab-docs/CONTRAST.md), its reason shown beside it.
+ */
+.button:disabled,
+.menu-button:disabled,
+.toggle-button:disabled {
+  -fx-opacity: 1;
+  -fx-background-color: -srm-hairline, -srm-control, -srm-control;
+  -fx-text-fill: -srm-text-disabled;
+  -srm-icon: -srm-text-disabled;
+}
+
+/* Primary: the accent fill, white text, a lighter top highlight and no separate hairline. */
+.button.primary,
+.dialog-pane .button:default {
+  -fx-background-color: -srm-accent-fill-pressed, -srm-accent-highlight, -srm-accent-fill;
+  -fx-text-fill: -srm-accent-text;
+  -srm-icon: -srm-accent-text;
+}
+
+.button.primary:hover,
+.dialog-pane .button:default:hover {
+  -fx-background-color: -srm-accent-fill-pressed, -srm-accent-highlight, -srm-accent-fill-hover;
+}
+
+.button.primary:armed,
+.button.primary:pressed,
+.dialog-pane .button:default:armed,
+.dialog-pane .button:default:pressed {
+  -fx-background-color: -srm-accent-fill-pressed, -srm-accent-fill-pressed, -srm-accent-fill-pressed;
+}
+
+.button.primary:disabled,
+.dialog-pane .button:default:disabled {
+  -fx-background-color: -srm-hairline, -srm-control, -srm-control;
+  -fx-text-fill: -srm-text-disabled;
+}
+
+/*
+ * Quiet: no surface until the pointer is over it; then the hover surface of a control (fix round H: the
+ * hover surface of a row lay at 1.05:1 on the dark raised surface, so the close button of a sheet showed
+ * no hover there).
+ */
+.button.quiet {
+  -fx-background-color: transparent, transparent, transparent;
+}
+
+.button.quiet:hover {
+  -fx-background-color: transparent, -srm-control-hover, -srm-control-hover;
+}
+
+/*
+ * On the chrome band of a page header (the folded filter of Processes), the hover of the navigation,
+ * which is made for the chrome: the hover of a control is as light as the light chrome itself (1.02:1).
+ */
+.page-header .button.quiet:hover {
+  -fx-background-color: transparent, -srm-nav-hover, -srm-nav-hover;
+}
+
+.button.quiet:armed,
+.button.quiet:pressed {
+  -fx-background-color: transparent, -srm-control-pressed, -srm-control-pressed;
+}
+
+.button.quiet:disabled {
+  -fx-background-color: transparent, transparent, transparent;
+}
+
+/* Destructive: the secondary anatomy, the words and the icon in the danger color. */
+.button.destructive {
+  -fx-text-fill: -srm-error;
+  -srm-icon: -srm-error;
+}
+
+.button.destructive:disabled {
+  -fx-text-fill: -srm-text-disabled;
+  -srm-icon: -srm-text-disabled;
+}
+
+/*
+ * A dialog whose default is Cancel (a destructive confirmation, CTL-8, and every offer or limit that
+ * Enter must not carry out): Cancel, the button Enter and Escape press, carries a 2 px accent edge,
+ * so the button the keyboard will press is the one that stands out (UI audit LO-15). A Cancel button
+ * carries :cancel (DialogPane makes a CANCEL_CLOSE button a cancel button), so the rule holds for
+ * every such dialog without a class of its own; which button is the default does not change here.
+ */
+.confirm-dialog .button:default,
+.dialog-pane .button:cancel:default {
+  -fx-background-color: -srm-accent, -srm-control-highlight, -srm-control;
+  -fx-background-insets: 0, 2, 3 2 2 2;
+  -fx-background-radius: 6, 4, 4;
+  -fx-text-fill: -srm-text;
+  -srm-icon: -srm-text-muted;
+}
+
+.confirm-dialog .button:default:hover,
+.dialog-pane .button:cancel:default:hover {
+  -fx-background-color: -srm-accent, -srm-control-highlight, -srm-control-hover;
+}
+
+.confirm-dialog .button:default:armed,
+.confirm-dialog .button:default:pressed,
+.dialog-pane .button:cancel:default:armed,
+.dialog-pane .button:cancel:default:pressed {
+  -fx-background-color: -srm-accent, -srm-control-pressed, -srm-control-pressed;
+}
+
+/*
+ * The act of a destructive confirmation (End task, Force kill, Allow termination): the destructive
+ * button, the secondary anatomy with its words in the danger color, never a fill that outweighs the
+ * default Cancel (docs/UI_GUIDE.md: destructive actions are plain buttons). An act that cannot be
+ * undone (Force kill, allowing termination: .confirm-act-lasting) also has its 1 px edge in the
+ * danger color, so it weighs more than End task, which asks the process to close.
+ */
+.dialog-pane .button.confirm-act {
+  -fx-text-fill: -srm-error;
+  -srm-icon: -srm-error;
+}
+
+.dialog-pane .button.confirm-act-lasting {
+  -fx-background-color: -srm-error, -srm-control-highlight, -srm-control;
+}
+
+.dialog-pane .button.confirm-act-lasting:hover {
+  -fx-background-color: -srm-error, -srm-control-highlight, -srm-control-hover;
+}
+
+.dialog-pane .button.confirm-act-lasting:armed,
+.dialog-pane .button.confirm-act-lasting:pressed {
+  -fx-background-color: -srm-error, -srm-control-pressed, -srm-control-pressed;
+}
+
+.dialog-pane .button.confirm-act:disabled {
+  -fx-background-color: -srm-hairline, -srm-control, -srm-control;
+  -fx-text-fill: -srm-text-disabled;
+  -srm-icon: -srm-text-disabled;
+}
+
+.menu-button > .label {
+  -fx-text-fill: -srm-text;
+  -fx-padding: 0;
+}
+
+.menu-button:disabled > .label {
+  -fx-opacity: 1;
+  -fx-text-fill: -srm-text-disabled;
+}
+
+/* The stock triangle is not drawn: a menu button carries a 12 px Lucide chevron, 4 px after its text. */
+.menu-button > .arrow-button {
+  -fx-padding: 0;
+  -fx-background-color: transparent;
+}
+
+.menu-button > .arrow-button > .arrow {
+  -fx-padding: 0;
+  -fx-shape: null;
+  -fx-background-color: transparent;
+}
+
+.menu-button .icon-view {
+  -srm-icon: -srm-text-muted;
+}
+
+.menu-button:disabled .icon-view {
+  -srm-icon: -srm-text-disabled;
+}
+
+/*
+ * A dialog: the raised surface, 24 px around the content and 24 px between the content and the
+ * buttons at the right. No line above the buttons: on the dark raised surface a hairline is all but
+ * invisible (1.05:1) while it shows in the light theme, so space alone sets them apart, in both
+ * themes alike (UI audit LO-18, LO-19). The window is the system's (its caption is colored by the
+ * title bar code on Windows 11); the scene inside it carries the tokens of the application
+ * (ui.Stylesheets.app()).
+ */
+.dialog-pane {
+  -fx-background-color: -srm-surface-raised;
+  -fx-padding: 24;
+}
+
+.dialog-pane > .content {
+  -fx-padding: 0 0 24 0;
+}
+
+.dialog-pane > .button-bar {
+  -fx-border-color: transparent;
+  -fx-border-width: 0;
+  -fx-padding: 0;
+}
+
+.dialog-pane > .button-bar > .container {
+  -fx-padding: 0;
+}
+
+/*
+ * The filter field: a text field with the search icon at its left and, while it holds text, a
+ * small button that clears it at its right. Both lie over the field, inside its padding.
+ */
+.filter-field {
+  -fx-min-width: 160;
+  -fx-pref-width: 260;
+  -fx-max-width: 260;
+}
+
+.filter-field > .text-field {
+  -fx-padding: 0 30 0 32;
+}
+
+.filter-field > .icon-view {
+  -srm-icon: -srm-text-subtle;
+}
+
+.filter-clear {
+  -fx-background-color: transparent;
+  -fx-background-radius: 5;
+  -fx-padding: 0;
+  -fx-min-width: 22;
+  -fx-pref-width: 22;
+  -fx-max-width: 22;
+  -fx-min-height: 22;
+  -fx-pref-height: 22;
+  -fx-max-height: 22;
+  -fx-border-insets: -2;
+  -fx-border-radius: 7;
+  -srm-icon: -srm-text-subtle;
+}
+
+.filter-clear:hover {
+  -fx-background-color: -srm-control-hover;
+  -srm-icon: -srm-text;
+}
+
+.filter-clear:armed,
+.filter-clear:pressed {
+  -fx-background-color: -srm-control-pressed;
+  -fx-background-insets: 0;
+  -fx-background-radius: 5;
+}
+
+/*
+ * An icon: a few strokes in the color the context gives through -srm-icon. The shapes are drawn
+ * by ui.icon.IconView, which also owns the size (12 for chevrons, 16 in controls, 20 in the rail):
+ * a size set here would override it, and the strokes, scaled to the size given in code, would
+ * overflow the region to the right and the bottom instead of sitting centered.
+ */
+.icon-view .icon-shape {
+  -fx-stroke: -srm-icon;
+  -fx-fill: transparent;
+}
+
+/*
+ * A panel: the surface, a 1 px edge and a 1 px top highlight, radius 10, no shadow (it holds
+ * live values); 12 px in at the top and bottom, 16 at the sides (fix round H, OP-14: was 14 16). Used where a group benefits from a surface of its own: the metric panels, the
+ * facts, the process inspector.
+ */
+.panel {
+  -fx-background-color: -srm-edge, -srm-panel-highlight, -srm-surface;
+  -fx-background-insets: 0, 1, 2 1 1 1;
+  -fx-background-radius: 10, 9, 9;
+  -fx-padding: 12 16 12 16;
+}
+
+.panel-compact {
+  -fx-padding: 8 12 8 12;
+}
+
+/*
+ * A page header, the page's toolbar row: the title (22 px SemiBold) at the left, then what the page
+ * puts at the right (counts, filter, actions). One row, 36 px high, so every page begins at the same
+ * height.
+ */
+.page-header {
+  -fx-min-height: 36;
+  -fx-pref-height: 36;
+  -fx-max-height: 36;
+  -fx-spacing: 12;
+  -fx-alignment: center-left;
+}
+
+/*
+ * A segmented selector: a sunken track, the selected entry on a raised thumb with the control
+ * highlight that slides to it (ui.performance.SectionTabs). 30 px high, radius 7.
+ */
+.segmented {
+  -fx-background-color: -srm-control-border, -srm-surface-sunken;
+  -fx-background-insets: 0, 1;
+  -fx-background-radius: 7, 6;
+  -fx-padding: 2;
+  -fx-min-height: 30;
+  -fx-pref-height: 30;
+  -fx-max-height: 30;
+}
+
+/* The thumb has the 3:1 control edge: it alone says which entry is chosen (SC 1.4.11). */
+.segmented > .segment-indicator {
+  -fx-background-color: -srm-control-edge, -srm-control-highlight, -srm-control;
+  -fx-background-insets: 0, 1, 2 1 1 1;
+  -fx-background-radius: 5, 4, 4;
+}
+
+.segmented > .segments {
+  -fx-spacing: 0;
+  -fx-alignment: center-left;
+}
+
+.segment-divider {
+  -fx-background-color: transparent;
+  -fx-min-width: 1;
+  -fx-pref-width: 1;
+  -fx-max-width: 1;
+}
+
+/*
+ * An entry: transparent, so that the sliding thumb shows through; the keyboard focus is a 2 px ring
+ * inside the entry, always there and colored only while the entry has the focus. The selected
+ * entry is set in the heavier face and the color of text; the others are muted.
+ */
+.segment {
+  -fx-background-color: transparent;
+  -fx-background-insets: 0;
+  -fx-background-radius: 5;
+  -fx-border-color: transparent;
+  -fx-border-width: 2;
+  -fx-border-radius: 5;
+  -fx-padding: 0 10 0 10;
+  -fx-min-height: 26;
+  -fx-pref-height: 26;
+  -fx-max-height: 26;
+  -fx-text-fill: -srm-text-muted;
+  -fx-font-family: "IBM Plex Sans Medm";
+}
+
+.segment:hover {
+  -fx-text-fill: -srm-text;
+}
+
+.segment:selected,
+.segment:selected:hover {
+  -fx-background-color: transparent;
+  -fx-text-fill: -srm-text;
+  -fx-font-family: "IBM Plex Sans SmBld";
+}
+
+.segment:focus-visible {
+  -fx-border-color: -srm-focus-ring;
+}
+
+/*
+ * Scroll bars: a thin rounded thumb on a transparent track, no arrow buttons. The track keeps its
+ * width (12 px), so nothing moves; the thumb is 6 px and widens to 8 under the pointer. The thumb is
+ * opaque at rest, so it keeps 3:1 against the surface it lies on.
  */
 .scroll-bar {
-  -fx-background-color: -srm-surface-alt;
+  -fx-background-color: transparent;
   -fx-background-insets: 0;
   -fx-padding: 0;
 }
@@ -117,13 +841,13 @@
 
 .scroll-bar > .thumb {
   -fx-background-color: -srm-border-strong;
-  -fx-background-insets: 2;
+  -fx-background-insets: 3;
   -fx-background-radius: 4;
 }
 
-.scroll-bar > .thumb:hover,
+.scroll-bar:hover > .thumb,
 .scroll-bar > .thumb:pressed {
-  -fx-background-color: -srm-text-muted;
+  -fx-background-insets: 2;
 }
 
 .scroll-bar:vertical > .increment-button,
@@ -149,25 +873,55 @@
 
 /* The corner where two scroll bars meet. */
 .corner {
-  -fx-background-color: -srm-surface-alt;
+  -fx-background-color: transparent;
 }
 
 /*
- * Popups: a flat surface with one border, a 6 px radius and a small single-layer shadow. A menu
- * item is a compact line; the one the keyboard is on has the selection color, so color is not
- * the only sign beside its text.
+ * A tooltip: the raised surface, a hairline, radius 6, and no shadow (SH-01). A shadow makes the popup
+ * window larger than the tooltip by its spread, and the stock tooltip, 10 px right of the pointer and
+ * 7 px below it, then had the pointer inside its window: the control under the pointer lost its hover,
+ * the tooltip went, and came back while the pointer stood still.
  */
-.context-menu {
-  -fx-background-color: -srm-border-strong, -srm-surface;
+.tooltip {
+  -fx-background-color: -srm-hairline, -srm-surface-raised;
   -fx-background-insets: 0, 1;
   -fx-background-radius: 6, 5;
-  -fx-padding: 4;
-  -fx-effect: dropshadow(gaussian, -srm-border-strong, 6, 0, 0, 1);
+  -fx-padding: 4 8 4 8;
+  -fx-text-fill: -srm-text;
+  -fx-font-size: 12px;
+  -fx-effect: null;
+}
+
+/*
+ * The name beside the navigation rail (ui.shell.RailName), and the shortcut after a name in a tooltip,
+ * in the subtle color. The name never has a shadow, whatever a tooltip has: its window must stay right
+ * of the rail.
+ */
+.tooltip.nav-name {
+  -fx-effect: null;
+}
+
+.tooltip .nav-name-keys {
+  -fx-text-fill: -srm-text-subtle;
+  -fx-font-size: 12px;
+}
+
+/*
+ * Popups: the raised surface with a hairline, radius 10 and the one shadow. A menu item is a
+ * 28 px line with radius 6; the one the keyboard is on has the selection surface.
+ */
+.context-menu {
+  -fx-background-color: -srm-hairline, -srm-surface-raised;
+  -fx-background-insets: 0, 1;
+  -fx-background-radius: 10, 9;
+  -fx-padding: 5;
+  -fx-effect: dropshadow(gaussian, -srm-shadow, 18, 0, 0, 6);
 }
 
 .context-menu .menu-item {
-  -fx-padding: 4 12 4 8;
-  -fx-background-radius: 4;
+  -fx-padding: 5 14 5 10;
+  -fx-background-radius: 6;
+  -fx-min-height: 28;
 }
 
 .context-menu .menu-item .label {
@@ -182,8 +936,19 @@
   -fx-text-fill: -srm-text;
 }
 
+/* Disabled at full opacity: the stock stylesheet dims a disabled item to 40 %, below 3:1. */
+.context-menu .menu-item:disabled {
+  -fx-opacity: 1;
+}
+
 .context-menu .menu-item:disabled .label {
+  -fx-opacity: 1;
   -fx-text-fill: -srm-text-disabled;
+}
+
+/* A fact in a menu (the priority a process has when it is none of the levels): muted, readable. */
+.context-menu .priority-unmapped:disabled .label {
+  -fx-text-fill: -srm-text-muted;
 }
 
 .context-menu .radio-menu-item:checked > .left-container > .radio,
@@ -195,39 +960,60 @@
   -fx-background-color: -srm-text-disabled;
 }
 
-/* A group boundary, not a hairline inside the stack: 4 px above and below the line. */
+/* A group boundary: 4 px above and below the hairline. */
 .context-menu .separator:horizontal {
   -fx-padding: 4 0 4 0;
 }
 
 .context-menu .separator:horizontal .line {
-  -fx-border-color: -srm-border transparent transparent transparent;
+  -fx-border-color: -srm-hairline transparent transparent transparent;
   -fx-border-insets: 1 0 0 0;
 }
 
 /*
- * Type roles of docs/UI_GUIDE.md. Body (13 px regular) is the default and needs no class.
- * JavaFX resolves a font weight to the regular or the bold face of the system font, so the
- * guide's emphasized weight is written as bold here.
+ * A chip: a short state in words, radius 5, 22 px high. Neutral is a dot and a word on the control
+ * surface; only warning and error take a tint (never decoration).
  */
-.text-caption {
-  -fx-font-size: 11px;
-}
-
-.text-small {
+.chip {
+  -fx-background-color: -srm-hairline, -srm-control;
+  -fx-background-insets: 0, 1;
+  -fx-background-radius: 5, 4;
+  -fx-padding: 0 8 0 8;
+  -fx-min-height: 22;
+  -fx-pref-height: 22;
+  -fx-max-height: 22;
   -fx-font-size: 12px;
+  -fx-font-family: "IBM Plex Sans Medm";
+  -fx-text-fill: -srm-text-muted;
 }
 
-.text-section-title {
-  -fx-font-weight: bold;
+.chip:warning {
+  -fx-background-color: -srm-warning, -srm-warning-tint;
+  -fx-text-fill: -srm-warning;
 }
 
-.text-view-title {
-  -fx-font-size: 16px;
-  -fx-font-weight: bold;
+.chip:error {
+  -fx-background-color: -srm-error, -srm-error-tint;
+  -fx-text-fill: -srm-error;
 }
 
-.text-key-readout {
-  -fx-font-size: 20px;
-  -fx-font-weight: bold;
+/*
+ * Micro-motion of the stock controls and shared surfaces: short finite transitions of a color when a
+ * state changes under the pointer (120 ms; segment text 160 ms). None when the user asks for less
+ * motion; none inside tables, whose cells change state while they are reused.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .text-field,
+  .filter-clear,
+  .button,
+  .menu-button,
+  .toggle-button,
+  .check-box > .box,
+  .radio-button > .radio {
+    transition: -fx-background-color 120ms ease-out, -fx-border-color 120ms ease-out;
+  }
+
+  .segment {
+    transition: -fx-text-fill 160ms ease-out;
+  }
 }

@@ -1,5 +1,9 @@
 package prism.srm.ui.metric;
 
+import java.util.Objects;
+import java.util.function.DoubleFunction;
+import javafx.beans.property.ReadOnlyBooleanProperty;
+import javafx.beans.property.ReadOnlyBooleanWrapper;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.ReadOnlyStringProperty;
@@ -27,6 +31,10 @@ public final class MetricReadout {
     private final ReadOnlyStringWrapper secondUnit = new ReadOnlyStringWrapper("");
     private final ReadOnlyStringWrapper scale = new ReadOnlyStringWrapper("");
     private final ReadOnlyObjectWrapper<GraphData> graph = new ReadOnlyObjectWrapper<>(GraphData.EMPTY);
+    private final ReadOnlyBooleanWrapper notRunning = new ReadOnlyBooleanWrapper(false);
+
+    /** How a sample of the graph reads as text, in the unit of the values; set with the graph. */
+    private DoubleFunction<Quantity> sampleFormat = sample -> Quantity.MISSING;
 
     public ReadOnlyObjectProperty<MetricState> stateProperty() {
         return state.getReadOnlyProperty();
@@ -71,6 +79,22 @@ public final class MetricReadout {
         return graph.getReadOnlyProperty();
     }
 
+    /**
+     * Whether the values are unavailable because monitoring is not running (it could not start,
+     * or it ended), rather than because the system did not give them.
+     */
+    public ReadOnlyBooleanProperty notRunningProperty() {
+        return notRunning.getReadOnlyProperty();
+    }
+
+    /**
+     * Returns a sample of the graph as text, in the unit and the notation of the current values;
+     * a skipped sample (NaN) is {@link Quantity#MISSING}.
+     */
+    public Quantity formatSample(double sample) {
+        return Double.isNaN(sample) ? Quantity.MISSING : sampleFormat.apply(sample);
+    }
+
     /** Shows one current value, with an optional figure beside it. */
     public void showValue(Quantity current, String newDetail) {
         show(MetricState.LIVE, current, newDetail, NONE);
@@ -85,6 +109,12 @@ public final class MetricReadout {
         show(newState, NONE, "", NONE);
     }
 
+    /** Takes the values off because monitoring is not running; the page says why. */
+    public void showNotRunning() {
+        show(MetricState.UNAVAILABLE, NONE, "", NONE);
+        notRunning.set(true);
+    }
+
     public void showGraph(GraphData newGraph, String newScale) {
         if (!newGraph.equals(graph.get())) {
             graph.set(newGraph);
@@ -92,7 +122,18 @@ public final class MetricReadout {
         scale.set(newScale);
     }
 
+    /**
+     * Shows the graph, with how one of its samples reads as text for a cursor on it.
+     *
+     * @param newSampleFormat formats a sample that was not skipped
+     */
+    public void showGraph(GraphData newGraph, String newScale, DoubleFunction<Quantity> newSampleFormat) {
+        sampleFormat = Objects.requireNonNull(newSampleFormat, "newSampleFormat");
+        showGraph(newGraph, newScale);
+    }
+
     private void show(MetricState newState, Quantity first, String newDetail, Quantity second) {
+        notRunning.set(false);
         state.set(newState);
         status.set(newState.placeholder());
         value.set(first.number());

@@ -1,6 +1,6 @@
 # 0007. Per-user folders and the log file
 
-- Status: Accepted
+- Status: Accepted; the state folder of the suspension journal and the removal of Logback's shutdown hook are added by [0011](0011-suspension-journal-and-recovery.md)
 - Date: 2026-10-05
 
 ## Context

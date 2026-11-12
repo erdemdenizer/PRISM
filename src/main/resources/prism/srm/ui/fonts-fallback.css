@@ -1,0 +1,23 @@
+/*
+ * Added to the scene after app.css when the bundled typeface could not be loaded
+ * (ui.Typefaces): every type role falls back to the system font, and the roles that need
+ * emphasis take its bold face, which is the only heavier face JavaFX resolves for it.
+ */
+
+.root {
+  -fx-font-family: "System";
+}
+
+.text-medium {
+  -fx-font-family: "System";
+}
+
+.text-section-title,
+.inspector-section-caption,
+.text-page-title,
+.text-key-readout,
+.segment:selected,
+.nav-item:selected {
+  -fx-font-family: "System";
+  -fx-font-weight: bold;
+}

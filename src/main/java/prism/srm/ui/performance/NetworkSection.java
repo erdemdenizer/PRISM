@@ -16,8 +16,17 @@ import prism.srm.ui.metric.MetricPanel;
  */
 final class NetworkSection extends VBox {
 
-    static final String NO_TOTAL_REASON = "No total was produced for this cycle. The total is the sum over the"
-            + " physical adapters. If reading failed, the log file says why.";
+    /**
+     * Why there is no total, in full. A snapshot does not say why: on a system that does not say
+     * which interfaces are physical there is never one, and a failed reading leaves one out. The
+     * note under the graph names the reason where the interfaces show it (OP-07).
+     */
+    static final String NO_TOTAL_REASON = "There is no total: it is the sum over the physical adapters, and the"
+            + " system did not say which are physical, or listed none, or reading them failed (then the log file"
+            + " says why).";
+
+    /** The same on the page, in the axis line of the graph, where the sentence would be cut. */
+    static final String NO_TOTAL_CAPTION = "No total for the physical adapters";
 
     /** Wide enough for the largest rate, as "1023.9", and the part its unit has. */
     private static final double RATE_COLUMN_WIDTH = 104;
@@ -25,7 +34,7 @@ final class NetworkSection extends VBox {
     private static final double LAYER_COLUMN_WIDTH = 80;
 
     NetworkSection(NetworkModel model, int historyCapacity) {
-        getStyleClass().add("performance-section");
+        getStyleClass().addAll("performance-section", "metric-network");
 
         MetricPanel rates = MetricPanel.dual(
                 "Physical adapters, total",
@@ -34,6 +43,7 @@ final class NetworkSection extends VBox {
                 "Upload",
                 model.rates(),
                 historyCapacity,
+                NO_TOTAL_CAPTION,
                 NO_TOTAL_REASON);
         VBox.setVgrow(rates, Priority.ALWAYS);
 
@@ -47,7 +57,7 @@ final class NetworkSection extends VBox {
         note.textProperty().bind(model.totalNoteProperty());
         note.getStyleClass().addAll("text-small", "text-muted");
         HBox heading = new HBox(title, gap, note);
-        heading.getStyleClass().add("device-list-heading");
+        heading.getStyleClass().add("section-heading");
 
         DeviceTable<InterfaceRow> table =
                 new DeviceTable<>(model.interfaces(), model.interfacesStatusProperty(), "Network interfaces");

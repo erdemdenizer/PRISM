@@ -8,4 +8,55 @@
   (class + bug pattern), never a whole package or a whole category.
 -->
 <FindBugsFilter xmlns="https://github.com/spotbugs/filter/3.0.0">
+  <!--
+    KinfoProc is a JNA Structure over the start of macOS's struct kinfo_proc (ADR-0010). JNA writes
+    its public fields by reflection when it reads the native memory, so SpotBugs sees them as never
+    written; p_vmspace and p_sigacts are never read by Prism but must be declared, because their
+    places give p_flag, p_stat and p_pid their offsets. An unavoidable consequence of mapping a
+    native structure with JNA, which the milestone 8 review asked for instead of bare offsets.
+  -->
+  <Match>
+    <Class name="prism.srm.platform.macos.KinfoProc"/>
+    <Bug pattern="UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD,NP_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD,UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD"/>
+  </Match>
+  <!--
+    The Job Object structures of milestone 10 (JobObjectStructures, ADR-0002) are JNA Structures over
+    JOBOBJECT_BASIC_LIMIT_INFORMATION, JOBOBJECT_EXTENDED_LIMIT_INFORMATION,
+    JOBOBJECT_CPU_RATE_CONTROL_INFORMATION and JOBOBJECT_BASIC_ACCOUNTING_INFORMATION. JNA writes and
+    reads their public fields by reflection around each call, and every documented field must be
+    declared for the others to have their documented offsets, although Prism reads only a few of
+    them. The same unavoidable consequence of mapping a native structure as for KinfoProc. Their
+    fields keep the names of the documented C structures (ControlFlags, CpuRate, LimitFlags, ...), as
+    jna-platform's own structures do (WinNT.IO_COUNTERS), so that each can be checked against
+    Microsoft Learn by name: hence also NM_FIELD_NAMING_CONVENTION, for these classes only.
+  -->
+  <Match>
+    <Class name="~prism\.srm\.platform\.windows\.JobObjectStructures\$.*"/>
+    <Bug pattern="UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD,NP_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD,UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD,URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD,NM_FIELD_NAMING_CONVENTION"/>
+  </Match>
+  <!--
+    JnaSdBusApi.SdBusError (milestone 12, S3A) is a JNA Structure over libsystemd's sd_bus_error
+    {const char *name; const char *message; int _need_free;} (systemd v255 src/systemd/sd-bus.h). sd_bus_call fills
+    its fields in native memory and JNA copies them into the Java fields (Structure.read), so SpotBugs never sees a
+    Java write: the fields are written by native code, not unwritten. _need_free keeps the C field name, which JNA
+    needs to match the layout.
+  -->
+  <Match>
+    <Class name="prism.srm.platform.linux.JnaSdBusApi$SdBusError"/>
+    <Bug pattern="UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD,NP_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD,UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD,URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD,NM_FIELD_NAMING_CONVENTION"/>
+  </Match>
+  <!--
+    HostPlatform.resourceLimiter() returns the one native limiter the composition root shares on
+    purpose ("the same instance on every call"), as processController() does. SpotBugs reports
+    EI_EXPOSE_REP only because ResourceLimiter gained clearOwned(LimitRecord) in milestone 12 (S1,
+    the name the reviewed plan Rev 2.1 fixes): MutableClasses treats any method whose name starts with
+    "clear" (also set, put, add, remove, ...) and does not return its own type as a setter, and so the
+    interface as mutable state. Verified against spotbugs 4.10.4's MutableClasses.SETTER_LIKE_PREFIXES;
+    nothing of HostPlatform's is exposed. Limited to this one method.
+  -->
+  <Match>
+    <Class name="prism.srm.platform.HostPlatform"/>
+    <Method name="resourceLimiter"/>
+    <Bug pattern="EI_EXPOSE_REP"/>
+  </Match>
 </FindBugsFilter>

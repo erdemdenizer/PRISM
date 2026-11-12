@@ -133,4 +133,43 @@ class SidebarTest {
         Event.fireEvent(entry, new KeyEvent(KeyEvent.KEY_PRESSED, "", "", key, false, false, false, false));
         Event.fireEvent(entry, new KeyEvent(KeyEvent.KEY_RELEASED, "", "", key, false, false, false, false));
     }
+
+    /** A click on an entry that is not selected moves the focus to it, so that the arrow keys go on from there. */
+    @Test
+    void anEntryPressedWithTheMouseTakesTheFocus() {
+        List<Object> seen = inSidebar(EnumSet.allOf(Destination.class), sidebar -> {
+            ToggleButton overview = sidebar.entry(Destination.OVERVIEW);
+            ToggleButton logs = sidebar.entry(Destination.LOGS);
+            overview.requestFocus();
+            Event.fireEvent(
+                    logs,
+                    new javafx.scene.input.MouseEvent(
+                            javafx.scene.input.MouseEvent.MOUSE_PRESSED,
+                            5,
+                            5,
+                            5,
+                            5,
+                            javafx.scene.input.MouseButton.PRIMARY,
+                            1,
+                            false,
+                            false,
+                            false,
+                            false,
+                            true,
+                            false,
+                            false,
+                            true,
+                            false,
+                            false,
+                            null));
+            logs.fire();
+            List<Object> facts = new ArrayList<>();
+            facts.add(logs.getScene().getFocusOwner() == logs);
+            press(logs, KeyCode.DOWN);
+            facts.add(sidebar.selected());
+            return facts;
+        });
+
+        assertThat(seen).containsExactly(true, Destination.SETTINGS);
+    }
 }

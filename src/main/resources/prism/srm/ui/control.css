@@ -1,0 +1,119 @@
+/*
+ * Controls more than one page shares: the line about an action (ui.control.ActionResultLine), on the
+ * Processes page and the Limits page.
+ */
+
+/*
+ * A line about an action: the first part in the tone of the result (the color is on the words that
+ * say what happened), the second part muted. A reason or an action on its way is muted throughout.
+ * The tones are those of the Logs page.
+ */
+.action-result-headline {
+  -fx-text-fill: -srm-text-muted;
+}
+
+.action-result-headline:success {
+  -fx-text-fill: -srm-text;
+}
+
+.action-result-headline:warning {
+  -fx-text-fill: -srm-warning;
+}
+
+.action-result-headline:failure {
+  -fx-text-fill: -srm-error;
+}
+
+/* The dialog that asks for a CPU limit: the heading, the process, the field with its unit, what the limit is. */
+.cpu-limit-content {
+  -fx-spacing: 8;
+  -fx-pref-width: 400;
+  -fx-max-width: 400;
+}
+
+.cpu-limit-process {
+  -fx-spacing: 8;
+  -fx-alignment: baseline-left;
+}
+
+.cpu-limit-entry {
+  -fx-spacing: 8;
+  -fx-alignment: center-left;
+}
+
+.cpu-limit-field {
+  -fx-pref-width: 64;
+  -fx-max-width: 64;
+  -fx-alignment: center-right;
+}
+
+/*
+ * UI lab v2: the sheet over a page (ui.control.SheetOverlay), from the right, on the raised surface with a
+ * hairline at its left edge, over a scrim. No shadow: what it shows changes every second.
+ */
+.sheet-scrim {
+  -fx-background-color: -srm-scrim;
+}
+
+.sheet {
+  -fx-background-color: -srm-edge, -srm-surface-raised;
+  -fx-background-insets: 0, 0 0 0 1;
+}
+
+.sheet-close {
+  -fx-padding: 0;
+  -fx-min-width: 28;
+  -fx-pref-width: 28;
+  -fx-max-width: 28;
+  -fx-min-height: 28;
+  -fx-pref-height: 28;
+  -fx-max-height: 28;
+}
+
+/*
+ * Fix round G (PR-11): the rules inside an inspector and the edge of its panel. In the dark theme the
+ * hairline token lies at 1.05:1 on the raised surface and the border at 1.28:1, which reads as no line
+ * at all; inside the inspectors of Processes and Limits they are drawn a step lighter, derived from the
+ * same tokens (measured: the rule about 1.3:1 on the raised surface, the edge about 1.6:1 on the window).
+ * Decorative lines need no 3:1; the light theme keeps its tokens.
+ */
+.processes,
+.limits {
+  -srm-inspector-rule: -srm-hairline;
+  -srm-inspector-edge: -srm-border;
+}
+
+@media (prefers-color-scheme: dark) {
+  .processes,
+  .limits {
+    -srm-inspector-rule: derive(-srm-hairline, 14%);
+    -srm-inspector-edge: derive(-srm-border, 14%);
+  }
+}
+
+/*
+ * The frame of an inspector (ui.control.InspectorFrame, owner decision K2): the details scroll inside the
+ * panel on a visible 12 px track with an 8 px thumb (docs/UI_GUIDE.md, scroll bars), and while there is
+ * more to see, a hairline in the scroll-thumb color marks the edge of the room on that side. No gradient,
+ * no shadow.
+ */
+.inspector-scroll,
+.inspector-scroll > .viewport {
+  -fx-background-color: transparent;
+  -fx-background-insets: 0;
+  -fx-padding: 0;
+}
+
+.inspector-scroll > .scroll-bar:vertical {
+  -fx-background-color: -srm-surface-sunken;
+  -fx-background-insets: 0;
+  -fx-background-radius: 0 0 8 0;
+}
+
+.inspector-scroll > .scroll-bar:vertical > .thumb {
+  -fx-background-insets: 2;
+}
+
+.inspector-edge {
+  -fx-background-color: -srm-border-strong;
+}

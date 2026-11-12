@@ -11,7 +11,6 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import javafx.scene.Node;
-import javafx.scene.control.ScrollPane;
 import javafx.scene.control.ToggleButton;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -76,11 +75,9 @@ class PerformanceUpdateCostProbe {
                                 Snapshots.CAPACITY,
                                 "logs",
                                 identity -> {});
-                        ((Sidebar) shell.getLeft())
-                                .entry(Destination.PERFORMANCE)
-                                .fire();
-                        Node page = ((ScrollPane) shell.getCenter()).getContent();
-                        page.lookupAll(".section-tab").stream()
+                        shell.navigation().entry(Destination.PERFORMANCE).fire();
+                        Node page = shell.pageArea().getContent();
+                        page.lookupAll(".segment").stream()
                                 .map(ToggleButton.class::cast)
                                 .filter(entry -> entry.getText().equals(section))
                                 .findFirst()

@@ -31,6 +31,42 @@ record PlotGeometry(double width, double height, int capacity, double maximum) {
     }
 
     /**
+     * Returns the horizontal position of the sample that is {@code age} samples older than the
+     * newest: the newest (age 0) is at the right edge, whatever the size of the history.
+     */
+    double xOfAge(int age) {
+        if (capacity == 1) {
+            return width;
+        }
+        return width * (capacity - 1 - age) / (capacity - 1);
+    }
+
+    /**
+     * Returns the age of the sample whose place is nearest to a horizontal position: 0 for the
+     * newest, at the right edge, up to {@code capacity - 1} at the left edge. A position outside
+     * the area counts as its nearer edge. The inverse of {@link #xOfAge}.
+     */
+    int ageAt(double x) {
+        if (capacity == 1 || !(width > 0)) {
+            return 0;
+        }
+        long slot = Math.round(Math.clamp(x, 0, width) / width * (capacity - 1));
+        return (int) (capacity - 1 - slot);
+    }
+
+    /**
+     * Returns the index, oldest first, of the sample {@code age} samples older than the newest in
+     * a history of {@code size} samples; -1 when the history does not reach back that far.
+     */
+    static int indexOfAge(int age, int size) {
+        if (age < 0) {
+            return -1;
+        }
+        int index = size - 1 - age;
+        return index >= 0 ? index : -1;
+    }
+
+    /**
      * Returns the vertical position of a value, measured from the top edge. A value outside the
      * scale is drawn at the edge it exceeds; with no scale, everything is at the bottom.
      */

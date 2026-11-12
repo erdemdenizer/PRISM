@@ -1,89 +1,176 @@
 /*
- * Tables, with the metrics of docs/UI_GUIDE.md: rows 26 px, header 28 px, 8 px horizontal cell
- * padding, square corners, no zebra striping. Colors are tokens from app.css only.
+ * Tables, UI lab v2: rows 30 px (28 in a low window, shell.css), header 32 px, 10 px horizontal cell
+ * padding, a radius-10 frame, no zebra striping. Colors are tokens from app.css only. No transition
+ * in a table: its cells change state while they are reused for other rows.
  */
 
-/* The frame is a background layer, so that taking the keyboard focus does not move the rows. */
+/* The frame is a background layer; the keyboard focus is shown on the row it is on, not on the frame. */
 .table-view {
-  -fx-background-color: -srm-border, -srm-surface;
+  -fx-background-color: -srm-edge, -srm-surface;
   -fx-background-insets: 0, 1;
-  -fx-background-radius: 0;
+  -fx-background-radius: 10, 9;
   -fx-padding: 1;
-  -fx-fixed-cell-size: 26;
-}
-
-.table-view:focus-visible {
-  -fx-background-color: -srm-accent, -srm-surface;
+  -fx-fixed-cell-size: 30;
 }
 
 .table-view .column-header-background {
-  -fx-background-color: -srm-surface-alt;
+  -fx-background-color: -srm-surface;
+  -fx-background-radius: 9 9 0 0;
 }
 
 /*
  * One border below the header; no borders between the columns. Without padding of its own, so
- * that the text of a header begins where the text of its cells begins: 8 px in.
+ * that the text of a header begins where the text of its cells begins: 10 px in, the padding of the
+ * header label and of a cell (TextWidths.CELL_PADDING measures the columns with it).
  */
 .table-view .column-header,
 .table-view .filler {
-  -fx-background-color: -srm-surface-alt;
-  -fx-border-color: -srm-border;
+  -fx-background-color: transparent;
+  -fx-border-color: -srm-hairline;
   -fx-border-width: 0 0 1 0;
   -fx-padding: 0;
-  -fx-size: 28;
+  -fx-size: 32;
 }
 
+/*
+ * A header: 12 px in the medium face, muted; the header of the column the rows are sorted by in
+ * the color of text, with the chevron the column gives it as its graphic right beside the text.
+ */
 .table-view .column-header .label {
   -fx-font-size: 12px;
-  -fx-font-weight: normal;
+  -fx-font-family: "IBM Plex Sans Medm";
   -fx-text-fill: -srm-text-muted;
-  -fx-padding: 0 8 0 8;
+  -fx-padding: 0 10 0 10;
   -fx-alignment: center-left;
+  -fx-content-display: right;
+  -fx-graphic-text-gap: 2;
+  -srm-icon: -srm-text;
 }
 
-/* The mark of the column the rows are sorted by. */
+/*
+ * Fix round H (PR-H1): the header of the sorted column gives its padding on the chevron's side to the
+ * chevron (after the text in a column of text, before it in a column of numbers), so the text stays
+ * where the cells have theirs and is not cut; the column keeps room for the rest (ColumnWidths: the
+ * 10 px chevron and its 2 px gap less these 10 px).
+ */
+.table-view .column-header.sorted .label {
+  -fx-text-fill: -srm-text;
+  -fx-padding: 0 0 0 10;
+}
+
+.table-view .column-header.numeric.sorted .label {
+  -fx-padding: 0 10 0 0;
+}
+
+/* The stock mark of the sorted column has no place: the chevron beside the text is the mark. */
 .table-view .column-header .arrow {
-  -fx-background-color: -srm-text-muted;
+  -fx-padding: 0;
+  -fx-shape: null;
+  -fx-background-color: transparent;
+  -fx-min-width: 0;
+  -fx-pref-width: 0;
+  -fx-max-width: 0;
+}
+
+.table-view .column-header .sort-order-dots-container,
+.table-view .column-header .sort-order {
+  -fx-padding: 0;
+  -fx-min-width: 0;
+  -fx-pref-width: 0;
+  -fx-max-width: 0;
+  -fx-min-height: 0;
+  -fx-pref-height: 0;
+  -fx-max-height: 0;
 }
 
 .table-view .table-row-cell {
   -fx-background-color: -srm-surface;
   -fx-background-insets: 0;
   -fx-padding: 0;
-  -fx-cell-size: 26;
+  -fx-cell-size: 30;
 }
 
-/* The selected row; the selection of a table without the focus is set back. */
-.table-view .table-row-cell:selected {
-  -fx-background-color: -srm-surface-sunken;
+.table-view .table-row-cell:hover {
+  -fx-background-color: -srm-surface-hover;
 }
 
-.table-view:focused .table-row-cell:selected {
-  -fx-background-color: -srm-selection;
+.table-view .table-row-cell:empty:hover {
+  -fx-background-color: -srm-surface;
 }
 
-/* The row the keyboard is on: a 1 px accent ring, with or without the selection. */
+/*
+ * The selected row: a 3 px bar in the accent color at its left edge whether the table has the
+ * focus or not, so the row the page describes is found without color; and the selection surface,
+ * which is set back while the table does not have the focus. The bar is a background layer, so
+ * the cells stay where they are.
+ */
+.table-view .table-row-cell:selected,
+.table-view .table-row-cell:selected:hover {
+  -fx-background-color: -srm-accent, -srm-selection-inactive;
+  -fx-background-insets: 0, 0 0 0 3;
+}
+
+.table-view:focused .table-row-cell:selected,
+.table-view:focused .table-row-cell:selected:hover {
+  -fx-background-color: -srm-accent, -srm-selection;
+  -fx-background-insets: 0, 0 0 0 3;
+}
+
+/*
+ * The row the keyboard is on: a 2 px ring in the focus color, as every other control has, with or
+ * without the selection; the selection stays its fill and its 3 px bar. The table itself draws no
+ * ring of its own: the row is where the keyboard is.
+ */
 .table-view:focus-visible .table-row-cell:focused {
-  -fx-background-color: -srm-accent, -srm-surface;
-  -fx-background-insets: 0, 1;
+  -fx-background-color: -srm-focus-ring, -srm-surface;
+  -fx-background-insets: 0, 2;
 }
 
 .table-view:focus-visible .table-row-cell:focused:selected {
-  -fx-background-color: -srm-accent, -srm-selection;
-  -fx-background-insets: 0, 1;
+  -fx-background-color: -srm-focus-ring, -srm-selection;
+  -fx-background-insets: 0, 2 2 2 3;
+}
+
+/*
+ * Fix round H (KB-1): a table with no rows is still a Tab stop, and its keyboard focus has no row to be
+ * shown on. While it shows its placeholder, the placeholder area takes the same 2 px ring (the area is
+ * there only while the table is empty, so a filled table keeps its ring on the row).
+ */
+.table-view .placeholder {
+  -fx-border-color: transparent;
+  -fx-border-width: 2;
+  -fx-border-insets: 2;
+  -fx-border-radius: 8;
+}
+
+.table-view:focus-visible .placeholder {
+  -fx-border-color: -srm-focus-ring;
 }
 
 .table-view .table-cell {
-  -fx-padding: 0 8 0 8;
+  -fx-padding: 0 10 0 10;
   -fx-border-width: 0;
   -fx-alignment: center-left;
   -fx-text-fill: -srm-text;
 }
 
-/* A column of numbers: header and cells against the right edge. */
-.table-view .column-header.numeric .label,
+/* A column of numbers: header and cells against the right edge; the chevron before the text. */
+.table-view .column-header.numeric .label {
+  -fx-alignment: center-right;
+  -fx-content-display: left;
+}
+
 .table-view .table-cell.numeric {
   -fx-alignment: center-right;
+}
+
+/* A value the system does not report is set back, so an empty cell does not read as a value. */
+.table-view .table-cell:missing {
+  -fx-text-fill: -srm-text-muted;
+}
+
+.table-view .table-row-cell:selected .table-cell:missing {
+  -fx-text-fill: -srm-text;
 }
 
 /*
@@ -96,23 +183,57 @@
   -fx-alignment: center-right;
 }
 
-/* Percentages: "%". */
+/* On the selection surface the unit takes the color of text. */
+.table-view .table-row-cell:selected .quantity-unit {
+  -fx-text-fill: -srm-text;
+}
+
+/*
+ * The parts of the units, on the 4 px grid, with room to spare for the system font; the same
+ * numbers are in ui.processes.ColumnWidths, which measures the columns with them.
+ */
+
+/* Percentages: "%", 13 px in Plex. */
 .table-view .percent .quantity-unit {
-  -fx-min-width: 1em;
-  -fx-pref-width: 1em;
-  -fx-max-width: 1em;
+  -fx-min-width: 16;
+  -fx-pref-width: 16;
+  -fx-max-width: 16;
 }
 
 /* Sizes: "GiB". */
 .table-view .size .quantity-unit {
-  -fx-min-width: 2em;
-  -fx-pref-width: 2em;
-  -fx-max-width: 2em;
+  -fx-min-width: 24;
+  -fx-pref-width: 24;
+  -fx-max-width: 24;
 }
 
 /* Rates: "MiB/s". */
 .table-view .rate .quantity-unit {
-  -fx-min-width: 3em;
-  -fx-pref-width: 3em;
-  -fx-max-width: 3em;
+  -fx-min-width: 36;
+  -fx-pref-width: 36;
+  -fx-max-width: 36;
+}
+
+/*
+ * Fix round H (PR-14): the scroll bars of a table. The skin makes the thumb at least 1.5 times as
+ * long as the bar is wide (18 px), which a list of hundreds of processes reaches; the 3 px inset of
+ * app.css on every side left a 6 x 12 px dot of it. Inset only across the bar, the thumb shows its
+ * whole 18 px length at least and stays 6 px thin (8 under the pointer).
+ */
+.table-view .scroll-bar:vertical > .thumb {
+  -fx-background-insets: 0 3 0 3;
+}
+
+.table-view .scroll-bar:vertical:hover > .thumb,
+.table-view .scroll-bar:vertical > .thumb:pressed {
+  -fx-background-insets: 0 2 0 2;
+}
+
+.table-view .scroll-bar:horizontal > .thumb {
+  -fx-background-insets: 3 0 3 0;
+}
+
+.table-view .scroll-bar:horizontal:hover > .thumb,
+.table-view .scroll-bar:horizontal > .thumb:pressed {
+  -fx-background-insets: 2 0 2 0;
 }

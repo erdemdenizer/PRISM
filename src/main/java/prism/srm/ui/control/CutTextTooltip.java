@@ -1,4 +1,4 @@
-package prism.srm.ui.processes;
+package prism.srm.ui.control;
 
 import javafx.scene.control.Labeled;
 import javafx.scene.control.Tooltip;
@@ -11,7 +11,7 @@ import javafx.scene.text.Text;
  * <p>The tooltip and the node that measures the text are created once, with the control; a change
  * of the text or of the width only sets them.
  */
-final class CutTextTooltip {
+public final class CutTextTooltip {
 
     /**
      * The most a tooltip shows. A command line can be tens of thousands of characters long, and a
@@ -33,7 +33,7 @@ final class CutTextTooltip {
     }
 
     /** Keeps the tooltip of a control in step with its text and its width from now on. */
-    static void install(Labeled control) {
+    public static void install(Labeled control) {
         CutTextTooltip tooltip = new CutTextTooltip(control);
         control.textProperty().addListener(observable -> tooltip.refresh());
         control.widthProperty().addListener(observable -> tooltip.refresh());

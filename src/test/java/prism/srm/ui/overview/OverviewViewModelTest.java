@@ -111,12 +111,13 @@ class OverviewViewModelTest {
                         live.history().diskReadBytesPerSecond(),
                         live.history().diskWriteBytesPerSecond(),
                         2.0 * Snapshots.MIB));
-        assertThat(model.disk().scaleProperty().get()).isEqualTo("2.0 MiB/s");
+        // OP-12: the top of a rate scale is a whole step and is written without a decimal.
+        assertThat(model.disk().scaleProperty().get()).isEqualTo("2 MiB/s");
         assertThat(model.network().graphProperty().get().primary())
                 .isEqualTo(live.history().networkDownloadBytesPerSecond());
         assertThat(model.network().graphProperty().get().secondary())
                 .isEqualTo(live.history().networkUploadBytesPerSecond());
-        assertThat(model.network().scaleProperty().get()).isEqualTo("500.0 KiB/s");
+        assertThat(model.network().scaleProperty().get()).isEqualTo("500 KiB/s");
     }
 
     @Test
@@ -128,7 +129,8 @@ class OverviewViewModelTest {
         assertThat(turkish.cpu().valueProperty().get()).isEqualTo("12,4");
         assertThat(turkish.memory().detailProperty().get()).isEqualTo("35,0 %");
         assertThat(turkish.disk().valueProperty().get()).isEqualTo("1,5");
-        assertThat(turkish.disk().scaleProperty().get()).isEqualTo("2,0 MiB/s");
+        // OP-12: the top of a rate scale is a whole step and is written without a decimal.
+        assertThat(turkish.disk().scaleProperty().get()).isEqualTo("2 MiB/s");
     }
 
     @Test
@@ -297,7 +299,8 @@ class OverviewViewModelTest {
         assertThat(model.memory().detailProperty().get()).isEqualTo("100.0 %");
         assertThat(model.disk().valueProperty().get()).isEqualTo("1023.9");
         assertThat(model.disk().unitProperty().get()).isEqualTo("GiB/s");
-        assertThat(model.disk().scaleProperty().get()).isEqualTo("1.0 TiB/s");
+        // OP-12: the top of a rate scale is a whole step and is written without a decimal.
+        assertThat(model.disk().scaleProperty().get()).isEqualTo("1 TiB/s");
         assertThat(model.uptime().textProperty().get()).isEqualTo("400 d 23:59:59");
         assertThat(model.processCount().textProperty().get()).isEqualTo("99,999");
     }
@@ -320,7 +323,8 @@ class OverviewViewModelTest {
 
         model.update(idleDisk);
 
-        assertThat(model.disk().scaleProperty().get()).isEqualTo("100.0 KiB/s");
+        // OP-12: the top of a rate scale is a whole step and is written without a decimal.
+        assertThat(model.disk().scaleProperty().get()).isEqualTo("100 KiB/s");
         assertThat(model.network().scaleProperty().get()).isEmpty();
         assertThat(model.cpu().scaleProperty().get()).isEmpty();
     }
