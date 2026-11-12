@@ -31,9 +31,23 @@ The next interim submission focuses on **Process Control on Windows** and the **
 
 ---
 
+## Table 3: Course Release 2 (Milestones 5.5 to 13)
+
+Course release 2 brings milestones 5.5, 6, 7, 7.5, 9, 11 and 13 and the redesigned user interface from the team's working repository ([docs/COURSE_RELEASE.md](COURSE_RELEASE.md)). The code was written there by erdemdenizer and arrives in one import pull request; the work of this stage is its review, its verification on more machines and systems, and the documents that go with it. Each row is an issue and a pull request (or a review) by the member named.
+
+| Member | Work & Deliverables | Delivered as |
+|---|---|---|
+| **erdemdenizer** | • Import of course release 2 with its provenance.<br>• Windows application image (`jpackage`) and its acceptance run.<br>• Integration owner of shared files (`pom.xml`, `app`, `HostPlatform`, `Shell`, `packaging`).<br>• Verification section of `COURSE_RELEASE.md` and repository integrity checks. | Pull Requests, image evidence, acceptance runs |
+| **erencatal** | • Review of the platform and application layers of the import (process control, limits, OOM Guard).<br>• Process control verified on a second Windows machine with `prism-demo`.<br>• Monitoring and process control verified on Linux.<br>• CPU limits (native Job Objects and emulated) measured.<br>• Javadoc completion for domain process records.<br>• Next-stage plan for Linux and macOS. | Code reviews, PRs, evidence records |
+| **enessen0** | • Review of the user interface layer of the import.<br>• Visual review and snapshot verification across all seven pages.<br>• Narrow-window and scaling check on the Processes page (L-1/L-2 layout verification).<br>• Keyboard navigation and screen reader accessibility check.<br>• User guide and documentation updates (`UI_GUIDE.md`).<br>• Rehearsal and step-by-step verification of live demonstration scenarios (Demos C, D, E in `docs/DEMO.md`). | Code reviews, PRs, evidence records, user guide |
+
+---
+
 ## Program Learning Guide & Meeting Responsibilities
 
 To ensure every team member has full mastery of the system during oral reviews and meetings:
+
+### Stage 1 (Milestones 1–5 Foundation)
 
 1. **erdemdenizer** should focus on:
    - System resource collection via OSHI (`OshiSystemMetricsSource`).
@@ -52,6 +66,27 @@ To ensure every team member has full mastery of the system during oral reviews a
    - In-place row reconciliation in `ProcessTableModel` (avoiding table reconstruction on every 2-second tick).
    - Safety rule enforcement (distinguishing user processes from critical OS processes).
    - Capability-driven UI state management and user feedback.
+
+### Stage 2 (Course Release 2: Milestones 5.5–13 & Redesigned UI)
+
+1. **erdemdenizer** should focus on:
+   - Standalone application image creation (`jpackage`) and self-contained runtime packaging without pre-installed JDKs.
+   - Architectural layer enforcement (`ArchitectureTest`) and strict boundary rules across 13 milestones.
+   - Synthetic workload generation in `prism-demo` (configurable multi-threaded CPU stress and memory consumption).
+   - Release provenance, verification evidence, and repository integration.
+
+2. **erencatal** should focus on:
+   - Windows Native Process Controller (`WindowsProcessController` via Win32 JNA: `TerminateProcess`, `WM_CLOSE`, thread walk `OpenThread`/`SuspendThread`/`ResumeThread`, and `SetPriorityClass`).
+   - Linux process control mechanisms using `pidfd_open` and `pidfd_send_signal`.
+   - Resource limiting: native `Job Objects` on Windows vs. emulated CPU feedback limiter in `LimitService`.
+   - OOM Guard memory pressure detection, intervention rules (warn, soft suspend, terminate), and safety boundaries.
+
+3. **enessen0** should focus on:
+   - Redesigned 7-page UI architecture (`Overview`, `Processes`, `Performance`, `Limits`, `OOM Guard`, `Logs`, `Settings`).
+   - Multi-theme engine (Light, Dark, and System default) and CSS design tokens.
+   - Responsive layout adaptation across window dimensions (from 1600×900 down to 720×480) and avoiding horizontal clipping (L-1/L-2 fix).
+   - Accessibility compliance: Tab order focus traversal and screen reader integration (`accessibleText`, `accessibleHelp`).
+   - Live demonstration scenarios (Demos C, D, E on `prism-demo` workload).
 
 ---
 
