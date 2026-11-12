@@ -4,7 +4,7 @@ import java.time.Instant;
 import java.util.Objects;
 
 /**
- * What makes a process the same process: its PID together with its start time. The operating
+ * The identity of a process: the PID and the moment at which the process started. An operating
  * system reuses PIDs, so a PID alone may name a different process a moment later; the pair does
  * not repeat. Everything that compares two readings of a process compares identities.
  *
@@ -16,8 +16,5 @@ public record ProcessIdentity(long pid, Instant startTime) {
 
     public ProcessIdentity {
         Objects.requireNonNull(startTime, "startTime");
-        if (pid < 0) {
-            throw new IllegalArgumentException("pid must not be negative: " + pid);
-        }
     }
 }
