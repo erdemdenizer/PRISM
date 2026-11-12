@@ -43,7 +43,7 @@ public final class SystemReadouts {
 
     /** Takes the values and the history off a readout, because monitoring is not running. */
     public static void showNothing(MetricReadout readout) {
-        readout.showNoValues(MetricState.UNAVAILABLE);
+        readout.showNotRunning();
         readout.showGraph(GraphData.EMPTY, "");
     }
 
@@ -62,7 +62,7 @@ public final class SystemReadouts {
         }
         // A scale is stated only over a graph that has something drawn against it.
         String scale = AutoScale.hasSample(history) ? percentScale() : "";
-        readout.showGraph(GraphData.single(history, PERCENT_SCALE), scale);
+        readout.showGraph(GraphData.single(history, PERCENT_SCALE), scale, formatter::percent);
     }
 
     /** Physical memory in use, with its share of the total, against the total. */
@@ -79,7 +79,10 @@ public final class SystemReadouts {
         }
         // Until the total is known there is no scale, and the graph shows its grid only.
         String scale = memoryTotalBytes > 0 ? formatter.bytes(memoryTotalBytes).text() : "";
-        readout.showGraph(GraphData.single(snapshot.history().memoryUsedBytes(), memoryTotalBytes), scale);
+        readout.showGraph(
+                GraphData.single(snapshot.history().memoryUsedBytes(), memoryTotalBytes),
+                scale,
+                bytes -> formatter.bytes(Math.round(bytes)));
     }
 
     /** Read and write rate summed over the physical disks. */
@@ -114,8 +117,8 @@ public final class SystemReadouts {
         double maximum = AutoScale.maximumFor(AutoScale.largestSample(first, second));
         // A scale is stated only over a graph that has something drawn against it.
         String scale = AutoScale.hasSample(first, second)
-                ? formatter.bytesPerSecond(maximum).text()
+                ? formatter.rateScale(maximum).text()
                 : "";
-        readout.showGraph(new GraphData(first, second, maximum), scale);
+        readout.showGraph(new GraphData(first, second, maximum), scale, formatter::bytesPerSecond);
     }
 }
