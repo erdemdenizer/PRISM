@@ -6,6 +6,7 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
 import java.util.function.Function;
+import prism.srm.domain.CpuTimeReading;
 import prism.srm.domain.ProcessDetails;
 import prism.srm.domain.ProcessIdentity;
 import prism.srm.domain.ProcessReading;
@@ -36,7 +37,15 @@ public final class FakeProcessSource implements ProcessSource {
         throw new AssertionError("The monitor must never read details: they are read on demand only");
     };
 
-    int listings;
+    volatile int listings;
+
+    /** How many listings were taken; for tests outside this package. */
+    public int listings() {
+        return listings;
+    }
+
+    /** Answers a read of one process's processor time; gone unless a test sets it. */
+    public volatile Function<ProcessIdentity, CpuTimeReading> onCpuTime = identity -> CpuTimeReading.GONE;
 
     /** Sets what the following listings return. */
     public void list(List<ProcessReading> readings) {
@@ -53,6 +62,25 @@ public final class FakeProcessSource implements ProcessSource {
             ProcessIdentity identity, long cpuTimeMillis, long bytesRead, long bytesWritten) {
         return reading(
                 identity, OptionalLong.of(cpuTimeMillis), OptionalLong.of(bytesRead), OptionalLong.of(bytesWritten));
+    }
+
+    /** A reading with this resident memory and this listed priority, and otherwise as above (milestone 11). */
+    public static ProcessReading listedReading(
+            ProcessIdentity identity, long cpuTimeMillis, long residentBytes, int priority) {
+        return new ProcessReading(
+                identity,
+                "process-" + identity.pid(),
+                OptionalLong.of(1),
+                Optional.of(ProcessState.RUNNING),
+                OptionalLong.of(cpuTimeMillis),
+                OptionalLong.of(residentBytes),
+                OptionalLong.of(residentBytes),
+                OptionalLong.of(900_000_000),
+                Optional.of("alice"),
+                OptionalInt.of(12),
+                OptionalInt.of(priority),
+                OptionalLong.of(0),
+                OptionalLong.of(0));
     }
 
     static ProcessReading reading(
@@ -89,5 +117,10 @@ public final class FakeProcessSource implements ProcessSource {
     @Override
     public Optional<ProcessDetails> details(ProcessIdentity identity) {
         return onDetails.apply(identity);
+    }
+
+    @Override
+    public CpuTimeReading cpuTime(ProcessIdentity identity) {
+        return onCpuTime.apply(identity);
     }
 }
