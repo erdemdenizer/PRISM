@@ -14,6 +14,7 @@ out/
 
 # Logs and JVM crash dumps
 logs/
+!src/**/logs/
 *.log
 hs_err_pid*.log
 replay_pid*.log
