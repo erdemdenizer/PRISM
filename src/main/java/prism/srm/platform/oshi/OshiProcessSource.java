@@ -25,7 +25,7 @@ import prism.srm.platform.ProcessSource;
 import prism.srm.platform.ProcessVirtualSizeSource;
 
 /**
- * this part is partially ai made : using oshi liblary pulls info from kernel
+ * Process readings through OSHI, from the long-lived OSHI objects that {@link OshiHost} owns.
  */
 final class OshiProcessSource implements ProcessSource {
 
@@ -63,7 +63,7 @@ final class OshiProcessSource implements ProcessSource {
         List<OSProcess> listed = allProcesses.get();
         Map<ProcessIdentity, Long> virtualSizes = system == HostSystem.WINDOWS ? readWindowsVirtualSizes() : Map.of();
         List<ProcessReading> readings = new ArrayList<>(listed.size());
-        Set<ProcessIdentity> live = new HashSet<>();
+        Set<ProcessIdentity> live = HashSet.newHashSet(listed.size());
         Set<String> liveUserIds = new HashSet<>();
         for (OSProcess process : listed) {
             try {

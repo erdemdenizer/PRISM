@@ -79,7 +79,7 @@ final class ProcFs {
             for (Path entry : entries) {
                 Path fileName = entry.getFileName();
                 String name = fileName == null ? "" : fileName.toString();
-                if (!name.isEmpty() && name.chars().allMatch(Character::isDigit)) {
+                if (isAllDigits(name)) {
                     ids.add(Integer.parseInt(name));
                 }
             }
@@ -92,6 +92,19 @@ final class ProcFs {
         }
         ids.sort(null);
         return Reading.found(List.copyOf(ids));
+    }
+
+    private static boolean isAllDigits(String text) {
+        if (text.isEmpty()) {
+            return false;
+        }
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            if (c < '0' || c > '9') {
+                return false;
+            }
+        }
+        return true;
     }
 
     /** The text of {@code /proc/<pid>/cgroup}, as the kernel wrote it. */

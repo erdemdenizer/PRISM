@@ -264,8 +264,8 @@ final class JnaWin32 implements Win32 {
             return Optional.empty();
         }
         List<Window> windows = new ArrayList<>(found.size());
+        IntByReference pid = new IntByReference();
         for (HWND window : found) {
-            IntByReference pid = new IntByReference();
             user32.GetWindowThreadProcessId(window, pid);
             boolean visible = user32.IsWindowVisible(window);
             boolean owned = user32.GetWindow(window, new DWORD(WinUser.GW_OWNER)) != null;
