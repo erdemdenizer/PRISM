@@ -2,17 +2,19 @@ package prism.srm.ui.performance;
 
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.Objects;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import prism.srm.domain.SystemSnapshot;
 import prism.srm.ui.Stylesheets;
+import prism.srm.ui.control.PageHeader;
 import prism.srm.ui.format.ValueFormatter;
 import prism.srm.ui.metric.PageNotice;
 
 /**
  * The Performance page: a detailed view each for CPU, memory, disk and network, one at a time,
- * chosen in the row at the top.
+ * chosen in the selector at the right end of the page toolbar.
  *
  * <p>All four views are built once, with the page. Choosing one puts it in the place of the one
  * shown; nothing is built again. Until the first snapshot arrives every part says that it is
@@ -22,11 +24,9 @@ import prism.srm.ui.metric.PageNotice;
  */
 public final class PerformancePage extends VBox {
 
-    /** Where the section on screen is among the children: below the notice and the tabs. */
-    private static final int SECTION_INDEX = 2;
-
     private final PerformanceViewModel model;
     private final Map<Section, Region> sections = new EnumMap<>(Section.class);
+    private final SectionTabs tabs;
 
     /**
      * @param formatter formats the values in the notation of the user's locale
@@ -46,10 +46,28 @@ public final class PerformancePage extends VBox {
         }
 
         Section selected = model.selectedProperty().get();
-        getChildren()
-                .setAll(new PageNotice(model.status()), new SectionTabs(selected, model::select), section(selected));
+        PageHeader header = new PageHeader("Performance");
+        tabs = new SectionTabs(selected, model::select);
+        header.setTrailing(tabs);
+        getChildren().setAll(header, new PageNotice(model.status()), section(selected));
+        // The section on screen is replaced where it stands: the title line, which holds the selector at
+        // its right end, may be in the page toolbar of the shell instead of above it (UI lab v2).
         model.selectedProperty()
-                .addListener((observable, before, after) -> getChildren().set(SECTION_INDEX, section(after)));
+                .addListener((observable, before, after) ->
+                        getChildren().set(getChildren().indexOf(section(before)), section(after)));
+    }
+
+    /**
+     * Puts a section on screen, as choosing it in the selector does; for a page that leads to it
+     * (the Overview, UI-1). Call on the JavaFX Application Thread.
+     */
+    public void select(Section section) {
+        tabs.select(Objects.requireNonNull(section, "section"));
+    }
+
+    /** The section on screen. */
+    public Section selected() {
+        return model.selectedProperty().get();
     }
 
     /** Shows a snapshot. Call on the JavaFX Application Thread. */
