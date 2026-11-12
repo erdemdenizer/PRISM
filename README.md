@@ -88,28 +88,36 @@ export JAVA_HOME=/path/to/jdk-25
 
 ## Demonstrations & Probes
 
-### Live Interactive Demo (Presentation 2)
+### Live Interactive Demo (`prism.srm.demo`)
 
-PRISM includes a dedicated, safe target workload (`prism.srm.demo`) designed for testing and demonstrating process control actions without risking system stability.
+PRISM includes a dedicated, safe target workload (`prism.srm.demo.DemoWorkload`) with zero external dependencies, designed to demonstrate process control, **CPU/Memory Limits**, and **OOM Guard** live without risking system stability.
 
 1. **Start the demo workload in a separate terminal:**
    ```powershell
-   # Windows (PowerShell):
-   .\mvnw.cmd -q compile exec:java -Dexec.mainClass="prism.srm.demo.WorkloadMain" -Dexec.args="--cpu 25 --memory 100 --duration 180"
+   # Windows (PowerShell) — fast direct launch after compile:
+   .\mvnw.cmd -q compile
+   java -cp target\classes prism.srm.demo.DemoWorkload --cpu 50 --memory 256MiB --duration 5m
+
+   # Or via Maven exec:
+   .\mvnw.cmd -q compile exec:java -Dexec.mainClass="prism.srm.demo.DemoWorkload" -Dexec.args="--cpu 50 --memory 256MiB --duration 5m"
    ```
    ```bash
    # Linux / macOS (Bash):
-   ./mvnw -q compile exec:java -Dexec.mainClass="prism.srm.demo.WorkloadMain" -Dexec.args="--cpu 25 --memory 100 --duration 180"
+   ./mvnw -q compile
+   java -cp target/classes prism.srm.demo.DemoWorkload --cpu 50 --memory 256MiB --duration 5m
    ```
+   *(Options: `--cpu <percent>` e.g. `25` or `50`, `--memory <size>` with unit e.g. `256MiB` or `1GiB`, `--duration <time>` with unit e.g. `5m` or `180s`.)*
 
 2. **In PRISM (`javafx:run`):**
-   - Locate `prism-demo` in the Processes table.
-   - Observe its ~25% CPU consumption across cores.
-   - Test **Suspend** -> observe CPU drop to 0.0% immediately.
-   - Test **Resume** -> observe CPU recovery.
-   - Test **Priority Change** -> modify priority class and verify in Task Manager.
-   - Test **Safety Engine** -> attempt to kill PRISM or `csrss.exe`; observe the safety refusal dialog and log message.
-   - Test **End Task / Force Kill** on `prism-demo` -> observe clean exit and removal from the process table.
+   - **Process Control:** Search `DemoWorkload` (or the printed PID) in **Processes**. Test **Suspend** (CPU drops to `0.0%`), **Resume** (CPU returns to ~`50%`), **Priority Change**, **Safety Engine** (try killing PRISM or `csrss.exe`), and **End Task / Force Kill**.
+   - **Demonstrate CPU Limit (Job Objects / Duty-Cycle):**
+     1. Select the `DemoWorkload` process -> click **Manage** in the right inspector under *Limits & protection*.
+     2. Click **Set...** next to *CPU limit* and set a lower cap (e.g., `15%`).
+     3. **Observe:** Within seconds, CPU usage drops from ~`50%` and stays capped at `<= 15%` in both PRISM and Windows Task Manager.
+   - **Demonstrate OOM Guard (Memory Policy & Pressure):**
+     1. Launch a larger memory target, e.g. `java -cp target\classes prism.srm.demo.DemoWorkload --cpu 10 --memory 512MiB --duration 5m`.
+     2. Select it in **Processes** -> click **Manage** -> click **Add** under *OOM Guard* (and optionally set a per-process memory limit below `512MiB` or configure OOM Guard thresholds/actions on the **OOM Guard** page).
+     3. **Observe:** OOM Guard tracks the process, logs warnings/interventions on the **OOM Guard** and **Logs** pages, and applies the configured policy action (Lower Priority / Suspend / Terminate) when triggered.
 
 ### Console Probes (Historical Checkpoint 1 & Lifecycle Tests)
 
