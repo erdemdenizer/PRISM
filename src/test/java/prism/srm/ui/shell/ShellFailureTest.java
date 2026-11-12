@@ -94,8 +94,9 @@ class ShellFailureTest {
         assertThat(seen.message())
                 .startsWith("System monitoring stopped unexpectedly")
                 .contains(LOG_FOLDER);
-        // Four panels and three facts.
-        assertThat(seen.unavailable()).isEqualTo(7);
+        // Four panels and five facts: Managed and OOM Guard too, which no longer say "Reading…" for
+        // ever once monitoring has stopped (round G, OP-07e).
+        assertThat(seen.unavailable()).isEqualTo(9);
     }
 
     /**
@@ -113,7 +114,7 @@ class ShellFailureTest {
 
         assertThat(seen.status()).isEqualTo("System monitoring stopped unexpectedly");
         assertThat(seen.message()).startsWith("System monitoring stopped unexpectedly");
-        assertThat(seen.unavailable()).isEqualTo(7);
+        assertThat(seen.unavailable()).isEqualTo(9);
     }
 
     @Test
@@ -143,7 +144,7 @@ class ShellFailureTest {
         });
 
         assertThat(seen.status()).isEqualTo("Monitoring stopped unexpectedly");
-        assertThat(seen.unavailable()).isEqualTo(7);
+        assertThat(seen.unavailable()).isEqualTo(9);
     }
 
     @Test
@@ -170,7 +171,7 @@ class ShellFailureTest {
         assertThat(seen.status()).isEqualTo("Monitoring could not start");
         assertThat(seen.statusIsAFailure()).isTrue();
         assertThat(seen.message()).startsWith("Monitoring could not start");
-        assertThat(seen.unavailable()).isEqualTo(7);
+        assertThat(seen.unavailable()).isEqualTo(9);
     }
 
     private static <T> T inShell(Function<Shell, T> scenario) {
