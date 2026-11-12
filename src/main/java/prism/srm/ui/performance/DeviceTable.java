@@ -31,9 +31,9 @@ import prism.srm.ui.format.Quantity;
  */
 final class DeviceTable<R> extends TableView<R> {
 
-    // The table metrics of docs/UI_GUIDE.md, as table.css sets them.
-    static final double ROW_HEIGHT = 26;
-    static final double HEADER_HEIGHT = 28;
+    // The table metrics as table.css sets them (UI lab v2: 30 px rows, 32 px header).
+    static final double ROW_HEIGHT = 30;
+    static final double HEADER_HEIGHT = 32;
     private static final double FRAME = 2;
 
     /** The rows a table shows at least when it has more; an empty table says in that room why. */

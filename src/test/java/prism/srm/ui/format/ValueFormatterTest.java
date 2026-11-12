@@ -127,4 +127,16 @@ class ValueFormatterTest {
             Locale.setDefault(original);
         }
     }
+
+    /** OP-12: the steps of a rate scale are whole numbers and are shown without a decimal. */
+    @Test
+    void theTopOfARateScaleHasNoDecimalWhereItIsWhole() {
+        assertThat(english.rateScale(100 * 1024).text()).isEqualTo("100 KiB/s");
+        assertThat(english.rateScale(2 * 1024 * 1024).text()).isEqualTo("2 MiB/s");
+        assertThat(turkish.rateScale(500 * 1024).text()).isEqualTo("500 KiB/s");
+        assertThat(english.rateScale(1.5 * 1024 * 1024).text()).isEqualTo("1.5 MiB/s");
+        assertThat(turkish.rateScale(1.5 * 1024 * 1024).text()).isEqualTo("1,5 MiB/s");
+        assertThat(english.rateScale(512).text()).isEqualTo("512 B/s");
+        assertThat(english.rateScale(10).text()).isEqualTo("10 B/s");
+    }
 }

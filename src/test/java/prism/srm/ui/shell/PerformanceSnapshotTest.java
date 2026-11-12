@@ -203,7 +203,9 @@ class PerformanceSnapshotTest {
 
     /**
      * At the minimum size, the sections with ordinary content need no scrolling. The CPU section
-     * of a machine with 16 logical processors is the tallest of them.
+     * fits with one row of processor cells, eight on the smallest window; with more rows it
+     * scrolls, as it did from 17 processors on before the panels of milestone 5.5 took their room
+     * (docs/MILESTONES.md).
      */
     @ParameterizedTest
     @ValueSource(strings = {CPU, MEMORY, DISK, NETWORK})
@@ -212,9 +214,11 @@ class PerformanceSnapshotTest {
                 Theme.LIGHT,
                 MINIMUM_INSIDE_FRAME.width(),
                 MINIMUM_INSIDE_FRAME.height(),
-                () -> performance(section, showing(PerformanceSnapshots.live())),
+                () -> performance(
+                        section,
+                        showing(CPU.equals(section) ? PerformanceSnapshots.live(8) : PerformanceSnapshots.live())),
                 root -> {
-                    ScrollPane area = (ScrollPane) ((Shell) root).getCenter();
+                    ScrollPane area = ((Shell) root).pageArea();
                     return new double[] {
                         area.getContent().getLayoutBounds().getHeight(),
                         area.getViewportBounds().getHeight(),
@@ -275,10 +279,44 @@ class PerformanceSnapshotTest {
                     };
                 });
 
-        assertThat(seen[0]).as("height of the header").isEqualTo(28);
-        assertThat(seen[1]).as("height of a row").isEqualTo(26);
+        assertThat(seen[0]).as("height of the header").isEqualTo(32);
+        assertThat(seen[1]).as("height of a row").isEqualTo(30);
         // Three file systems: the frame, the header and three rows, and no room below them.
-        assertThat(seen[2]).as("height of the table").isEqualTo(2 + 28 + 3 * 26);
+        assertThat(seen[2]).as("height of the table").isEqualTo(2 + 32 + 3 * 30);
+    }
+
+    /**
+     * A grid of many rows of cells is higher than the default window too: the page scrolls as a
+     * whole, and the facts below the grid stay reachable instead of being cut off.
+     */
+    @Test
+    void manyProcessorsScrollTheDefaultWindowAndTheFactsStayBelowTheGrid() {
+        double[] seen = SnapshotHarness.inspect(
+                Theme.LIGHT,
+                DEFAULT.width(),
+                DEFAULT.height(),
+                () -> performance(CPU, showing(PerformanceSnapshots.live(128))),
+                root -> {
+                    ScrollPane area = ((Shell) root).pageArea();
+                    Node grid = area.getContent().lookup(".history-grid");
+                    Node facts = area.getContent().lookup(".facts-panel");
+                    // In the coordinates of the page: the page toolbar stands above it in the scene (UI lab v2).
+                    Node page = area.getContent();
+                    return new double[] {
+                        page.getLayoutBounds().getHeight(),
+                        area.getViewportBounds().getHeight(),
+                        page.sceneToLocal(grid.localToScene(grid.getLayoutBounds()))
+                                .getMaxY(),
+                        page.sceneToLocal(facts.localToScene(facts.getLayoutBounds()))
+                                .getMinY(),
+                        page.sceneToLocal(facts.localToScene(facts.getLayoutBounds()))
+                                .getMaxY()
+                    };
+                });
+
+        assertThat(seen[0]).as("height of the page").isGreaterThan(seen[1]);
+        assertThat(seen[3]).as("the facts begin below the grid").isGreaterThanOrEqualTo(seen[2]);
+        assertThat(seen[4]).as("the facts end inside the page").isLessThanOrEqualTo(seen[0] + 1);
     }
 
     /**
@@ -294,7 +332,7 @@ class PerformanceSnapshotTest {
                 () -> performance(CPU, showing(PerformanceSnapshots.extreme())),
                 root -> {
                     Shell shell = (Shell) root;
-                    ScrollPane area = (ScrollPane) shell.getCenter();
+                    ScrollPane area = shell.pageArea();
                     Node grid = area.getContent().lookup(".history-grid");
                     return new double[] {
                         shell.getBottom().getBoundsInParent().getMaxY(),
@@ -382,16 +420,17 @@ class PerformanceSnapshotTest {
     }
 
     private static void open(Shell shell, String section) {
-        ((Sidebar) shell.getLeft()).entry(Destination.PERFORMANCE).fire();
+        shell.navigation().entry(Destination.PERFORMANCE).fire();
         tab(shell, section).fire();
     }
 
     private static Node page(Shell shell) {
-        return ((ScrollPane) shell.getCenter()).getContent();
+        return shell.pageArea().getContent();
     }
 
     private static ToggleButton tab(Shell shell, String section) {
-        return page(shell).lookupAll(".section-tab").stream()
+        // The sections are chosen in the title line, which the shell shows in the page toolbar (UI lab v2).
+        return shell.toolbar().lookupAll(".segment").stream()
                 .map(ToggleButton.class::cast)
                 .filter(entry -> entry.getText().equals(section))
                 .findFirst()
