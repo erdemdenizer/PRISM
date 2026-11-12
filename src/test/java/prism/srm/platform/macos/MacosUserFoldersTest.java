@@ -21,9 +21,8 @@ class MacosUserFoldersTest {
         Path home = Path.of("Users", "alice");
 
         assertThat(new MacosUserFolders(home).state())
-                .isEqualTo(home.resolve("Library")
-                        .resolve("Application Support")
-                        .resolve("PrismSystemResourceManager"));
+                .isEqualTo(
+                        home.resolve("Library").resolve("Application Support").resolve("PrismSystemResourceManager"));
     }
 
     @Test
@@ -31,8 +30,7 @@ class MacosUserFoldersTest {
         Path home = Path.of("Users", "alice");
 
         assertThat(new MacosUserFolders(home).settings())
-                .isEqualTo(home.resolve("Library")
-                        .resolve("Application Support")
-                        .resolve("PrismSystemResourceManager"));
+                .isEqualTo(
+                        home.resolve("Library").resolve("Application Support").resolve("PrismSystemResourceManager"));
     }
 }

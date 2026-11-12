@@ -23,15 +23,13 @@ class LinuxUserFoldersTest {
         Path logs = logsWith(Map.of("XDG_STATE_HOME", "/var/state/alice"));
 
         assertThat(logs)
-                .isEqualTo(
-                        Path.of("/var/state/alice").resolve("prism-srm").resolve("logs"));
+                .isEqualTo(Path.of("/var/state/alice").resolve("prism-srm").resolve("logs"));
     }
 
     @Test
     void theStateIsBelowTheSameStateHome() {
         assertThat(new LinuxUserFolders(Map.of("XDG_STATE_HOME", "/var/state/alice")::get, HOME).state())
-                .isEqualTo(
-                        Path.of("/var/state/alice").resolve("prism-srm").resolve("state"));
+                .isEqualTo(Path.of("/var/state/alice").resolve("prism-srm").resolve("state"));
         assertThat(new LinuxUserFolders(Map.<String, String>of()::get, HOME).state())
                 .isEqualTo(DEFAULT_LOGS.resolveSibling("state"));
     }
@@ -72,8 +70,7 @@ class LinuxUserFoldersTest {
         Path logs = logsWith(Map.of("XDG_STATE_HOME", "/var/state/alice", "HOME", "/srv/homes/alice"));
 
         assertThat(logs)
-                .isEqualTo(
-                        Path.of("/var/state/alice").resolve("prism-srm").resolve("logs"));
+                .isEqualTo(Path.of("/var/state/alice").resolve("prism-srm").resolve("logs"));
     }
 
     @Test
