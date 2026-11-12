@@ -12,6 +12,7 @@ import prism.srm.domain.ProcessDetails;
 import prism.srm.domain.ProcessDetailsResult;
 import prism.srm.domain.ProcessIdentity;
 import prism.srm.domain.ProcessSnapshot;
+import prism.srm.domain.ProcessState;
 import prism.srm.ui.metric.MetricState;
 
 /**
@@ -46,6 +47,7 @@ final class ProcessDetailsModel {
 
     private final ReadOnlyStringWrapper title = new ReadOnlyStringWrapper(NOTHING_SELECTED);
     private final ReadOnlyStringWrapper pid = new ReadOnlyStringWrapper("");
+    private final ReadOnlyStringWrapper suspendedByPrism = new ReadOnlyStringWrapper("");
     private final ReadOnlyBooleanWrapper processShown = new ReadOnlyBooleanWrapper(false);
     private final DetailValue path = new DetailValue();
     private final DetailValue commandLine = new DetailValue();
@@ -55,6 +57,14 @@ final class ProcessDetailsModel {
     private final DetailValue virtualSize = new DetailValue();
     private final DetailValue ioRead = new DetailValue();
     private final DetailValue ioWrite = new DetailValue();
+    private final DetailValue user = new DetailValue();
+    // UI lab v2: the values of the row again, for the inspector beside the table (its "Now" group).
+    private final DetailValue cpu = new DetailValue();
+    private final DetailValue memory = new DetailValue();
+    private final DetailValue io = new DetailValue();
+    private final DetailValue threads = new DetailValue();
+    private final DetailValue priority = new DetailValue();
+    private final DetailValue state = new DetailValue();
 
     private final ChangeListener<ProcessSnapshot> followRow = (observable, before, after) -> showValues(after);
 
@@ -83,6 +93,14 @@ final class ProcessDetailsModel {
      */
     ReadOnlyStringProperty pidProperty() {
         return pid.getReadOnlyProperty();
+    }
+
+    /**
+     * "Suspended by Prism" while the listing shows the process so (PROC-6), with the words of the
+     * State column; empty otherwise. From the listing only, as the column: the two never differ.
+     */
+    ReadOnlyStringProperty suspendedByPrismProperty() {
+        return suspendedByPrism.getReadOnlyProperty();
     }
 
     /** Whether the title is the name of a process. */
@@ -123,13 +141,47 @@ final class ProcessDetailsModel {
         return ioWrite;
     }
 
+    /** The user the process runs as; a dash where the system does not say. */
+    DetailValue user() {
+        return user;
+    }
+
+    /** The CPU share of the row, as its column shows it. */
+    DetailValue cpu() {
+        return cpu;
+    }
+
+    /** The resident memory of the row, as its column shows it. */
+    DetailValue memory() {
+        return memory;
+    }
+
+    /** The I/O rate of the row, as its column shows it. */
+    DetailValue io() {
+        return io;
+    }
+
+    DetailValue threads() {
+        return threads;
+    }
+
+    DetailValue priority() {
+        return priority;
+    }
+
+    /** The state of the row, in the words of the State column. */
+    DetailValue state() {
+        return state;
+    }
+
     /** Shows a process and asks for its path and command line. Showing it again asks nothing. */
     void show(ProcessRow row) {
         Objects.requireNonNull(row, "row");
         if (row == subject) {
             return;
         }
-        release();
+        // Another process in place of one: shown throughout, so the pane does not come in again.
+        release(subject == null);
         subject = row;
         row.snapshotProperty().addListener(followRow);
         processShown.set(true);
@@ -142,7 +194,7 @@ final class ProcessDetailsModel {
 
     /** Shows that nothing is selected. */
     void showNothing() {
-        release();
+        release(true);
         title.set(NOTHING_SELECTED);
     }
 
@@ -151,7 +203,7 @@ final class ProcessDetailsModel {
      * and the sentence are two texts: a long name is cut, and what happened to it is not.
      */
     void showExited(ProcessRow row) {
-        release();
+        release(true);
         String exited = "PID " + row.pidText() + " has exited";
         String name = row.snapshot().name();
         if (name.isEmpty()) {
@@ -217,25 +269,61 @@ final class ProcessDetailsModel {
 
     private void showValues(ProcessSnapshot process) {
         title.set(text.name(process));
+        suspendedByPrism.set(
+                process.state().filter(ProcessState.SUSPENDED_BY_PRISM::equals).isPresent() ? text.state(process) : "");
         started.showValue(text.started(process));
         parentPid.show(text.parentPid(process));
         privateMemory.show(text.privateMemory(process));
         virtualSize.show(text.virtualSize(process));
         ioRead.show(text.ioRead(process));
         ioWrite.show(text.ioWrite(process));
+        cpu.show(text.cpu(process).text());
+        memory.show(text.memory(process).text());
+        io.show(text.io(process).text());
+        threads.show(text.threads(process));
+        priority.show(text.priority(process));
+        state.show(text.state(process));
+        String userName = text.user(process);
+        if (ProcessText.MISSING.equals(userName)) {
+            user.showInstead(userName);
+        } else {
+            user.showValue(userName);
+        }
     }
 
-    /** Lets go of the process shown and takes every value off the pane. */
-    private void release() {
+    /**
+     * Lets go of the process shown and takes every value off the pane.
+     *
+     * @param nothingShown whether no process is shown from now on; false while another one takes
+     *     the place of this one at once
+     */
+    private void release(boolean nothingShown) {
         if (subject != null) {
             subject.snapshotProperty().removeListener(followRow);
             subject = null;
         }
-        processShown.set(false);
+        if (nothingShown) {
+            processShown.set(false);
+        }
         pid.set("");
-        for (DetailValue line :
-                new DetailValue[] {path, commandLine, started, parentPid, privateMemory, virtualSize, ioRead, ioWrite
-                }) {
+        suspendedByPrism.set("");
+        for (DetailValue line : new DetailValue[] {
+            path,
+            commandLine,
+            started,
+            parentPid,
+            privateMemory,
+            virtualSize,
+            ioRead,
+            ioWrite,
+            user,
+            cpu,
+            memory,
+            io,
+            threads,
+            priority,
+            state
+        }) {
             line.showInstead(ProcessText.MISSING);
         }
     }
