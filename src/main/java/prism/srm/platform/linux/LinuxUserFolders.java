@@ -42,7 +42,7 @@ public final class LinuxUserFolders implements UserFolders {
 
     @Override
     public Path logs() {
-        return stateHome().resolve("prism-srm-uilab").resolve("logs");
+        return stateHome().resolve("prism-srm").resolve("logs");
     }
 
     /**
@@ -51,7 +51,7 @@ public final class LinuxUserFolders implements UserFolders {
      */
     @Override
     public Path state() {
-        return stateHome().resolve("prism-srm-uilab").resolve("state");
+        return stateHome().resolve("prism-srm").resolve("state");
     }
 
     /**
@@ -67,7 +67,7 @@ public final class LinuxUserFolders implements UserFolders {
             Path homeVariable = absolute(environment.apply("HOME"));
             configHome = (homeVariable != null ? homeVariable : home).resolve(".config");
         }
-        return configHome.resolve("prism-srm-uilab");
+        return configHome.resolve("prism-srm");
     }
 
     private Path stateHome() {

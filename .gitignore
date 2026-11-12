@@ -48,6 +48,10 @@ Desktop.ini
 .env.*
 !.env.example
 secrets/
+
+# Course preparation and staging workspace
+PRISM-UNIVERSITY-PREP/
+prism task for disturbition/
 *.pem
 *.key
 *.p12
