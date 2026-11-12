@@ -23,7 +23,17 @@ class LinuxUserFoldersTest {
         Path logs = logsWith(Map.of("XDG_STATE_HOME", "/var/state/alice"));
 
         assertThat(logs)
-                .isEqualTo(Path.of("/var/state/alice").resolve("prism-srm").resolve("logs"));
+                .isEqualTo(
+                        Path.of("/var/state/alice").resolve("prism-srm").resolve("logs"));
+    }
+
+    @Test
+    void theStateIsBelowTheSameStateHome() {
+        assertThat(new LinuxUserFolders(Map.of("XDG_STATE_HOME", "/var/state/alice")::get, HOME).state())
+                .isEqualTo(
+                        Path.of("/var/state/alice").resolve("prism-srm").resolve("state"));
+        assertThat(new LinuxUserFolders(Map.<String, String>of()::get, HOME).state())
+                .isEqualTo(DEFAULT_LOGS.resolveSibling("state"));
     }
 
     @Test
@@ -62,7 +72,8 @@ class LinuxUserFoldersTest {
         Path logs = logsWith(Map.of("XDG_STATE_HOME", "/var/state/alice", "HOME", "/srv/homes/alice"));
 
         assertThat(logs)
-                .isEqualTo(Path.of("/var/state/alice").resolve("prism-srm").resolve("logs"));
+                .isEqualTo(
+                        Path.of("/var/state/alice").resolve("prism-srm").resolve("logs"));
     }
 
     @Test
@@ -74,5 +85,25 @@ class LinuxUserFoldersTest {
 
     private static Path logsWith(Map<String, String> environment) {
         return new LinuxUserFolders(environment::get, HOME).logs();
+    }
+
+    /** ADR-0014: settings are configuration, not state, in XDG's terms. */
+    @Test
+    void theSettingsAreBelowTheConfigurationHome() {
+        assertThat(new LinuxUserFolders(
+                                Map.of("XDG_CONFIG_HOME", "/etc/alice", "XDG_STATE_HOME", "/var/state")::get, HOME)
+                        .settings())
+                .isEqualTo(Path.of("/etc/alice").resolve("prism-srm"));
+        assertThat(new LinuxUserFolders(Map.of("HOME", "/home/alice")::get, HOME).settings())
+                .isEqualTo(Path.of("/home/alice").resolve(".config").resolve("prism-srm"));
+        assertThat(new LinuxUserFolders(Map.<String, String>of()::get, HOME).settings())
+                .isEqualTo(HOME.resolve(".config").resolve("prism-srm"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", "   ", "config", "./config", "~/config"})
+    void aConfigurationHomeThatIsNoAbsoluteFolderIsIgnored(String value) {
+        assertThat(new LinuxUserFolders(Map.of("XDG_CONFIG_HOME", value)::get, HOME).settings())
+                .isEqualTo(HOME.resolve(".config").resolve("prism-srm"));
     }
 }
