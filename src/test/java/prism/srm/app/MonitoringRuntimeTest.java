@@ -10,6 +10,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -19,6 +20,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import prism.srm.app.MonitoringRuntime.State;
 import prism.srm.application.ActivityLog;
+import prism.srm.application.FakeProcessController;
 import prism.srm.application.FakeProcessSource;
 import prism.srm.application.FakeSystemMetricsSource;
 import prism.srm.application.FakeSystemMetricsSource.Metric;
@@ -27,11 +29,16 @@ import prism.srm.application.ProcessMonitor;
 import prism.srm.application.SystemMonitor;
 import prism.srm.domain.ActivityEntry;
 import prism.srm.domain.ActivitySeverity;
+import prism.srm.domain.ControlAction;
+import prism.srm.domain.ControlRequest;
 import prism.srm.domain.MonitoringFailure;
+import prism.srm.domain.OperationResult;
+import prism.srm.domain.ProcessControlResult;
 import prism.srm.domain.ProcessDetails;
 import prism.srm.domain.ProcessDetailsResult;
 import prism.srm.domain.ProcessIdentity;
 import prism.srm.domain.ProcessSnapshot;
+import prism.srm.domain.ProcessState;
 import prism.srm.domain.SystemSnapshot;
 
 /**
@@ -53,6 +60,8 @@ class MonitoringRuntimeTest {
     private final List<String> uncaughtThreads = new CopyOnWriteArrayList<>();
     /** Every call of the failure callback, in order: each holds all failures so far. */
     private final List<Set<MonitoringFailure>> reported = new CopyOnWriteArrayList<>();
+    /** Counted down once the end of process monitoring was handed on. */
+    private final CountDownLatch processMonitoringStopped = new CountDownLatch(1);
 
     /** Every listing of the processes the runtime handed on, in order. */
     private final List<List<ProcessSnapshot>> processListings = new CopyOnWriteArrayList<>();
@@ -63,6 +72,10 @@ class MonitoringRuntimeTest {
     private final CountDownLatch startupFailed = new CountDownLatch(1);
 
     private MonitoringRuntime runtime;
+
+    /** The suspension journal of the runtime, as on the running system; the shutdown closes it. */
+    @org.junit.jupiter.api.extension.RegisterExtension
+    final prism.srm.application.JournalFolder journalFolder = new prism.srm.application.JournalFolder();
 
     @AfterEach
     void shutDownTheRuntime() throws InterruptedException {
@@ -138,14 +151,18 @@ class MonitoringRuntimeTest {
                 this::fakeSources,
                 System::nanoTime,
                 activity,
-                snapshot -> {},
-                listing -> {
-                    handedOn.add(listing);
-                    handedOnBy.set(Thread.currentThread());
-                    listed.countDown();
-                },
-                detailsResults::add,
-                this::failed,
+                listeners(
+                        snapshot -> {},
+                        listing -> {
+                            handedOn.add(listing);
+                            handedOnBy.set(Thread.currentThread());
+                            listed.countDown();
+                        },
+                        detailsResults::add,
+                        controlResults::add,
+                        capabilitiesSeen::add,
+                        heldSeen::add,
+                        this::failed),
                 GENEROUS_BOUND,
                 (thread, failure) -> uncaught.add(failure));
 
@@ -302,14 +319,18 @@ class MonitoringRuntimeTest {
                 this::fakeSources,
                 System::nanoTime,
                 activity,
-                snapshot -> sampled.countDown(),
-                processListings::add,
-                result -> {
-                    results.add(result);
-                    firstAnswer.countDown();
-                    secondAnswer.countDown();
-                },
-                this::failed,
+                listeners(
+                        snapshot -> sampled.countDown(),
+                        processListings::add,
+                        result -> {
+                            results.add(result);
+                            firstAnswer.countDown();
+                            secondAnswer.countDown();
+                        },
+                        controlResults::add,
+                        capabilitiesSeen::add,
+                        heldSeen::add,
+                        this::failed),
                 GENEROUS_BOUND,
                 (thread, failure) -> {
                     uncaught.add(failure);
@@ -382,10 +403,14 @@ class MonitoringRuntimeTest {
                 this::fakeSources,
                 System::nanoTime,
                 activity,
-                snapshot -> sampled.countDown(),
-                processListings::add,
-                detailsResults::add,
-                this::failed,
+                listeners(
+                        snapshot -> sampled.countDown(),
+                        processListings::add,
+                        detailsResults::add,
+                        controlResults::add,
+                        capabilitiesSeen::add,
+                        heldSeen::add,
+                        this::failed),
                 TIGHT_BOUND,
                 (thread, failure) -> uncaught.add(failure));
         runtime.start();
@@ -566,10 +591,14 @@ class MonitoringRuntimeTest {
                 },
                 System::nanoTime,
                 activity,
-                snapshot -> {},
-                processListings::add,
-                detailsResults::add,
-                this::failed,
+                listeners(
+                        snapshot -> {},
+                        processListings::add,
+                        detailsResults::add,
+                        controlResults::add,
+                        capabilitiesSeen::add,
+                        heldSeen::add,
+                        this::failed),
                 GENEROUS_BOUND,
                 (thread, failure) -> {
                     uncaught.add(failure);
@@ -738,13 +767,17 @@ class MonitoringRuntimeTest {
                 this::fakeSources,
                 System::nanoTime,
                 activity,
-                snapshot -> {},
-                processListings::add,
-                detailsResults::add,
-                allSoFar -> {
-                    failed(allSoFar);
-                    systemEnded.countDown();
-                },
+                listeners(
+                        snapshot -> {},
+                        processListings::add,
+                        detailsResults::add,
+                        controlResults::add,
+                        capabilitiesSeen::add,
+                        heldSeen::add,
+                        allSoFar -> {
+                            failed(allSoFar);
+                            systemEnded.countDown();
+                        }),
                 GENEROUS_BOUND,
                 (thread, failure) -> uncaught.add(failure));
 
@@ -794,13 +827,17 @@ class MonitoringRuntimeTest {
                 this::fakeSources,
                 System::nanoTime,
                 activity,
-                snapshot -> {},
-                processListings::add,
-                detailsResults::add,
-                allSoFar -> {
-                    failed(allSoFar);
-                    systemEnded.countDown();
-                },
+                listeners(
+                        snapshot -> {},
+                        processListings::add,
+                        detailsResults::add,
+                        controlResults::add,
+                        capabilitiesSeen::add,
+                        heldSeen::add,
+                        allSoFar -> {
+                            failed(allSoFar);
+                            systemEnded.countDown();
+                        }),
                 GENEROUS_BOUND,
                 (thread, failure) -> uncaught.add(failure));
 
@@ -836,17 +873,21 @@ class MonitoringRuntimeTest {
                 this::fakeSources,
                 System::nanoTime,
                 activity,
-                snapshot -> {
-                    if (processesEnded.getCount() == 0) {
-                        snapshotsAfterTheEnd.countDown();
-                    }
-                },
-                processListings::add,
-                detailsResults::add,
-                allSoFar -> {
-                    failed(allSoFar);
-                    processesEnded.countDown();
-                },
+                listeners(
+                        snapshot -> {
+                            if (processesEnded.getCount() == 0) {
+                                snapshotsAfterTheEnd.countDown();
+                            }
+                        },
+                        processListings::add,
+                        detailsResults::add,
+                        controlResults::add,
+                        capabilitiesSeen::add,
+                        heldSeen::add,
+                        allSoFar -> {
+                            failed(allSoFar);
+                            processesEnded.countDown();
+                        }),
                 GENEROUS_BOUND,
                 (thread, failure) -> uncaught.add(failure));
 
@@ -893,16 +934,20 @@ class MonitoringRuntimeTest {
                 this::fakeSources,
                 System::nanoTime,
                 activity,
-                snapshot -> {},
-                processListings::add,
-                detailsResults::add,
-                allSoFar -> {
-                    failed(allSoFar);
-                    if (allSoFar.contains(MonitoringFailure.PROCESS_MONITORING_STOPPED)) {
-                        processesEnded.countDown();
-                    }
-                    bothEnded.countDown();
-                },
+                listeners(
+                        snapshot -> {},
+                        processListings::add,
+                        detailsResults::add,
+                        controlResults::add,
+                        capabilitiesSeen::add,
+                        heldSeen::add,
+                        allSoFar -> {
+                            failed(allSoFar);
+                            if (allSoFar.contains(MonitoringFailure.PROCESS_MONITORING_STOPPED)) {
+                                processesEnded.countDown();
+                            }
+                            bothEnded.countDown();
+                        }),
                 GENEROUS_BOUND,
                 (thread, failure) -> uncaught.add(failure));
 
@@ -986,16 +1031,378 @@ class MonitoringRuntimeTest {
         assertThat(messages(ActivitySeverity.ERROR)).isEmpty();
     }
 
+    // --- Actions on processes ---
+
+    private static final ProcessIdentity DEMO = FakeProcessSource.identity(4_242, 10);
+    private static final long OWN_PID = 1_000_003;
+
+    private ProcessControlResult nextResult() throws InterruptedException {
+        ProcessControlResult result = controlResults.poll(PATIENCE_SECONDS, TimeUnit.SECONDS);
+        assertThat(result).as("a result arrived").isNotNull();
+        return result;
+    }
+
+    private void awaitCapabilities() throws InterruptedException {
+        assertThat(capabilitiesSeen.poll(PATIENCE_SECONDS, TimeUnit.SECONDS))
+                .isEqualTo(new prism.srm.domain.ControlProfile(controller.capabilities, controller.listedPriorities));
+    }
+
+    @Test
+    void actionsRunOnTheirOwnNamedDaemonThreadAndTheCapabilitiesArriveOnce() throws InterruptedException {
+        AtomicReference<Thread> actedOn = new AtomicReference<>();
+        controller.terminate = target -> {
+            actedOn.set(Thread.currentThread());
+            return prism.srm.domain.ControlOutcome.success("started");
+        };
+        runtime = runtime(this::fakeSources, snapshot -> {}, GENEROUS_BOUND);
+        runtime.start();
+        awaitCapabilities();
+
+        runtime.requestProcessAction(ControlRequest.of(ControlAction.FORCE_KILL, DEMO, "java"));
+
+        assertThat(nextResult().result()).isEqualTo(OperationResult.SUCCESS);
+        assertThat(actedOn.get().getName()).isEqualTo("srm-process-control");
+        assertThat(actedOn.get().isDaemon()).isTrue();
+        assertThat(capabilitiesSeen).as("the capabilities are reported once").isEmpty();
+        assertThat(messages(ActivitySeverity.INFO))
+                .contains(
+                        "Force kill: Force termination requested for java (PID 4242). The table shows when it has ended. [started]");
+    }
+
+    /** Whoever asks gets an answer, also while nothing can be done: before the start and after the shutdown. */
+    @Test
+    void aRequestWhileMonitoringDoesNotRunIsAnsweredAtOnceAndNothingIsDone() throws InterruptedException {
+        runtime = runtime(this::fakeSources, snapshot -> {}, GENEROUS_BOUND);
+
+        runtime.requestProcessAction(ControlRequest.of(ControlAction.SUSPEND, DEMO, "java"));
+
+        assertThat(controlResults.poll().result()).isEqualTo(OperationResult.UNSUPPORTED);
+        runtime.start();
+        awaitCapabilities();
+        runtime.shutdown();
+        assertThat(runtime.awaitStopped(PATIENCE_SECONDS, TimeUnit.SECONDS)).isTrue();
+        runtime.requestProcessAction(ControlRequest.of(ControlAction.SUSPEND, DEMO, "java"));
+        assertThat(controlResults.poll().text())
+                .isEqualTo("Nothing was done to java (PID 4242). Prism is not monitoring processes.");
+        assertThat(controller.calls).isEmpty();
+    }
+
+    /** PROC-6: a process Prism holds suspended is shown so in the next listing, from Prism's own record. */
+    @Test
+    void aProcessPrismSuspendedIsMarkedInTheListingsThatFollow() throws InterruptedException {
+        processes.list(List.of(FakeProcessSource.reading(DEMO, 100, 0, 0)));
+        CountDownLatch marked = new CountDownLatch(1);
+        runtime = new MonitoringRuntime(
+                this::fakeSources,
+                System::nanoTime,
+                activity,
+                listeners(
+                        snapshot -> {},
+                        listing -> {
+                            if (listing.stream()
+                                    .anyMatch(p -> p.state().equals(Optional.of(ProcessState.SUSPENDED_BY_PRISM)))) {
+                                marked.countDown();
+                            }
+                        },
+                        detailsResults::add,
+                        controlResults::add,
+                        capabilitiesSeen::add,
+                        heldSeen::add,
+                        this::failed),
+                GENEROUS_BOUND,
+                (thread, failure) -> uncaught.add(failure));
+        runtime.start();
+        awaitCapabilities();
+
+        runtime.requestProcessAction(ControlRequest.of(ControlAction.SUSPEND, DEMO, "java"));
+
+        assertThat(nextResult().result()).isEqualTo(OperationResult.SUCCESS);
+        assertThat(marked.await(PATIENCE_SECONDS, TimeUnit.SECONDS)).isTrue();
+        assertThat(controller.calls)
+                .as("the listings ask the system nothing about it")
+                .containsExactly("facts 4242", "suspend 4242");
+    }
+
+    /** LIFE-1, LIFE-2: the shutdown lets the control thread finish and leaves what the user suspended. */
+    @Test
+    void theShutdownLeavesTheUsersSuspensionInPlaceAndStopsTheControlThread() throws InterruptedException {
+        runtime = runtime(this::fakeSources, snapshot -> {}, GENEROUS_BOUND);
+        runtime.start();
+        awaitCapabilities();
+        runtime.requestProcessAction(ControlRequest.of(ControlAction.SUSPEND, DEMO, "java"));
+        assertThat(nextResult().result()).isEqualTo(OperationResult.SUCCESS);
+
+        runtime.shutdown();
+        assertThat(runtime.awaitStopped(PATIENCE_SECONDS, TimeUnit.SECONDS)).isTrue();
+
+        assertThat(controller.calls).doesNotContain("resume 4242");
+        assertThat(controller.suspensions.get(0).closes).isEqualTo(1);
+        assertThat(messages(ActivitySeverity.WARNING))
+                .contains(
+                        "Left suspended, as the user asked: java (PID 4242). They stay suspended after Prism closes.");
+        assertThat(runtime.executorsTerminated()).isTrue();
+        assertThat(messages(ActivitySeverity.INFO))
+                .contains("Shutdown complete: monitoring and its executors are stopped.");
+    }
+
+    /** An action that arrived before the shutdown is finished before the suspensions are finalized. */
+    @Test
+    void anActionInFlightWhenTheShutdownBeginsComesToRestFirst() throws InterruptedException {
+        CountDownLatch inside = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        controller.priority = (target, level) -> {
+            inside.countDown();
+            awaitUninterruptibly(release);
+            return prism.srm.domain.ControlOutcome.success("set");
+        };
+        runtime = runtime(this::fakeSources, snapshot -> {}, GENEROUS_BOUND);
+        runtime.start();
+        awaitCapabilities();
+        runtime.requestProcessAction(ControlRequest.priority(DEMO, "java", prism.srm.domain.PriorityLevel.LOW));
+        assertThat(inside.await(PATIENCE_SECONDS, TimeUnit.SECONDS)).isTrue();
+
+        runtime.shutdown();
+        runtime.requestProcessAction(
+                ControlRequest.of(ControlAction.FORCE_KILL, FakeProcessSource.identity(77, 1), "x"));
+        release.countDown();
+        assertThat(runtime.awaitStopped(PATIENCE_SECONDS, TimeUnit.SECONDS)).isTrue();
+
+        assertThat(List.of(nextResult(), nextResult()))
+                .extracting(ProcessControlResult::result)
+                .containsExactlyInAnyOrder(OperationResult.SUCCESS, OperationResult.UNSUPPORTED);
+        assertThat(controller.calls).doesNotContain("terminate 77");
+        assertThat(runtime.executorsTerminated()).isTrue();
+    }
+
+    @Test
+    void requestsForManyProcessesAreAllAnswered() throws InterruptedException {
+        runtime = runtime(this::fakeSources, snapshot -> {}, GENEROUS_BOUND);
+        runtime.start();
+        awaitCapabilities();
+
+        for (int pid = 1; pid <= 20; pid++) {
+            runtime.requestProcessAction(
+                    ControlRequest.of(ControlAction.END_TASK, FakeProcessSource.identity(pid * 4L, 1), "p" + pid));
+        }
+
+        for (int i = 0; i < 20; i++) {
+            assertThat(nextResult().result()).isEqualTo(OperationResult.SUCCESS);
+        }
+    }
+
+    /**
+     * A full queue answers at once and drops nothing it took: every accepted request is answered
+     * once the queue moves, and every process can be asked again.
+     */
+    @Test
+    void aFullQueueAnswersAtOnceAndEveryAcceptedRequestIsAnsweredLater() throws InterruptedException {
+        CountDownLatch inside = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        controller.close = target -> {
+            if (target.pid() == 4) {
+                inside.countDown();
+                awaitUninterruptibly(release);
+            }
+            return prism.srm.domain.ControlOutcome.success("posted");
+        };
+        runtime = runtime(this::fakeSources, snapshot -> {}, GENEROUS_BOUND);
+        runtime.start();
+        awaitCapabilities();
+        runtime.requestProcessAction(
+                ControlRequest.of(ControlAction.END_TASK, FakeProcessSource.identity(4, 1), "first"));
+        assertThat(inside.await(PATIENCE_SECONDS, TimeUnit.SECONDS)).isTrue();
+
+        int beyond = 5;
+        for (int i = 2; i <= 1 + MonitoringRuntime.CONTROL_QUEUE + beyond; i++) {
+            runtime.requestProcessAction(
+                    ControlRequest.of(ControlAction.END_TASK, FakeProcessSource.identity(i * 4L, 1), "p" + i));
+        }
+        List<ProcessControlResult> atOnce = new java.util.ArrayList<>();
+        for (int i = 0; i < beyond; i++) {
+            atOnce.add(nextResult());
+        }
+        assertThat(atOnce)
+                .allSatisfy(result -> assertThat(result.explanation()).isEqualTo("Too many actions are waiting."));
+        assertThat(controlResults)
+                .as("nothing else is answered while the queue waits")
+                .isEmpty();
+
+        release.countDown();
+        for (int i = 0; i < 1 + MonitoringRuntime.CONTROL_QUEUE; i++) {
+            assertThat(nextResult().result()).isEqualTo(OperationResult.SUCCESS);
+        }
+        ProcessIdentity refusedBefore = atOnce.get(0).identity();
+        runtime.requestProcessAction(ControlRequest.of(ControlAction.END_TASK, refusedBefore, "again"));
+        assertThat(nextResult().result())
+                .as("a refused process is not left locked")
+                .isEqualTo(OperationResult.SUCCESS);
+    }
+
+    /**
+     * An action stuck in the system while it holds the suspensions: the shutdown still ends
+     * within its bound, says what it could not do, and does not close what the user suspended.
+     */
+    @Test
+    void aShutdownWithAnActionStuckInTheSystemEndsWithinItsBoundAndSaysWhatItLeft() throws InterruptedException {
+        CountDownLatch inside = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        runtime = runtime(this::fakeSources, snapshot -> {}, TIGHT_BOUND);
+        runtime.start();
+        awaitCapabilities();
+        runtime.requestProcessAction(ControlRequest.of(ControlAction.SUSPEND, DEMO, "java"));
+        assertThat(nextResult().result()).isEqualTo(OperationResult.SUCCESS);
+        controller.suspend = target -> {
+            inside.countDown();
+            awaitUninterruptibly(release);
+            return prism.srm.platform.SuspendResult.failed(
+                    prism.srm.domain.ControlOutcome.of(OperationResult.NATIVE_ERROR, "stuck"));
+        };
+        runtime.requestProcessAction(
+                ControlRequest.of(ControlAction.SUSPEND, FakeProcessSource.identity(77, 1), "stuck"));
+        assertThat(inside.await(PATIENCE_SECONDS, TimeUnit.SECONDS)).isTrue();
+        try {
+            long began = System.nanoTime();
+            runtime.shutdown();
+
+            assertThat(runtime.awaitStopped(PATIENCE_SECONDS, TimeUnit.SECONDS)).isTrue();
+            assertThat(Duration.ofNanos(System.nanoTime() - began)).isLessThan(Duration.ofSeconds(3));
+            assertThat(messages(ActivitySeverity.WARNING))
+                    .anySatisfy(message -> assertThat(message).contains("srm-process-control"))
+                    .contains("Suspensions were not finalized: an action still held them.");
+            assertThat(controller.suspensions.get(0).closes)
+                    .as("what the user suspended is left as it is")
+                    .isZero();
+        } finally {
+            release.countDown();
+        }
+    }
+
+    /**
+     * Process monitoring ends for good while Prism holds a suspension the user made: only Resume
+     * is still taken, it releases the suspension through what Prism kept of it, and the held list
+     * says so.
+     */
+    @Test
+    void aSuspensionPrismHoldsIsStillReleasedAfterProcessMonitoringEnded() throws Exception {
+        CountDownLatch firstListing = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        AtomicInteger listings = new AtomicInteger();
+        processes.duringRead = () -> {
+            if (listings.incrementAndGet() == 2) {
+                firstListing.countDown();
+                awaitUninterruptibly(release);
+                throw new OutOfMemoryError("simulated");
+            }
+        };
+        runtime = runtime(this::fakeSources, snapshot -> {}, GENEROUS_BOUND);
+        try (LogCapture monitorLog = new LogCapture(ProcessMonitor.class)) {
+            runtime.start();
+            awaitCapabilities();
+            runtime.requestProcessAction(ControlRequest.of(ControlAction.SUSPEND, DEMO, "java"));
+            assertThat(nextResult().result()).isEqualTo(OperationResult.SUCCESS);
+            assertThat(firstListing.await(PATIENCE_SECONDS, TimeUnit.SECONDS)).isTrue();
+            release.countDown();
+            awaitFailure(MonitoringFailure.PROCESS_MONITORING_STOPPED);
+            assertThat(monitorLog.errors()).containsExactly("Process monitoring stopped by a fatal error");
+        }
+        assertThat(lastHeld()).containsExactly(new prism.srm.domain.SuspendedProcess(DEMO, "java"));
+
+        for (ControlAction action : List.of(ControlAction.END_TASK, ControlAction.FORCE_KILL, ControlAction.SUSPEND)) {
+            runtime.requestProcessAction(ControlRequest.of(action, DEMO, "java"));
+            assertThat(nextResult().text())
+                    .as(action.name())
+                    .isEqualTo("Nothing was done to java (PID 4242). Prism is not monitoring processes.");
+        }
+        runtime.requestProcessAction(ControlRequest.priority(DEMO, "java", prism.srm.domain.PriorityLevel.LOW));
+        assertThat(nextResult().result()).isEqualTo(OperationResult.UNSUPPORTED);
+
+        runtime.requestProcessAction(ControlRequest.of(ControlAction.RESUME, DEMO, "java"));
+        ProcessControlResult resumed = nextResult();
+        assertThat(resumed.result()).isEqualTo(OperationResult.SUCCESS);
+        assertThat(controller.suspensions.get(0).resumes).isEqualTo(1);
+        assertThat(lastHeld()).isEmpty();
+
+        runtime.requestProcessAction(ControlRequest.of(ControlAction.RESUME, DEMO, "java"));
+        assertThat(nextResult().result()).isEqualTo(OperationResult.INVALID_ARGUMENT);
+        assertThat(controller.suspensions.get(0).resumes)
+                .as("not taken back twice")
+                .isEqualTo(1);
+        assertThat(controller.calls)
+                .filteredOn(call -> call.startsWith("suspend"))
+                .hasSize(1);
+    }
+
+    /** LIFE-2 also after monitoring ended: closing Prism leaves a suspension the user made in place. */
+    @Test
+    void aSuspensionTheUserMadeStaysWhenPrismClosesAfterProcessMonitoringEnded() throws Exception {
+        CountDownLatch firstListing = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        AtomicInteger listings = new AtomicInteger();
+        processes.duringRead = () -> {
+            if (listings.incrementAndGet() == 2) {
+                firstListing.countDown();
+                awaitUninterruptibly(release);
+                throw new OutOfMemoryError("simulated");
+            }
+        };
+        runtime = runtime(this::fakeSources, snapshot -> {}, GENEROUS_BOUND);
+        try (LogCapture monitorLog = new LogCapture(ProcessMonitor.class)) {
+            runtime.start();
+            awaitCapabilities();
+            runtime.requestProcessAction(ControlRequest.of(ControlAction.SUSPEND, DEMO, "java"));
+            assertThat(nextResult().result()).isEqualTo(OperationResult.SUCCESS);
+            assertThat(firstListing.await(PATIENCE_SECONDS, TimeUnit.SECONDS)).isTrue();
+            release.countDown();
+            awaitFailure(MonitoringFailure.PROCESS_MONITORING_STOPPED);
+            assertThat(monitorLog.errors()).hasSize(1);
+        }
+
+        runtime.shutdown();
+
+        assertThat(runtime.awaitStopped(PATIENCE_SECONDS, TimeUnit.SECONDS)).isTrue();
+        assertThat(controller.calls).doesNotContain("resume 4242");
+        assertThat(controller.suspensions.get(0).closes)
+                .as("its handles are closed, the threads stay suspended")
+                .isEqualTo(1);
+    }
+
+    private void awaitFailure(MonitoringFailure failure) throws InterruptedException {
+        assertThat(failure).isEqualTo(MonitoringFailure.PROCESS_MONITORING_STOPPED);
+        assertThat(processMonitoringStopped.await(PATIENCE_SECONDS, TimeUnit.SECONDS))
+                .isTrue();
+    }
+
+    private List<prism.srm.domain.SuspendedProcess> lastHeld() {
+        List<prism.srm.domain.SuspendedProcess> last = null;
+        for (List<prism.srm.domain.SuspendedProcess> held : heldSeen) {
+            last = held;
+        }
+        assertThat(last).as("a list was handed over").isNotNull();
+        return last;
+    }
+
+    private final FakeProcessController controller = new FakeProcessController();
+    /** Every result of an action, in order; a test waits on it with poll. */
+    private final LinkedBlockingQueue<ProcessControlResult> controlResults = new LinkedBlockingQueue<>();
+    /** Every list of the processes Prism holds suspended, as the coordinator handed them over. */
+    private final LinkedBlockingQueue<List<prism.srm.domain.SuspendedProcess>> heldSeen = new LinkedBlockingQueue<>();
+    /** Every report of the capabilities. */
+    private final LinkedBlockingQueue<prism.srm.domain.ControlProfile> capabilitiesSeen = new LinkedBlockingQueue<>();
+
     private MonitoringRuntime runtime(
             Supplier<PlatformSources> platform, Consumer<SystemSnapshot> snapshots, Duration shutdownBound) {
         return new MonitoringRuntime(
                 platform,
                 System::nanoTime,
                 activity,
-                snapshots,
-                processListings::add,
-                detailsResults::add,
-                this::failed,
+                listeners(
+                        snapshots,
+                        processListings::add,
+                        detailsResults::add,
+                        controlResults::add,
+                        capabilitiesSeen::add,
+                        heldSeen::add,
+                        this::failed),
                 shutdownBound,
                 (thread, failure) -> {
                     uncaught.add(failure);
@@ -1010,10 +1417,14 @@ class MonitoringRuntimeTest {
                 this::fakeSources,
                 System::nanoTime,
                 activity,
-                snapshots,
-                processListings::add,
-                details,
-                this::failed,
+                listeners(
+                        snapshots,
+                        processListings::add,
+                        details,
+                        controlResults::add,
+                        capabilitiesSeen::add,
+                        heldSeen::add,
+                        this::failed),
                 GENEROUS_BOUND,
                 (thread, failure) -> {
                     uncaught.add(failure);
@@ -1021,12 +1432,40 @@ class MonitoringRuntimeTest {
                 });
     }
 
+    /** The receivers of the runtime as the tests before milestone 9 gave them; limits and recovery go nowhere. */
+    private static MonitoringRuntime.Listeners listeners(
+            Consumer<SystemSnapshot> snapshots,
+            Consumer<List<ProcessSnapshot>> processSnapshots,
+            Consumer<ProcessDetailsResult> processDetails,
+            Consumer<ProcessControlResult> controlResults,
+            Consumer<prism.srm.domain.ControlProfile> controlProfile,
+            Consumer<List<prism.srm.domain.SuspendedProcess>> heldSuspensions,
+            Consumer<Set<MonitoringFailure>> onFailure) {
+        return new MonitoringRuntime.Listeners(
+                snapshots,
+                processSnapshots,
+                processDetails,
+                controlResults,
+                controlProfile,
+                heldSuspensions,
+                onFailure,
+                limits -> {},
+                result -> {},
+                recovered -> {},
+                check -> {},
+                result -> {});
+    }
+
     private PlatformSources fakeSources() {
-        return new PlatformSources(system, processes);
+        // Not a PID any test acts on, whatever PID the test's own process has.
+        return new PlatformSources(system, processes, controller, OWN_PID, Optional.of(journalFolder.path()), "test-1");
     }
 
     private void failed(Set<MonitoringFailure> allSoFar) {
         reported.add(allSoFar);
+        if (allSoFar.contains(MonitoringFailure.PROCESS_MONITORING_STOPPED)) {
+            processMonitoringStopped.countDown();
+        }
         if (allSoFar.contains(MonitoringFailure.STARTUP)) {
             startupFailures.incrementAndGet();
             startupFailed.countDown();
@@ -1058,5 +1497,38 @@ class MonitoringRuntimeTest {
                 Thread.currentThread().interrupt();
             }
         }
+    }
+
+    /** Only the end of process monitoring narrows the actions: the processes are still listed without system samples. */
+    @Test
+    void theEndOfSystemMonitoringAloneLeavesEveryActionAvailable() throws InterruptedException {
+        runtime = runtime(this::fakeSources, snapshot -> {}, GENEROUS_BOUND);
+        runtime.start();
+        awaitCapabilities();
+
+        runtime.monitorEnded(MonitoringFailure.SYSTEM_MONITORING_STOPPED);
+        runtime.requestProcessAction(ControlRequest.of(ControlAction.FORCE_KILL, DEMO, "java"));
+
+        assertThat(nextResult().result()).isEqualTo(OperationResult.SUCCESS);
+        assertThat(controller.calls).contains("terminate 4242");
+    }
+
+    /** What the controller could not set up reaches the Logs page once, as a warning, after monitoring started. */
+    @Test
+    void whatTheControllerFoundMissingIsLoggedOnceAsAWarning() throws InterruptedException {
+        controller.limitations = List.of("Process control: pidfd signalling is unavailable (test).");
+        CountDownLatch cycles = new CountDownLatch(3);
+        runtime = runtime(this::fakeSources, snapshot -> cycles.countDown(), GENEROUS_BOUND);
+        runtime.start();
+        awaitCapabilities();
+
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(PATIENCE_SECONDS);
+        while (messages(ActivitySeverity.WARNING).isEmpty() && System.nanoTime() < deadline) {
+            Thread.sleep(10);
+        }
+        // Later monitoring cycles add nothing: once, at the start.
+        assertThat(cycles.await(PATIENCE_SECONDS, TimeUnit.SECONDS)).isTrue();
+        assertThat(messages(ActivitySeverity.WARNING))
+                .containsExactly("Process control: pidfd signalling is unavailable (test).");
     }
 }
