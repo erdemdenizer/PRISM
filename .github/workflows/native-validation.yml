@@ -1,0 +1,28 @@
+# Milestone 10 (docs/TESTING.md, plan §11.6 path B): the native-limit suites alone on a self-hosted
+# Windows runner labelled windows-native, for where the hosted runner cannot run them. Started by
+# hand only: no such runner is registered yet, and a push trigger would wait for one without end.
+# Whether to register one is an external decision (plan D24).
+name: native-validation (self-hosted)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native:
+    name: native-validation
+    runs-on: [self-hosted, windows, windows-native]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Native suites
+        shell: bash
+        run: >-
+          ./mvnw -B test -Dprism.native.required=true
+          -Dtest=WindowsJobIntegrationTest,NativeLimitRecoveryIntegrationTest,ParentExitsChildSurvivesTest,JnaWin32Test
+      - name: Native suites ran and passed
+        if: always()
+        shell: bash
+        run: node .github/scripts/native-validation.mjs target/surefire-reports

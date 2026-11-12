@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report.xsd" version="3.0.2" name="prism.srm.platform.windows.JnaWin32Test" time="1.708" tests="9" errors="0" skipped="0" failures="0" flakes="0">
+  <properties><!-- sanitized for docs/evidence: only the properties named in ../m10-native-validation-fdd08e3.md are kept; paths, user and environment were removed -->
+    <property name="sun.arch.data.model" value="64"/>
+    <property name="os.name" value="Windows 11"/>
+    <property name="user.country" value="TR"/>
+    <property name="user.language" value="tr"/>
+    <property name="java.runtime.version" value="25.0.4.1+1-LTS"/>
+    <property name="os.version" value="10.0"/>
+    <property name="file.encoding" value="UTF-8"/>
+    <property name="prism.native.required" value="true"/>
+    <property name="java.vm.name" value="OpenJDK 64-Bit Server VM"/>
+    <property name="java.version" value="25.0.4.1"/>
+    <property name="os.arch" value="amd64"/>
+    <property name="native.encoding" value="Cp1254"/>
+    <property name="java.vendor" value="Eclipse Adoptium"/>
+    <property name="java.vm.version" value="25.0.4.1+1-LTS"/>
+  </properties>
+  <testcase name="failuresReachTheCallerWithTheirCodes" classname="prism.srm.platform.windows.JnaWin32Test" time="0.359"/>
+  <testcase name="theThreadsOfThisJvmBelongToItByTheirHandles" classname="prism.srm.platform.windows.JnaWin32Test" time="0.115"/>
+  <testcase name="anErrorCodeIsDescribedWithItsSystemText" classname="prism.srm.platform.windows.JnaWin32Test" time="0.006"/>
+  <testcase name="theSystemProcessRefusesTheRightsOfEveryActionWithAccessDenied" classname="prism.srm.platform.windows.JnaWin32Test" time="0.059"/>
+  <testcase name="thisJvmIsReadThroughTheMappingsAsTheJdkSeesIt" classname="prism.srm.platform.windows.JnaWin32Test" time="0.037"/>
+  <testcase name="theCpuTimeSourceReadsThisJvmByItsIdentity" classname="prism.srm.platform.windows.JnaWin32Test" time="0.008"/>
+  <testcase name="theToolhelpStructuresHaveTheirDocumentedSizes" classname="prism.srm.platform.windows.JnaWin32Test" time="0.001"/>
+  <testcase name="theProcessorTimeAndAThreadsCreationTimeAreReadAndNoDebuggerIsAttached" classname="prism.srm.platform.windows.JnaWin32Test" time="0.005"/>
+  <testcase name="theCreationTimeOfEveryOpenableProcessIsTheStartTimeOfTheListing" classname="prism.srm.platform.windows.JnaWin32Test" time="0.521"/>
+</testsuite>
