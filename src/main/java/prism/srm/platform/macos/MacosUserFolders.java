@@ -25,7 +25,7 @@ public final class MacosUserFolders implements UserFolders {
 
     @Override
     public Path logs() {
-        return home.resolve("Library").resolve("Logs").resolve("PrismSystemResourceManager-UILab");
+        return home.resolve("Library").resolve("Logs").resolve("PrismSystemResourceManager");
     }
 
     /**
@@ -35,7 +35,7 @@ public final class MacosUserFolders implements UserFolders {
      */
     @Override
     public Path state() {
-        return home.resolve("Library").resolve("Application Support").resolve("PrismSystemResourceManager-UILab");
+        return home.resolve("Library").resolve("Application Support").resolve("PrismSystemResourceManager");
     }
 
     /** The same folder of {@code Application Support}: the settings file "supports the app" (ADR-0014). Not run on macOS yet. */
