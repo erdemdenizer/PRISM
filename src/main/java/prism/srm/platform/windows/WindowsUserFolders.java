@@ -37,7 +37,28 @@ public final class WindowsUserFolders implements UserFolders {
 
     @Override
     public Path logs() {
-        return localAppData().resolve("Prism").resolve("SystemResourceManager").resolve("logs");
+        return localAppData()
+                .resolve("Prism")
+                .resolve("SystemResourceManager-UILab")
+                .resolve("logs");
+    }
+
+    /** Beside the logs, in the same local folder: the state belongs to this machine as well. */
+    @Override
+    public Path state() {
+        return localAppData()
+                .resolve("Prism")
+                .resolve("SystemResourceManager-UILab")
+                .resolve("state");
+    }
+
+    /** In the same local folder: the settings belong to this machine, like the logs and the state (ADR-0014). */
+    @Override
+    public Path settings() {
+        return localAppData()
+                .resolve("Prism")
+                .resolve("SystemResourceManager-UILab")
+                .resolve("settings");
     }
 
     private Path localAppData() {
