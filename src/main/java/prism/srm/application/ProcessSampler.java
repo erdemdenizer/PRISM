@@ -1,6 +1,7 @@
 package prism.srm.application;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -69,7 +70,7 @@ final class ProcessSampler {
         // The counters of the two readings were taken no further apart than this.
         long longestElapsedNanos = readEndNanos - previousReadStartNanos;
 
-        Map<ProcessIdentity, Counters> current = new HashMap<>();
+        Map<ProcessIdentity, Counters> current = HashMap.newHashMap(readings.size());
         List<ProcessSnapshot> snapshots = new ArrayList<>(readings.size());
         for (ProcessReading reading : readings) {
             Counters now = new Counters(reading.cpuTimeMillis(), reading.bytesRead(), reading.bytesWritten());
@@ -101,7 +102,7 @@ final class ProcessSampler {
         hasPrevious = true;
         previousReadStartNanos = readStartNanos;
         previousReadEndNanos = readEndNanos;
-        return List.copyOf(snapshots);
+        return Collections.unmodifiableList(snapshots);
     }
 
     private OptionalDouble cpuPercent(Counters before, Counters now, long elapsedNanos, long longestElapsedNanos) {

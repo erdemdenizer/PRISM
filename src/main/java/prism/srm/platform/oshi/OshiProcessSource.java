@@ -85,7 +85,7 @@ final class OshiProcessSource implements ProcessSource {
         List<OSProcess> listed = allProcesses.get();
         Map<ProcessIdentity, Long> virtualSizes = system == HostSystem.WINDOWS ? readWindowsVirtualSizes() : Map.of();
         List<ProcessReading> readings = new ArrayList<>(listed.size());
-        Set<ProcessIdentity> live = new HashSet<>();
+        Set<ProcessIdentity> live = HashSet.newHashSet(listed.size());
         Set<String> liveUserIds = new HashSet<>();
         for (OSProcess process : listed) {
             try {
