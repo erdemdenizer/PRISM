@@ -58,7 +58,8 @@
   -fx-alignment: center-left;
 }
 
-.settings-appearance {
+.settings-appearance,
+.settings-unit {
   -fx-background-color: transparent;
   -fx-background-radius: 4;
   -fx-padding: 0 12 0 12;
@@ -75,7 +76,8 @@
   -fx-border-radius: 8;
 }
 
-.settings-appearance > .radio {
+.settings-appearance > .radio,
+.settings-unit > .radio {
   -fx-padding: 0;
   -fx-min-width: 0;
   -fx-pref-width: 0;
@@ -84,15 +86,18 @@
   -fx-border-color: transparent;
 }
 
-.settings-appearance > .radio > .dot {
+.settings-appearance > .radio > .dot,
+.settings-unit > .radio > .dot {
   -fx-padding: 0;
 }
 
-.settings-appearance:hover {
+.settings-appearance:hover,
+.settings-unit:hover {
   -fx-text-fill: -srm-text;
 }
 
-.settings-appearance:selected {
+.settings-appearance:selected,
+.settings-unit:selected {
   -fx-background-color: -srm-control-edge, -srm-control-highlight, -srm-control;
   -fx-background-insets: 0, 1, 2 1 1 1;
   -fx-text-fill: -srm-text;

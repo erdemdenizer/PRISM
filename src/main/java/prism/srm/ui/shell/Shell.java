@@ -307,20 +307,29 @@ public final class Shell extends BorderPane {
             folderAsker = Destination.LOGS;
             openLogFolder.run();
         });
-        settings = new SettingsPage(new SettingsPage.Hooks(
-                settingsHooks.appearance(),
-                settingsHooks.appearanceChange(),
-                settingsHooks.logFolder(),
-                settingsHooks.settingsFolder(),
+        settings = new SettingsPage(
+                new SettingsPage.Hooks(
+                        settingsHooks.appearance(),
+                        settingsHooks.appearanceChange(),
+                        settingsHooks.logFolder(),
+                        settingsHooks.settingsFolder(),
+                        () -> {
+                            folderAsker = Destination.SETTINGS;
+                            settingsHooks.openLogFolder().run();
+                        },
+                        () -> {
+                            folderAsker = Destination.SETTINGS;
+                            settingsHooks.openSettingsFolder().run();
+                        },
+                        settingsHooks.loadProblem()),
+                formatter,
                 () -> {
-                    folderAsker = Destination.SETTINGS;
-                    settingsHooks.openLogFolder().run();
-                },
-                () -> {
-                    folderAsker = Destination.SETTINGS;
-                    settingsHooks.openSettingsFolder().run();
-                },
-                settingsHooks.loadProblem()));
+                    for (Destination d : Destination.values()) {
+                        showLatestSnapshotOn(d);
+                        showLatestProcessesOn(d);
+                    }
+                    showStatus();
+                });
         pages.put(Destination.OVERVIEW, overview);
         pages.put(Destination.PROCESSES, processes);
         pages.put(Destination.PERFORMANCE, performance);

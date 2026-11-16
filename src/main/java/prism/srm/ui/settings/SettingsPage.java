@@ -1,6 +1,7 @@
 package prism.srm.ui.settings;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -14,6 +15,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.RadioButton;
 import javafx.scene.control.ToggleGroup;
+import javafx.scene.control.Tooltip;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.KeyCode;
@@ -22,6 +24,7 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
+import javafx.util.Duration;
 import prism.srm.domain.ControlProfile;
 import prism.srm.domain.LimitsSnapshot;
 import prism.srm.domain.OomView;
@@ -30,6 +33,8 @@ import prism.srm.ui.Stylesheets;
 import prism.srm.ui.Typefaces;
 import prism.srm.ui.control.PageHeader;
 import prism.srm.ui.control.TextWidths;
+import prism.srm.ui.format.ValueFormatter;
+import prism.srm.ui.format.ValueFormatter.ByteUnit;
 
 /**
  * The Settings page (UI-7): the appearance, the folders of the logs and the settings, and a summary
@@ -106,8 +111,20 @@ public final class SettingsPage extends VBox {
         Clipboard.getSystemClipboard().setContent(content);
     };
 
+    private static final String UNIT_DIFFERENCE_TOOLTIP =
+            "GiB / MiB (Binary, IEC): Base-2 units where 1 KiB = 1,024 B, 1 MiB = 1,024 KiB, and 1 GiB = 1,024 MiB"
+                    + " (1,073,741,824 B).\n"
+                    + "GB / MB (Decimal, SI): Base-10 units where 1 KB = 1,000 B, 1 MB = 1,000 KB, and 1 GB = 1,000 MB"
+                    + " (1,000,000,000 B).";
+
     public SettingsPage(Hooks hooks) {
+        this(hooks, new ValueFormatter(Locale.ROOT), () -> {});
+    }
+
+    public SettingsPage(Hooks hooks, ValueFormatter formatter, Runnable onUnitChanged) {
         Objects.requireNonNull(hooks, "hooks");
+        Objects.requireNonNull(formatter, "formatter");
+        Objects.requireNonNull(onUnitChanged, "onUnitChanged");
         getStyleClass().add("settings");
         getStylesheets().add(Stylesheets.settings());
 
@@ -127,7 +144,7 @@ public final class SettingsPage extends VBox {
         show(hooks.loadProblem(), loadProblem);
         VBox summaryGroup = group(capabilityStatus, capabilities);
         VBox first = new VBox(
-                section("Appearance", group(appearance(hooks)), appearanceProblem),
+                section("Appearance", group(appearance(hooks, formatter, onUnitChanged)), appearanceProblem),
                 section("Locations", group(locations(hooks)), folderProblem));
         first.getStyleClass().add("settings-column");
         VBox summary = section(
@@ -200,7 +217,7 @@ public final class SettingsPage extends VBox {
         clipboard = Objects.requireNonNull(target, "target");
     }
 
-    private static VBox appearance(Hooks hooks) {
+    private static VBox appearance(Hooks hooks, ValueFormatter formatter, Runnable onUnitChanged) {
         ToggleGroup group = new ToggleGroup();
         HBox choices = new HBox();
         choices.getStyleClass().add("settings-choices");
@@ -229,16 +246,61 @@ public final class SettingsPage extends VBox {
                 hooks.appearanceChange().accept((ThemeMode) after.getUserData());
             }
         });
+
+        ToggleGroup unitGroup = new ToggleGroup();
+        HBox unitChoices = new HBox();
+        unitChoices.getStyleClass().add("settings-choices");
+        double unitSegment = 0;
+        for (ByteUnit unit : ByteUnit.values()) {
+            unitSegment = Math.max(unitSegment, TextWidths.width(face, unitName(unit)));
+        }
+        unitSegment = Math.ceil((unitSegment + 2 * SEGMENT_PADDING) / 4) * 4;
+        for (ByteUnit unit : ByteUnit.values()) {
+            RadioButton choice = new RadioButton(unitName(unit));
+            choice.getStyleClass().add("settings-unit");
+            choice.setUserData(unit);
+            choice.setToggleGroup(unitGroup);
+            choice.setSelected(unit == formatter.byteUnit());
+            choice.setAccessibleText("Units: " + unitName(unit));
+            choice.setMinWidth(unitSegment);
+            choice.setPrefWidth(unitSegment);
+            choice.setMaxWidth(unitSegment);
+            choice.setTooltip(unitTooltip());
+            unitChoices.getChildren().add(choice);
+        }
+        unitGroup.selectedToggleProperty().addListener((observable, before, after) -> {
+            if (after != null) {
+                formatter.setByteUnit((ByteUnit) after.getUserData());
+                onUnitChanged.run();
+            }
+        });
+
         // A row of the group: what it sets at the left, the choice as a segmented control at the right.
         Label theme = new Label("Theme");
         theme.setMinWidth(Region.USE_PREF_SIZE);
         Region gap = new Region();
         HBox.setHgrow(gap, Priority.ALWAYS);
-        HBox row = new HBox(theme, gap, choices);
+        Label units = new Label("Units");
+        units.setMinWidth(Region.USE_PREF_SIZE);
+        units.setTooltip(unitTooltip());
+        HBox row = new HBox(theme, choices, gap, units, unitChoices);
         row.getStyleClass().add("settings-row");
         VBox block = new VBox(row, note("System follows the operating system, also while Prism runs."));
         block.getStyleClass().add("settings-section");
         return block;
+    }
+
+    private static Tooltip unitTooltip() {
+        Tooltip tooltip = new Tooltip(UNIT_DIFFERENCE_TOOLTIP);
+        tooltip.setShowDelay(Duration.millis(250));
+        return tooltip;
+    }
+
+    private static String unitName(ByteUnit unit) {
+        return switch (unit) {
+            case BINARY_IEC -> "GiB / MiB";
+            case DECIMAL_SI -> "GB / MB";
+        };
     }
 
     private static String name(ThemeMode mode) {

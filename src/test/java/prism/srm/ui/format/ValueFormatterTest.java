@@ -139,4 +139,15 @@ class ValueFormatterTest {
         assertThat(english.rateScale(512).text()).isEqualTo("512 B/s");
         assertThat(english.rateScale(10).text()).isEqualTo("10 B/s");
     }
+
+    @Test
+    void decimalUnitsFormatWithBase1000AndSiLabels() {
+        ValueFormatter formatter = new ValueFormatter(Locale.US);
+        assertThat(formatter.byteUnit()).isEqualTo(ValueFormatter.ByteUnit.BINARY_IEC);
+        formatter.setByteUnit(ValueFormatter.ByteUnit.DECIMAL_SI);
+        assertThat(formatter.bytes(1_500).text()).isEqualTo("1.5 KB");
+        assertThat(formatter.bytes(2_500_000).text()).isEqualTo("2.5 MB");
+        assertThat(formatter.bytes(12_000_000_000L).text()).isEqualTo("12.0 GB");
+        assertThat(formatter.bytesPerSecond(1_500_000).text()).isEqualTo("1.5 MB/s");
+    }
 }
