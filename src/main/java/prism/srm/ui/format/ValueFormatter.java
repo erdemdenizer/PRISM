@@ -17,15 +17,34 @@ import java.util.Objects;
  */
 public final class ValueFormatter {
 
-    private static final String[] BYTE_UNITS = {"B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB"};
+    /** Whether byte sizes and rates use binary (IEC, 1024) or decimal (SI, 1000) units. */
+    public enum ByteUnit {
+        BINARY_IEC,
+        DECIMAL_SI
+    }
+
+    private static final String[] BINARY_BYTE_UNITS = {"B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB"};
+    private static final String[] DECIMAL_BYTE_UNITS = {"B", "KB", "MB", "GB", "TB", "PB", "EB"};
     private static final double KIBI = 1024;
+    private static final double KILO = 1000;
     private static final DateTimeFormatter DATE_TIME = DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm:ss", Locale.ROOT);
 
     private final Locale locale;
+    private volatile ByteUnit byteUnit = ByteUnit.BINARY_IEC;
 
     /** @param locale the locale whose number notation is used */
     public ValueFormatter(Locale locale) {
         this.locale = Objects.requireNonNull(locale, "locale");
+    }
+
+    /** Returns the currently selected byte unit system. */
+    public ByteUnit byteUnit() {
+        return byteUnit;
+    }
+
+    /** Changes the byte unit system used for formatting sizes and rates. */
+    public void setByteUnit(ByteUnit unit) {
+        this.byteUnit = Objects.requireNonNull(unit, "unit");
     }
 
     /** Formats a percentage, 0 to 100, with one decimal: "12.4 %". */
@@ -87,15 +106,18 @@ public final class ValueFormatter {
     }
 
     private Quantity scaled(double value, String suffix) {
+        ByteUnit mode = byteUnit;
+        String[] units = mode == ByteUnit.DECIMAL_SI ? DECIMAL_BYTE_UNITS : BINARY_BYTE_UNITS;
+        double step = mode == ByteUnit.DECIMAL_SI ? KILO : KIBI;
         int unit = 0;
         double scaled = value;
         // Compared after rounding to what is shown: 1023.96 KiB is 1.0 MiB, and 1023.6 B is 1.0 KiB.
-        while (unit < BYTE_UNITS.length - 1 && asShown(scaled, unit) >= KIBI) {
-            scaled /= KIBI;
+        while (unit < units.length - 1 && asShown(scaled, unit) >= step) {
+            scaled /= step;
             unit++;
         }
         String number = unit == 0 ? String.format(locale, "%d", Math.round(scaled)) : oneDecimal(scaled);
-        return new Quantity(number, BYTE_UNITS[unit] + suffix);
+        return new Quantity(number, units[unit] + suffix);
     }
 
     /** Bytes are shown whole, every larger unit with one decimal. */

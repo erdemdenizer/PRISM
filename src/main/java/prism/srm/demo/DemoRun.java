@@ -10,11 +10,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.LongSupplier;
 
 /**
@@ -74,8 +73,7 @@ final class DemoRun {
     private final CountDownLatch ended = new CountDownLatch(1);
     private final AtomicReference<Reason> reason = new AtomicReference<>(Reason.COMPLETED);
     private final AtomicBoolean oomRamp = new AtomicBoolean();
-    private final ReentrantLock waitLock = new ReentrantLock();
-    private final Condition wakeCondition = waitLock.newCondition();
+    private final Semaphore wakeSignal = new Semaphore(0);
 
     /**
      * @param memory the memory to hold, not yet allocated; created on the thread that will run
@@ -239,25 +237,17 @@ final class DemoRun {
     }
 
     private boolean awaitWake(long waitNanos) throws InterruptedException {
-        waitLock.lock();
-        try {
-            if (stopRequested.getCount() == 0) {
-                return true;
-            }
-            wakeCondition.awaitNanos(waitNanos);
-            return stopRequested.getCount() == 0;
-        } finally {
-            waitLock.unlock();
+        if (stopRequested.getCount() == 0) {
+            return true;
         }
+        if (wakeSignal.tryAcquire(waitNanos, TimeUnit.NANOSECONDS)) {
+            wakeSignal.drainPermits();
+        }
+        return stopRequested.getCount() == 0;
     }
 
     private void signalWake() {
-        waitLock.lock();
-        try {
-            wakeCondition.signalAll();
-        } finally {
-            waitLock.unlock();
-        }
+        wakeSignal.release();
     }
 
     private void startInteractiveListener() {
