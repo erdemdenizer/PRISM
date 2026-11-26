@@ -1,0 +1,39 @@
+scenario	check	result	detail
+archive	sha256	PASS	a50618828582ded2cd73f1e0104503846069250f7b798a1e39c05a3dd1cf8ffe
+archive	unpacked	PASS	~/run/image-results/work/PRISM
+archive	launcher-PRISM-executable	PASS	bin/PRISM
+archive	launcher-prism-demo-executable	PASS	bin/prism-demo
+archive	runtime	INFO	JAVA_VERSION="25.0.5.1" 
+archive	desktop-session	INFO	DISPLAY=:0 WAYLAND_DISPLAY=wayland-0
+probe	ended	PASS	exit=0 last line [probe.end=ok]
+probe	localedata-module	PASS	10 modules
+probe	turkish-number	PASS	1.234.567,5
+probe	turkish-percent	PASS	%25
+probe	turkish-date	PASS	15 Ocak 2026
+probe	turkish-upper-i	PASS	İ
+probe	product-formatter	INFO	Quantity[number=1,2, unit=GiB]
+probe	javafx-toolkit	PASS	Platform.startup returned on the image runtime
+probe	logback-service	PASS	ch.qos.logback.classic.LoggerContext
+probe	platform-lists-processes	PASS	197 processes through OSHI and JNA
+probe	own-row-found	PASS	pid 16886
+probe	java	INFO	Eclipse Adoptium 25.0.5.1 locale=en_US oom-signal=UNVALIDATED
+probe	control-profile	INFO	ControlProfile[capabilities={SUSPEND=Capability[level=NATIVE_HARD, mechanism=Optional[STOP_SIGNAL]], RESUME=Capability[level=NATIVE_HARD, mechanism=Optional[STOP_SIGNAL]], END_TASK=Capability[level=NATIVE_SOFT, mechanism=Optional[TERMINATION_SIGNAL]], CHANGE_PRIORITY=Capability[level=NATIVE_SOFT, mechanism=Optional[NICE_VALUE]], FORCE_KILL=Capability[level=NATIVE_HARD, mechanism=Optional[KILL_SIGNAL]]}, listedPriorities={15=ABOVE_NORMAL, 10=HIGH, 20=NORMAL, 30=BELOW_NORMAL, 39=LOW}]
+probe	safe2-CHANGE_PRIORITY-refused	PASS	[ACCESS_DENIED | PRISM does not act on self (PID 16886). It is PRISM's own process.] alive afterwards=true
+probe	safe2-SUSPEND-refused	PASS	[ACCESS_DENIED | PRISM does not act on self (PID 16886). It is PRISM's own process.] alive afterwards=true
+probe	safe2-END_TASK-refused	PASS	[ACCESS_DENIED | PRISM does not act on self (PID 16886). It is PRISM's own process.] alive afterwards=true
+probe	safe2-FORCE_KILL-refused	PASS	[ACCESS_DENIED | PRISM does not act on self (PID 16886). It is PRISM's own process.] alive afterwards=true
+probe	safe2-MANAGE-refused	PASS	[ACCESS_DENIED | LimitResult[request=LimitRequest[action=MANAGE, identity=ProcessIdentity[pid=16886, startTime=2026-11-26T20:51:14.380Z], name=self, percent=OptionalInt.empty, bytes=OptionalLong.empty, oom=Optional.empty], outcome=ControlOutcome[result=ACCESS_DENIED, nativeCode=OptionalInt.empty, detail=Optional[refused by PRISM: OWN_PROCESS]], message=PRISM does not manage self (PID 16886)., explanation=It is PRISM's own process., fallback=Optional.empty]]
+probe	runtime-stopped	PASS	real runtime shut down in the probe
+single-process	start	INFO	1438 ms to monitoring
+single-process	started	PASS	PRISM started on Java 25.0.5.1 (Eclipse Adoptium), JavaFX 25.0.4+2.
+single-process	monitoring	PASS	process monitoring started
+single-process	launcher-runs-the-jvm	PASS	pid 17224 exe=~/run/image-results/work/PRISM/bin/PRISM
+single-process	no-child-process	PASS	children: 
+single-process	one-prism-process	PASS	1 process(es) of the image
+single-process	k16-reported	PASS	native limits reported as not enabled (K16)
+sigterm	ended-within-20s	PASS	SIGTERM to 17224, the shutdown hook path (LIFE-5)
+sigterm	nothing-left	PASS	processes of the image afterwards: 
+window-close	exit-code	INFO	exit=0
+window-close	controlled	PASS	Shutdown started. Shutdown complete: monitoring and its executors are stopped. 
+window-close	nothing-left	PASS	processes of the image afterwards: 
+demo	help	PASS	exit=0 Usage: prism-demo [--cpu <percent>] [--memory <size>] [--duration <time>] [--workers <n>]

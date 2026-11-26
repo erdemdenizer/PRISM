@@ -622,6 +622,22 @@ a window of the tester's own making, never an application someone uses.
 ./mvnw -Dprism.linux.native.required=true -Dtest='LinuxNativeLimitIntegrationTest,SystemdReadOnlySmokeTest' -Dsurefire.failIfNoSpecifiedTests=false test
 ```
 
+## The Linux application image (ADR-0018)
+
+On Linux, with GNU binutils installed (jlink's `--strip-debug` runs `objcopy`):
+
+```
+./mvnw -Ppackage-image-linux -DskipTests package
+target/package/verification/verify-image.sh target/package/prism-<version>-linux-x64.tar.gz <results folder>
+```
+
+Run the second line as the desktop user inside the desktop session (`DISPLAY` or `WAYLAND_DISPLAY` set), with no
+Java needed on the path. The script redirects `XDG_STATE_HOME` and `XDG_CONFIG_HOME` for each scenario and starts and
+stops only processes of the image it unpacks. At "Close the PRISM window now" a person closes the window (or a test
+driver sends Alt+F4); that is the controlled shutdown (LIFE-1), which SIGTERM does not run (LIFE-5). The verdict is
+`ACCEPTED` only with nothing `FAIL` or `NOT TESTED`. The first run is recorded in
+[evidence/linux-image-2026-11-26.md](evidence/linux-image-2026-11-26.md).
+
 ## The Windows application image (milestone 13)
 
 ```
