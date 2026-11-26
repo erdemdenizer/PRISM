@@ -80,7 +80,8 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
     private static final Logger LOG = LoggerFactory.getLogger(LinuxScopeLimiter.class);
 
     static final String NOT_VALIDATED = "Linux native limits are not validated for desktop applications";
-    static final String PRODUCT_REASON = NOT_VALIDATED + " (implemented, not enabled: K16)";
+    // Shown to the user, so it names no internal decision label (risk D12; K16 is the decision behind it).
+    static final String PRODUCT_REASON = NOT_VALIDATED + " (implemented, not enabled in this release)";
     static final String CPU_QUOTA = "CPUQuotaPerSecUSec";
     static final String MEMORY_HIGH = "MemoryHigh";
     static final String MEMORY_MAX = "MemoryMax";
