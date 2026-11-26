@@ -146,6 +146,7 @@ class SettingsSnapshotTest {
             Shell shell = shell(new SettingsPage.Hooks(
                     ThemeMode.DARK,
                     mode -> {},
+                    units -> {},
                     home + "\\logs",
                     home + "\\settings",
                     () -> {},
@@ -180,8 +181,8 @@ class SettingsSnapshotTest {
     @MethodSource("states")
     void rendersEveryState(String name, Theme theme, int[] size, Optional<String> problem, Consumer<Shell> state) {
         Path png = SnapshotHarness.render(name, theme, size[0], size[1], () -> {
-            Shell shell = shell(
-                    new SettingsPage.Hooks(ThemeMode.SYSTEM, mode -> {}, LOGS, SETTINGS, () -> {}, () -> {}, problem));
+            Shell shell = shell(new SettingsPage.Hooks(
+                    ThemeMode.SYSTEM, mode -> {}, units -> {}, LOGS, SETTINGS, () -> {}, () -> {}, problem));
             shell.navigation().entry(Destination.SETTINGS).fire();
             state.accept(shell);
             return shell;

@@ -37,7 +37,7 @@ system.
    written and read with `Locale.ROOT`. The keys of version 1 are `oom.monitoring`,
    `oom.warning.percent`, `oom.critical.percent`, `oom.emergency.percent`,
    `oom.emergency.floor.bytes`, `oom.auto.priority`, `oom.auto.suspend`,
-   `oom.auto.terminate` and `appearance`.
+   `oom.auto.terminate`, `appearance` and `units.size`.
 3. **Reading** (`SettingsStore.load`, in `App.init()`, after logging and the instance lock,
    off the JavaFX thread):
    - no file: the defaults and one INFO line;
@@ -58,7 +58,12 @@ system.
 5. **Appearance.** The `appearance` key is read in milestone 11 and applied to the theme
    controller; the Settings page of milestone 13 (UI-7) changes it, with no new format version.
    That page also says what went wrong with the file at start-up and with the last save.
-6. Per-process OOM settings are not in the file: the managed list is per session (MGD-2).
+6. **Units of sizes.** The `units.size` key (`BINARY`, the default, or `DECIMAL`) holds the
+   choice of the Settings page between GiB/MiB and GB/MB, added with no new format version as
+   the appearance was. A file without it reads as binary units with no problem; an unknown
+   value reads as binary units and is logged. App applies it to the value formatter before the
+   window is built.
+7. Per-process OOM settings are not in the file: the managed list is per session (MGD-2).
 
 ## Alternatives considered
 

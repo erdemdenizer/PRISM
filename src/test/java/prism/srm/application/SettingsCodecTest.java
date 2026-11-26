@@ -15,6 +15,7 @@ import prism.srm.domain.AppSettings;
 import prism.srm.domain.OomSettings;
 import prism.srm.domain.OomSwitches;
 import prism.srm.domain.OomThresholds;
+import prism.srm.domain.SizeUnits;
 import prism.srm.domain.ThemeMode;
 
 /** The form of the settings file (ADR-0014): what is written reads back, and what is not right is not taken. */
@@ -48,7 +49,9 @@ class SettingsCodecTest {
         Locale.setDefault(Locale.forLanguageTag("tr-TR"));
         AppSettings settings = new AppSettings(
                 new OomSettings(new OomThresholds(20, 10, 3, 1L << 30), new OomSwitches(false, true, true, true)),
-                ThemeMode.DARK);
+                ThemeMode.DARK,
+                // DECIMAL has an I, which the Turkish upper case would not match.
+                SizeUnits.DECIMAL);
 
         Decoded decoded = SettingsCodec.decode(SettingsCodec.encode(settings));
 
@@ -57,7 +60,7 @@ class SettingsCodecTest {
         assertThat(decoded.settings()).isEqualTo(settings);
         assertThat(new String(SettingsCodec.encode(AppSettings.DEFAULTS), StandardCharsets.UTF_8))
                 .startsWith("prism-settings 1\noom.monitoring=true\noom.warning.percent=15\n")
-                .contains("oom.auto.terminate=false\nappearance=SYSTEM\nend 9 ");
+                .contains("oom.auto.terminate=false\nappearance=SYSTEM\nunits.size=BINARY\nend 10 ");
     }
 
     @Test
@@ -70,7 +73,9 @@ class SettingsCodecTest {
     @Test
     void aChangedByteIsCorruptNotPartial() {
         byte[] bytes = SettingsCodec.encode(new AppSettings(
-                OomSettings.DEFAULTS.withSwitches(OomSwitches.DEFAULTS.withAutoSuspend(true)), ThemeMode.LIGHT));
+                OomSettings.DEFAULTS.withSwitches(OomSwitches.DEFAULTS.withAutoSuspend(true)),
+                ThemeMode.LIGHT,
+                SizeUnits.BINARY));
         String text =
                 new String(bytes, StandardCharsets.UTF_8).replace("oom.auto.suspend=true", "oom.auto.suspend=fals");
 
@@ -192,5 +197,28 @@ class SettingsCodecTest {
                 .isEqualTo(ThemeMode.SYSTEM);
         assertThat(SettingsCodec.decode(file("appearance=light")).settings().appearance())
                 .isEqualTo(ThemeMode.LIGHT);
+    }
+
+    @Test
+    void aFileFromBeforeTheSizeUnitsWereASettingReadsAsBinaryWithoutAProblem() {
+        Decoded decoded = SettingsCodec.decode(file("oom.monitoring=true", "appearance=DARK"));
+
+        assertThat(decoded.status()).isEqualTo(Status.READ);
+        assertThat(decoded.settings().sizeUnits()).isEqualTo(SizeUnits.BINARY);
+        assertThat(decoded.settings().appearance()).isEqualTo(ThemeMode.DARK);
+        assertThat(decoded.problems()).isEmpty();
+    }
+
+    @Test
+    void unknownSizeUnitsAreBinaryAndSaidAndCaseDoesNotMatterUnderTurkish() {
+        Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+        Decoded unknown = SettingsCodec.decode(file("units.size=octal"));
+
+        assertThat(unknown.status()).isEqualTo(Status.READ);
+        assertThat(unknown.settings().sizeUnits()).isEqualTo(SizeUnits.BINARY);
+        assertThat(unknown.problems()).containsExactly("units.size octal is unknown: binary units are used");
+        // A Turkish upper case of "decimal" has a dotted I and would not match.
+        assertThat(SettingsCodec.decode(file("units.size=decimal")).settings().sizeUnits())
+                .isEqualTo(SizeUnits.DECIMAL);
     }
 }

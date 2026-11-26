@@ -6,22 +6,17 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 import java.util.Objects;
+import prism.srm.domain.SizeUnits;
 
 /**
  * Turns measured values into the text the views show.
  *
  * <p>Numbers follow the locale given at construction (decimal separator, grouping); nothing here
  * reads the default locale. Unit symbols are the same in every locale. Sizes use binary units
- * (1 KiB = 1024 B) with one decimal, and the unit is chosen after rounding, so a value is never
- * shown as "1024.0 KiB".
+ * (1 KiB = 1024 B) or, when chosen, decimal units (1 KB = 1000 B) with one decimal, and the unit is
+ * chosen after rounding, so a value is never shown as "1024.0 KiB".
  */
 public final class ValueFormatter {
-
-    /** Whether byte sizes and rates use binary (IEC, 1024) or decimal (SI, 1000) units. */
-    public enum ByteUnit {
-        BINARY_IEC,
-        DECIMAL_SI
-    }
 
     private static final String[] BINARY_BYTE_UNITS = {"B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB"};
     private static final String[] DECIMAL_BYTE_UNITS = {"B", "KB", "MB", "GB", "TB", "PB", "EB"};
@@ -30,21 +25,21 @@ public final class ValueFormatter {
     private static final DateTimeFormatter DATE_TIME = DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm:ss", Locale.ROOT);
 
     private final Locale locale;
-    private volatile ByteUnit byteUnit = ByteUnit.BINARY_IEC;
+    private volatile SizeUnits sizeUnits = SizeUnits.BINARY;
 
     /** @param locale the locale whose number notation is used */
     public ValueFormatter(Locale locale) {
         this.locale = Objects.requireNonNull(locale, "locale");
     }
 
-    /** Returns the currently selected byte unit system. */
-    public ByteUnit byteUnit() {
-        return byteUnit;
+    /** Returns the units in which sizes and rates are formatted. */
+    public SizeUnits sizeUnits() {
+        return sizeUnits;
     }
 
-    /** Changes the byte unit system used for formatting sizes and rates. */
-    public void setByteUnit(ByteUnit unit) {
-        this.byteUnit = Objects.requireNonNull(unit, "unit");
+    /** Changes the units in which sizes and rates are formatted. */
+    public void setSizeUnits(SizeUnits units) {
+        this.sizeUnits = Objects.requireNonNull(units, "units");
     }
 
     /** Formats a percentage, 0 to 100, with one decimal: "12.4 %". */
@@ -106,9 +101,9 @@ public final class ValueFormatter {
     }
 
     private Quantity scaled(double value, String suffix) {
-        ByteUnit mode = byteUnit;
-        String[] units = mode == ByteUnit.DECIMAL_SI ? DECIMAL_BYTE_UNITS : BINARY_BYTE_UNITS;
-        double step = mode == ByteUnit.DECIMAL_SI ? KILO : KIBI;
+        SizeUnits mode = sizeUnits;
+        String[] units = mode == SizeUnits.DECIMAL ? DECIMAL_BYTE_UNITS : BINARY_BYTE_UNITS;
+        double step = mode == SizeUnits.DECIMAL ? KILO : KIBI;
         int unit = 0;
         double scaled = value;
         // Compared after rounding to what is shown: 1023.96 KiB is 1.0 MiB, and 1023.6 B is 1.0 KiB.

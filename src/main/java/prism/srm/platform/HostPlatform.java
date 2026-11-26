@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.function.LongSupplier;
 import java.util.function.UnaryOperator;
 import prism.srm.domain.OomSignalStatus;
+import prism.srm.platform.linux.LinuxDeviceLayers;
 import prism.srm.platform.linux.LinuxProcessController;
 import prism.srm.platform.linux.LinuxScopeLimiter;
 import prism.srm.platform.linux.LinuxUserFolders;
@@ -52,8 +53,16 @@ public final class HostPlatform {
      */
     public static HostPlatform create() {
         HostSystem system = HostSystem.current();
-        // Where the system has no source of disk layers yet, every disk stays UNKNOWN.
-        DiskLayerSource diskLayers = system == HostSystem.WINDOWS ? new WindowsDiskLayers() : Map::of;
+        // Where the system has no source of device layers yet (macOS), every disk and interface stays
+        // UNKNOWN, and the totals of the Overview stay unknown with them.
+        LinuxDeviceLayers linuxLayers = system == HostSystem.LINUX ? new LinuxDeviceLayers() : null;
+        DiskLayerSource diskLayers = switch (system) {
+            case WINDOWS -> new WindowsDiskLayers();
+            case LINUX -> linuxLayers;
+            case MACOS, OTHER -> Map::of;
+        };
+        // Windows tells an interface's layer through OSHI's connector flag and is not asked.
+        NetworkLayerSource networkLayers = system == HostSystem.LINUX ? linuxLayers : Map::of;
         // Only Windows needs a source of its own for virtual sizes; elsewhere it is never asked.
         ProcessVirtualSizeSource virtualSizes =
                 system == HostSystem.WINDOWS ? new WindowsProcessVirtualSizes() : Map::of;
@@ -61,7 +70,7 @@ public final class HostPlatform {
         // processor time of one process comes from the system there; elsewhere OSHI reads one.
         Optional<ProcessCpuTimeSource> cpuTimes =
                 system == HostSystem.WINDOWS ? Optional.of(new WindowsProcessCpuTimes()) : Optional.empty();
-        OshiHost oshi = new OshiHost(system, diskLayers, virtualSizes, cpuTimes);
+        OshiHost oshi = new OshiHost(system, diskLayers, networkLayers, virtualSizes, cpuTimes);
         return new HostPlatform(
                 oshi, controllerFor(system, oshi::bootTimeSeconds), limiterFor(system, oshi::bootTimeSeconds));
     }

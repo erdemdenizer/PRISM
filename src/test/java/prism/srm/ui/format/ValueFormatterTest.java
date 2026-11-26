@@ -8,6 +8,7 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.Locale;
 import org.junit.jupiter.api.Test;
+import prism.srm.domain.SizeUnits;
 
 class ValueFormatterTest {
 
@@ -143,8 +144,8 @@ class ValueFormatterTest {
     @Test
     void decimalUnitsFormatWithBase1000AndSiLabels() {
         ValueFormatter formatter = new ValueFormatter(Locale.US);
-        assertThat(formatter.byteUnit()).isEqualTo(ValueFormatter.ByteUnit.BINARY_IEC);
-        formatter.setByteUnit(ValueFormatter.ByteUnit.DECIMAL_SI);
+        assertThat(formatter.sizeUnits()).isEqualTo(SizeUnits.BINARY);
+        formatter.setSizeUnits(SizeUnits.DECIMAL);
         assertThat(formatter.bytes(1_500).text()).isEqualTo("1.5 KB");
         assertThat(formatter.bytes(2_500_000).text()).isEqualTo("2.5 MB");
         assertThat(formatter.bytes(12_000_000_000L).text()).isEqualTo("12.0 GB");

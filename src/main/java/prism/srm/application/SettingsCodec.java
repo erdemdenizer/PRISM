@@ -14,6 +14,7 @@ import prism.srm.domain.AppSettings;
 import prism.srm.domain.OomSettings;
 import prism.srm.domain.OomSwitches;
 import prism.srm.domain.OomThresholds;
+import prism.srm.domain.SizeUnits;
 import prism.srm.domain.ThemeMode;
 
 /**
@@ -35,9 +36,10 @@ final class SettingsCodec {
     static final String SUSPEND = "oom.auto.suspend";
     static final String TERMINATE = "oom.auto.terminate";
     static final String APPEARANCE = "appearance";
+    static final String SIZE_UNITS = "units.size";
 
-    static final List<String> KEYS =
-            List.of(MONITORING, WARNING, CRITICAL, EMERGENCY, FLOOR, PRIORITY, SUSPEND, TERMINATE, APPEARANCE);
+    static final List<String> KEYS = List.of(
+            MONITORING, WARNING, CRITICAL, EMERGENCY, FLOOR, PRIORITY, SUSPEND, TERMINATE, APPEARANCE, SIZE_UNITS);
 
     /** What a file held. */
     enum Status {
@@ -78,6 +80,7 @@ final class SettingsCodec {
         values.put(SUSPEND, Boolean.toString(switches.autoSuspend()));
         values.put(TERMINATE, Boolean.toString(switches.termination()));
         values.put(APPEARANCE, settings.appearance().name());
+        values.put(SIZE_UNITS, settings.sizeUnits().name());
         StringBuilder text = new StringBuilder(HEADER_PREFIX).append(VERSION).append('\n');
         for (Map.Entry<String, String> entry : values.entrySet()) {
             text.append(entry.getKey())
@@ -174,7 +177,10 @@ final class SettingsCodec {
                 && !"false".equals(values.get(TERMINATE))) {
             problems.add(TERMINATE + " is not true or false: emergency termination stays off");
         }
-        return new AppSettings(new OomSettings(thresholds(values, problems), switches), appearance(values, problems));
+        return new AppSettings(
+                new OomSettings(thresholds(values, problems), switches),
+                appearance(values, problems),
+                sizeUnits(values, problems));
     }
 
     private static boolean flag(Map<String, String> values, String key, boolean byDefault, List<String> problems) {
@@ -249,5 +255,20 @@ final class SettingsCodec {
         }
         problems.add(APPEARANCE + " " + value + " is unknown: the system appearance is used");
         return ThemeMode.SYSTEM;
+    }
+
+    /** The units of sizes; a file written before they were a setting has none, which means binary units. */
+    private static SizeUnits sizeUnits(Map<String, String> values, List<String> problems) {
+        String value = values.get(SIZE_UNITS);
+        if (value == null) {
+            return SizeUnits.BINARY;
+        }
+        for (SizeUnits units : SizeUnits.values()) {
+            if (units.name().equals(value.toUpperCase(Locale.ROOT))) {
+                return units;
+            }
+        }
+        problems.add(SIZE_UNITS + " " + value + " is unknown: binary units are used");
+        return SizeUnits.BINARY;
     }
 }

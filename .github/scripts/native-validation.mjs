@@ -48,33 +48,61 @@ export function problem(suite, report) {
   return null;
 }
 
-/** The verdict over a reports folder: { ok, lines }. */
+/**
+ * Whether the report says only that tests were skipped: it was read, tests ran, and none failed or
+ * ended in error. A skip is still "not validated"; this only tells it apart from a failure.
+ */
+export function onlySkipped(report) {
+  const c = report === null ? null : counts(report);
+  if (c === null || Object.values(c).some(Number.isNaN)) {
+    return false;
+  }
+  return c.tests > 0 && c.skipped > 0 && c.failures === 0 && c.errors === 0;
+}
+
+/**
+ * The verdict over a reports folder: { ok, failed, lines }. ok: every suite validated. failed:
+ * a suite has a failure, an error, no report or no test, which a skip is not.
+ */
 export function check(folder, suites = SUITES) {
   const lines = [];
   let ok = true;
+  let failed = false;
   for (const suite of suites) {
     const path = join(folder, `TEST-${suite}.xml`);
     const report = existsSync(path) ? readFileSync(path, "utf8") : null;
     const why = problem(suite, report);
     if (why) {
       ok = false;
+      failed ||= !onlySkipped(report);
       lines.push(`not validated: ${why}`);
     } else {
       lines.push(`validated: ${suite}: tests=${counts(report).tests}`);
     }
   }
-  lines.unshift(ok ? "native validation passed" : "native validation did NOT pass (a skip is not a pass)");
-  return { ok, lines };
+  let headline = "native validation passed";
+  if (failed) {
+    headline = "native validation did NOT pass (a skip is not a pass)";
+  } else if (!ok) {
+    headline = "native validation NOT done: suites were skipped, none failed (a skip is not a pass)";
+  }
+  lines.unshift(headline);
+  return { ok, failed, lines };
 }
 
+// node native-validation.mjs [--skips-allowed] [folder]. Exits 1 unless every suite validated; with
+// --skips-allowed, for a runner where the suites cannot run (a hosted runner whose processes are
+// in a Job Object), it exits 1 only when a suite failed, and the verdict still says "NOT done".
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
-  const folder = process.argv[2] ?? "target/surefire-reports";
-  const { ok, lines } = check(folder);
+  const args = process.argv.slice(2);
+  const skipsAllowed = args.includes("--skips-allowed");
+  const folder = args.find((arg) => !arg.startsWith("--")) ?? "target/surefire-reports";
+  const { ok, failed, lines } = check(folder);
   for (const line of lines) {
     console.log(line);
   }
   if (process.env.GITHUB_STEP_SUMMARY) {
     appendFileSync(process.env.GITHUB_STEP_SUMMARY, `### native-validation\n\n${lines.map((l) => `- ${l}`).join("\n")}\n`);
   }
-  process.exit(ok ? 0 : 1);
+  process.exit(skipsAllowed ? (failed ? 1 : 0) : ok ? 0 : 1);
 }

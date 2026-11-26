@@ -311,6 +311,7 @@ public final class Shell extends BorderPane {
                 new SettingsPage.Hooks(
                         settingsHooks.appearance(),
                         settingsHooks.appearanceChange(),
+                        settingsHooks.sizeUnitsChange(),
                         settingsHooks.logFolder(),
                         settingsHooks.settingsFolder(),
                         () -> {

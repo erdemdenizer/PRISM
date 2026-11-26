@@ -73,6 +73,7 @@ class SettingsLayoutSceneTest {
                     Shell shell = SettingsSnapshotTest.shell(new SettingsPage.Hooks(
                             ThemeMode.DARK,
                             mode -> {},
+                            units -> {},
                             home + "\\logs",
                             home + "\\settings",
                             () -> {},

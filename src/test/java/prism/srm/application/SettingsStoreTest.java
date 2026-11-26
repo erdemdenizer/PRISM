@@ -18,6 +18,7 @@ import prism.srm.domain.ActivitySeverity;
 import prism.srm.domain.AppSettings;
 import prism.srm.domain.OomSettings;
 import prism.srm.domain.OomSwitches;
+import prism.srm.domain.SizeUnits;
 import prism.srm.domain.ThemeMode;
 
 /**
@@ -37,7 +38,9 @@ class SettingsStoreTest {
     private SettingsStore store;
 
     private static final AppSettings CHANGED = new AppSettings(
-            OomSettings.DEFAULTS.withSwitches(OomSwitches.DEFAULTS.withAutoSuspend(true)), ThemeMode.DARK);
+            OomSettings.DEFAULTS.withSwitches(OomSwitches.DEFAULTS.withAutoSuspend(true)),
+            ThemeMode.DARK,
+            SizeUnits.DECIMAL);
 
     @BeforeEach
     void setUp() {
