@@ -31,6 +31,7 @@ import prism.srm.domain.ProcessDetailsResult;
 import prism.srm.domain.ProcessSnapshot;
 import prism.srm.domain.RecoveredSuspension;
 import prism.srm.domain.RecoveryCheck;
+import prism.srm.domain.SizeUnits;
 import prism.srm.domain.SuspendedProcess;
 import prism.srm.domain.SystemSnapshot;
 import prism.srm.domain.ThemeMode;
@@ -152,6 +153,8 @@ public final class App extends Application {
         // The one place that reads the user's locale and time zone; everything below is handed
         // them explicitly.
         ValueFormatter formatter = new ValueFormatter(Locale.getDefault(Locale.Category.FORMAT));
+        // The units of sizes of the settings file, chosen on the Settings page.
+        formatter.setSizeUnits(settings.sizeUnits());
         Path settingsFolder = HostPlatform.userFolders().settings().toAbsolutePath();
         // The holder lets the opener hand its results to the shell that is built with it.
         AtomicReference<Consumer<Optional<String>>> folderOutcome = new AtomicReference<>(outcome -> {});
@@ -179,6 +182,7 @@ public final class App extends Application {
                 new SettingsPage.Hooks(
                         settings.appearance(),
                         this::changeAppearance,
+                        this::changeSizeUnits,
                         logFolder.toString(),
                         settingsFolder.toString(),
                         () -> folders.open(logFolder),
@@ -327,6 +331,12 @@ public final class App extends Application {
     private void changeAppearance(ThemeMode next) {
         settings = settings.withAppearance(next);
         theme.modeProperty().set(next);
+        settingsStore.save(settings);
+    }
+
+    /** Saves chosen units of sizes, which the Settings page has applied; on the JavaFX Application Thread. */
+    private void changeSizeUnits(SizeUnits next) {
+        settings = settings.withSizeUnits(next);
         settingsStore.save(settings);
     }
 

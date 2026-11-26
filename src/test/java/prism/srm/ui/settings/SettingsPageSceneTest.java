@@ -3,7 +3,9 @@ package prism.srm.ui.settings;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -18,7 +20,9 @@ import javafx.scene.input.KeyEvent;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import prism.srm.domain.ControlProfile;
+import prism.srm.domain.SizeUnits;
 import prism.srm.domain.ThemeMode;
+import prism.srm.ui.format.ValueFormatter;
 import prism.srm.ui.snapshot.SnapshotHarness;
 import prism.srm.ui.snapshot.SnapshotHarness.Theme;
 
@@ -31,6 +35,7 @@ class SettingsPageSceneTest {
         return new SettingsPage(new SettingsPage.Hooks(
                 appearance,
                 changes::add,
+                units -> {},
                 "C:\\logs",
                 "C:\\settings",
                 () -> opened.add("logs"),
@@ -53,6 +58,50 @@ class SettingsPageSceneTest {
                 .filter(RadioButton::isSelected)
                 .map(choice -> (ThemeMode) choice.getUserData())
                 .toList();
+    }
+
+    @Test
+    void theUnitsReadAtStartUpAreSelectedAndAChoiceIsAppliedAndSavedOnce() {
+        List<SizeUnits> saved = new ArrayList<>();
+        ValueFormatter formatter = new ValueFormatter(Locale.ROOT);
+        // As App sets it from the settings file before the page is built.
+        formatter.setSizeUnits(SizeUnits.DECIMAL);
+        int[] refreshed = {0};
+
+        List<Object> seen = SnapshotHarness.inspect(
+                Theme.LIGHT,
+                1100,
+                700,
+                () -> new SettingsPage(
+                        new SettingsPage.Hooks(
+                                ThemeMode.SYSTEM,
+                                mode -> {},
+                                saved::add,
+                                "C:\\logs",
+                                "C:\\settings",
+                                () -> {},
+                                () -> {},
+                                Optional.empty()),
+                        formatter,
+                        () -> refreshed[0]++),
+                root -> {
+                    Map<SizeUnits, RadioButton> units = new EnumMap<>(SizeUnits.class);
+                    for (Node node : root.lookupAll(".settings-unit")) {
+                        units.put((SizeUnits) node.getUserData(), (RadioButton) node);
+                    }
+                    List<Object> facts = new ArrayList<>();
+                    facts.add(units.get(SizeUnits.DECIMAL).isSelected());
+                    facts.add(List.copyOf(saved));
+                    units.get(SizeUnits.BINARY).fire();
+                    // A click on what is already chosen is no change.
+                    units.get(SizeUnits.BINARY).fire();
+                    facts.add(formatter.sizeUnits());
+                    return facts;
+                });
+
+        assertThat(seen).containsExactly(true, List.of(), SizeUnits.BINARY);
+        assertThat(saved).containsExactly(SizeUnits.BINARY);
+        assertThat(refreshed[0]).isEqualTo(1);
     }
 
     @Test
@@ -174,7 +223,14 @@ class SettingsPageSceneTest {
                 706,
                 435,
                 () -> new SettingsPage(new SettingsPage.Hooks(
-                        ThemeMode.SYSTEM, mode -> {}, logs, settings, () -> {}, () -> {}, Optional.empty())),
+                        ThemeMode.SYSTEM,
+                        mode -> {},
+                        units -> {},
+                        logs,
+                        settings,
+                        () -> {},
+                        () -> {},
+                        Optional.empty())),
                 root -> {
                     List<Object> facts = new ArrayList<>();
                     for (Node node : root.lookupAll(".settings-folder-path")) {

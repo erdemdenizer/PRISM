@@ -188,7 +188,9 @@ public final class SettingsStore {
         }
         try {
             write(SettingsCodec.encode(next));
-            activity.record(ActivitySeverity.INFO, "Settings saved: appearance " + next.appearance() + ".");
+            activity.record(
+                    ActivitySeverity.INFO,
+                    "Settings saved: appearance " + next.appearance() + ", size units " + next.sizeUnits() + ".");
             saveOutcome.accept(Optional.empty());
         } catch (IOException | RuntimeException failed) {
             deleteQuietly(temporary);

@@ -28,16 +28,16 @@ import javafx.util.Duration;
 import prism.srm.domain.ControlProfile;
 import prism.srm.domain.LimitsSnapshot;
 import prism.srm.domain.OomView;
+import prism.srm.domain.SizeUnits;
 import prism.srm.domain.ThemeMode;
 import prism.srm.ui.Stylesheets;
 import prism.srm.ui.Typefaces;
 import prism.srm.ui.control.PageHeader;
 import prism.srm.ui.control.TextWidths;
 import prism.srm.ui.format.ValueFormatter;
-import prism.srm.ui.format.ValueFormatter.ByteUnit;
 
 /**
- * The Settings page (UI-7): the appearance, the folders of the logs and the settings, and a summary
+ * The Settings page (UI-7): the appearance and the units of sizes, the folders of the logs and the settings, and a summary
  * of what this system offers. Automatic termination has no switch here: SET-2 keeps it where a
  * deliberate choice is made, on the OOM Guard page.
  *
@@ -50,6 +50,8 @@ public final class SettingsPage extends VBox {
      *
      * @param appearance the appearance read at start-up
      * @param appearanceChange applies and saves a chosen appearance; returns at once
+     * @param sizeUnitsChange saves chosen units of sizes; returns at once. The page applies them to
+     *     its formatter itself, whose units are the ones read at start-up.
      * @param logFolder where the logs are, as text for the user
      * @param settingsFolder where the settings are, as text for the user
      * @param openLogFolder opens the log folder; returns at once
@@ -59,6 +61,7 @@ public final class SettingsPage extends VBox {
     public record Hooks(
             ThemeMode appearance,
             Consumer<ThemeMode> appearanceChange,
+            Consumer<SizeUnits> sizeUnitsChange,
             String logFolder,
             String settingsFolder,
             Runnable openLogFolder,
@@ -68,6 +71,7 @@ public final class SettingsPage extends VBox {
         public Hooks {
             Objects.requireNonNull(appearance, "appearance");
             Objects.requireNonNull(appearanceChange, "appearanceChange");
+            Objects.requireNonNull(sizeUnitsChange, "sizeUnitsChange");
             Objects.requireNonNull(logFolder, "logFolder");
             Objects.requireNonNull(settingsFolder, "settingsFolder");
             Objects.requireNonNull(openLogFolder, "openLogFolder");
@@ -77,7 +81,8 @@ public final class SettingsPage extends VBox {
 
         /** Hooks that change and open nothing, for a shell with no running application behind it. */
         public static Hooks inert(String logFolder) {
-            return new Hooks(ThemeMode.SYSTEM, mode -> {}, logFolder, "", () -> {}, () -> {}, Optional.empty());
+            return new Hooks(
+                    ThemeMode.SYSTEM, mode -> {}, units -> {}, logFolder, "", () -> {}, () -> {}, Optional.empty());
         }
     }
 
@@ -251,16 +256,16 @@ public final class SettingsPage extends VBox {
         HBox unitChoices = new HBox();
         unitChoices.getStyleClass().add("settings-choices");
         double unitSegment = 0;
-        for (ByteUnit unit : ByteUnit.values()) {
+        for (SizeUnits unit : SizeUnits.values()) {
             unitSegment = Math.max(unitSegment, TextWidths.width(face, unitName(unit)));
         }
         unitSegment = Math.ceil((unitSegment + 2 * SEGMENT_PADDING) / 4) * 4;
-        for (ByteUnit unit : ByteUnit.values()) {
+        for (SizeUnits unit : SizeUnits.values()) {
             RadioButton choice = new RadioButton(unitName(unit));
             choice.getStyleClass().add("settings-unit");
             choice.setUserData(unit);
             choice.setToggleGroup(unitGroup);
-            choice.setSelected(unit == formatter.byteUnit());
+            choice.setSelected(unit == formatter.sizeUnits());
             choice.setAccessibleText("Units: " + unitName(unit));
             choice.setMinWidth(unitSegment);
             choice.setPrefWidth(unitSegment);
@@ -270,7 +275,9 @@ public final class SettingsPage extends VBox {
         }
         unitGroup.selectedToggleProperty().addListener((observable, before, after) -> {
             if (after != null) {
-                formatter.setByteUnit((ByteUnit) after.getUserData());
+                SizeUnits chosen = (SizeUnits) after.getUserData();
+                formatter.setSizeUnits(chosen);
+                hooks.sizeUnitsChange().accept(chosen);
                 onUnitChanged.run();
             }
         });
@@ -296,10 +303,10 @@ public final class SettingsPage extends VBox {
         return tooltip;
     }
 
-    private static String unitName(ByteUnit unit) {
+    private static String unitName(SizeUnits unit) {
         return switch (unit) {
-            case BINARY_IEC -> "GiB / MiB";
-            case DECIMAL_SI -> "GB / MB";
+            case BINARY -> "GiB / MiB";
+            case DECIMAL -> "GB / MB";
         };
     }
 
