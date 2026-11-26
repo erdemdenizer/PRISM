@@ -208,6 +208,19 @@ class LinuxScopeLimiterTest {
         assertThat(systemd.calls).isEmpty();
     }
 
+    /** Risk D2: the cgroup is read again once the pidfd pins the process; moved out meanwhile, nothing is asked for. */
+    @Test
+    void aProcessMovedOutOfTheManagerAfterTheOpenIsNotAdopted() {
+        linux.afterOpen = () -> systemd.placeProcess(PID, "/system.slice/other.service");
+
+        ApplyResult result = limiter.apply(DEMO, CPU20_THROTTLE256, p -> true);
+
+        assertThat(result.phase()).isEqualTo(ApplyResult.Phase.NOT_ASSIGNED);
+        assertThat(result.outcome().detail().orElseThrow()).contains("outside your session manager");
+        assertThat(systemd.calls).noneMatch(call -> call.startsWith("start"));
+        assertThat(linux.openFds()).as("the pidfd is closed").isEmpty();
+    }
+
     // ----- Adoption -----
 
     @Test

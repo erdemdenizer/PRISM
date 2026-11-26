@@ -320,7 +320,15 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
         if (user.isPresent()) {
             return user;
         }
-        ProcFs.Reading<String> path = files.get().processCgroup((int) target.pid());
+        return cgroupProblem(target);
+    }
+
+    /**
+     * Why the process's cgroup rules it out: unreadable, in a scope of PRISM's name, or outside the user's own
+     * manager. Asked in the eligibility, and again once the pidfd pins the process (risk D2).
+     */
+    private Optional<String> cgroupProblem(ProcessIdentity target) {
+        ProcFs.Reading<String> path = files.orElseThrow().processCgroup((int) target.pid());
         return LinuxNativeReadiness.eligibility(policy, target, path.value(), uid)
                 .or(() -> path.value()
                         .filter(p -> !p.startsWith(managerGroup + "/"))
@@ -602,6 +610,16 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
             notAlive = notSignallable(fd);
             if (notAlive.isPresent()) {
                 return notAlive.get();
+            }
+            // Risk D2: the cgroup again, now that the descriptor pins the process and the identity is proved. Before
+            // the
+            // open it could have belonged to another process with the PID. systemd's user manager falls back to PID 1's
+            // AttachProcessesToUnit by PID when it lacks the privilege, so a process a privileged actor moved out of
+            // the
+            // user's own manager must not be asked for.
+            Optional<String> moved = cgroupProblem(target);
+            if (moved.isPresent()) {
+                return ApplyResult.notAssigned(fail(OperationResult.UNSUPPORTED, moved.get()), true);
             }
             Hold hold = new Hold(unit, fd);
             holds.put(target, hold);
