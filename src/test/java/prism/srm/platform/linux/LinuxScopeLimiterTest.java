@@ -1218,6 +1218,37 @@ class LinuxScopeLimiterTest {
         assertThat(systemd.calls).noneMatch(c -> c.startsWith("start "));
     }
 
+    /** Risk D11: a record proves only its own scope: the name PRISM gives the process and the recorded cgroup. */
+    @Test
+    void aRecordWithAnotherScopeNameOrCgroupProvesNothingAndClearsNothing() {
+        FakeScopeManager.Unit unit = systemd.addUnit(UNIT, INV, PID);
+        systemd.writeLimits(unit.group, "80000 100000", String.valueOf(256L << 20), "max");
+        LimitRecord base = LimitRecord.intended(DEMO, "demo", CPU20_THROTTLE256.effective(), "1-1")
+                .applied(CPU20_THROTTLE256.effective());
+
+        // A unit of another name, even one whose invocation and cgroup match the live unit.
+        LimitRecord otherName = base.withProvenance(
+                new ScopeProvenance("prism-srm-limit-9999-1.scope", Optional.of(INV), Optional.of(group())));
+        RecoveredLimit named = limiter.recover(otherName);
+        assertThat(named.verdict()).isEqualTo(RecoveredLimit.Verdict.UNPROVEN_SCOPE);
+        assertThat(named.detail()).contains("does not give this process");
+        // Another cgroup recorded for the right unit and invocation.
+        LimitRecord otherGroup = base.withProvenance(
+                new ScopeProvenance(UNIT, Optional.of(INV), Optional.of(MANAGER + "/app.slice/somewhere-else.scope")));
+        assertThat(limiter.recover(otherGroup).verdict()).isEqualTo(RecoveredLimit.Verdict.UNPROVEN_SCOPE);
+        // No cgroup recorded at all.
+        LimitRecord noGroup = base.withProvenance(new ScopeProvenance(UNIT, Optional.of(INV), Optional.empty()));
+        assertThat(limiter.recover(noGroup).detail()).contains("never recorded");
+
+        for (LimitRecord crafted : List.of(otherName, otherGroup, noGroup)) {
+            assertThat(limiter.clearOwned(crafted).result()).isEqualTo(ClearResult.Outcome.NOT_OWNED);
+        }
+        assertThat(systemd.setCalls())
+                .as("nothing is cleared on an unproven record")
+                .isZero();
+        assertThat(systemd.read(unit.group, "cpu.max")).isEqualTo("80000 100000");
+    }
+
     @Test
     void clearingNeedsProofAtThatMomentAndIsReadBack() {
         FakeScopeManager.Unit unit = systemd.addUnit(UNIT, INV, PID);

@@ -1294,6 +1294,15 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
         if (unitName.isEmpty()) {
             return new RecoveredLimit(record, RecoveredLimit.Verdict.FAILED, "the record names no scope");
         }
+        // Risk D11: a record proves only the scope PRISM names for its process. A record naming another unit, however
+        // it
+        // came to be, is not asked about.
+        if (!unitName.equals(ScopeNames.of(identity))) {
+            return new RecoveredLimit(
+                    record,
+                    RecoveredLimit.Verdict.UNPROVEN_SCOPE,
+                    "the record names a scope PRISM does not give this process: " + unitName.get());
+        }
         boolean alive = identityProblem(identity).isEmpty();
         SystemdUserBus.Reading<SystemdUserBus.UnitFacts> facts = scopes.get().unit(unitName.get());
         if (facts.status() == SystemdUserBus.Status.NO_SUCH_UNIT) {
@@ -1321,6 +1330,18 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
         Optional<String> group = unit.controlGroup();
         if (group.isEmpty()) {
             return new RecoveredLimit(record, RecoveredLimit.Verdict.GONE, "its scope has no processes left");
+        }
+        // Risk D11: the live invocation must have the cgroup the record names, which is also where a clearing reads its
+        // limits back. Ownership evidence always records both (membership), so a record without a cgroup proves
+        // nothing.
+        Optional<String> recordedGroup = record.provenance().flatMap(ScopeProvenance::cgroupPath);
+        if (!group.equals(recordedGroup)) {
+            return new RecoveredLimit(
+                    record,
+                    RecoveredLimit.Verdict.UNPROVEN_SCOPE,
+                    recordedGroup.isEmpty()
+                            ? "its scope's cgroup was never recorded"
+                            : "its scope's cgroup is not the recorded one");
         }
         ProcFs.Reading<List<Integer>> members = files.get().procs(group.get());
         if (members.value().isEmpty()) {
