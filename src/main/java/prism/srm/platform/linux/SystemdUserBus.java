@@ -22,11 +22,11 @@ import java.util.regex.Pattern;
  * <p>Each inspection opens its own connection, uses it on the calling thread only and closes it before returning;
  * every message is released on every path. One inspection at a time (sd-bus objects are not thread-safe). Every method
  * call PRISM makes is bounded by {@link #CALL_TIMEOUT_USEC}. The {@code Hello} call that brings the connection up is
- * not: {@code sd_bus_open_user} queues it inside {@code sd_bus_start}, sealed with libsystemd's default method-call
- * timeout ({@code SYSTEMD_BUS_TIMEOUT}, else 25 s; v255 sd-bus.c {@code bus_send_hello}, {@code bus_seal_message}),
- * before PRISM can set its own; the first call waits for it. The SASL authentication before it is bounded only by
- * libsystemd's own authentication timeout. So a hung bus broker can block an inspection for longer (final review,
- * 2026-10-16). It must never run on the JavaFX Application Thread.
+ * sealed by {@code sd_bus_open_user} inside {@code sd_bus_start} with libsystemd's default method-call timeout
+ * ({@code SYSTEMD_BUS_TIMEOUT}, else 25 s; v255 sd-bus.c {@code bus_send_hello}, {@code bus_seal_message}), before
+ * PRISM can set its own (final review, 2026-10-16; risk D1). So no method is sent until {@link #awaitReady} has seen
+ * the connection up, which bounds the SASL authentication and the {@code Hello} reply together by the same
+ * {@link #CALL_TIMEOUT_USEC}. It must never run on the JavaFX Application Thread.
  *
  * <p>Interfaces, methods, properties and types: org.freedesktop.systemd1(5) of systemd v255 (Manager {@code Version},
  * {@code Features}, {@code ControlGroup}, {@code SystemState}, {@code DefaultOOMPolicy}: {@code s}; {@code GetUnit(in s
@@ -176,6 +176,7 @@ final class SystemdUserBus {
 
     private final SdBusApi api;
     private final LongSupplier ownPid;
+    private final LongSupplier nanoTime;
     private final ReentrantLock lock = new ReentrantLock();
 
     SystemdUserBus(SdBusApi api) {
@@ -183,8 +184,52 @@ final class SystemdUserBus {
     }
 
     SystemdUserBus(SdBusApi api, LongSupplier ownPid) {
+        this(api, ownPid, System::nanoTime);
+    }
+
+    SystemdUserBus(SdBusApi api, LongSupplier ownPid, LongSupplier nanoTime) {
         this.api = Objects.requireNonNull(api, "api");
         this.ownPid = Objects.requireNonNull(ownPid, "ownPid");
+        this.nanoTime = Objects.requireNonNull(nanoTime, "nanoTime");
+    }
+
+    /** Why a connection did not come up in time, and whether it was the time that ran out. */
+    record NotReady(boolean timedOut, String detail) {}
+
+    /**
+     * Waits until a new connection is up, authenticated and its {@code Hello()} answered, but never longer than
+     * {@link #CALL_TIMEOUT_USEC} (risk D1). {@code sd_bus_open_user} seals the {@code Hello()} call with libsystemd's
+     * default timeout (25 s) before a caller can set its own, and the first method call would wait for it; driving the
+     * connection here with {@code sd_bus_process} and {@code sd_bus_wait} until {@code sd_bus_is_ready} bounds the
+     * authentication and the {@code Hello()} together, with public calls only (sd_bus_is_open(3), sd_bus_process(3),
+     * sd_bus_wait(3)). Empty when the connection is ready.
+     */
+    static Optional<NotReady> awaitReady(SdBusApi api, long bus, LongSupplier nanoTime) {
+        long deadline = nanoTime.getAsLong() + CALL_TIMEOUT_USEC * 1_000L;
+        while (true) {
+            int ready = api.isReady(bus);
+            if (ready > 0) {
+                return Optional.empty();
+            }
+            if (ready < 0) {
+                return Optional.of(new NotReady(false, "the user bus connection failed: " + errno(ready)));
+            }
+            long leftNanos = deadline - nanoTime.getAsLong();
+            if (leftNanos <= 0) {
+                return Optional.of(
+                        new NotReady(true, "the user bus did not come up within " + CALL_TIMEOUT_USEC / 1_000 + " ms"));
+            }
+            int processed = api.process(bus);
+            if (processed < 0) {
+                return Optional.of(new NotReady(false, "the user bus connection failed: " + errno(processed)));
+            }
+            if (processed == 0) {
+                int waited = api.waitFor(bus, Math.max(1L, leftNanos / 1_000L));
+                if (waited < 0) {
+                    return Optional.of(new NotReady(false, "waiting on the user bus failed: " + errno(waited)));
+                }
+            }
+        }
     }
 
     /** The manager's version, features, state, cgroup and default OOM policy. */
@@ -246,6 +291,12 @@ final class SystemdUserBus {
                 int bounded = api.setMethodCallTimeout(opened.handle(), CALL_TIMEOUT_USEC);
                 if (bounded < 0) {
                     return Reading.not(Status.FAILED, "the call timeout could not be set: " + errno(bounded));
+                }
+                Optional<NotReady> down = awaitReady(api, opened.handle(), nanoTime);
+                if (down.isPresent()) {
+                    return Reading.not(
+                            down.get().timedOut() ? Status.TIMEOUT : Status.NO_BUS,
+                            down.get().detail());
                 }
                 return Reading.ok(step.on(opened.handle()));
             } catch (Failure failure) {

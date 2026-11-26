@@ -22,6 +22,9 @@ interface SdBusApi {
             "sd_bus_open_user",
             "sd_bus_close_unref",
             "sd_bus_set_method_call_timeout",
+            "sd_bus_is_ready",
+            "sd_bus_process",
+            "sd_bus_wait",
             "sd_bus_message_new_method_call",
             "sd_bus_message_append_basic",
             "sd_bus_message_open_container",
@@ -73,6 +76,26 @@ interface SdBusApi {
      * {@code Hello} call, which that function has already sealed with libsystemd's default (25 s).
      */
     int setMethodCallTimeout(long bus, long usec);
+
+    /**
+     * {@code int sd_bus_is_ready(sd_bus *bus)}: positive once the connection is fully established, that is
+     * authenticated and the {@code Hello()} reply received, and not being torn down; zero otherwise
+     * (sd_bus_is_open(3), added in version 237).
+     */
+    int isReady(long bus);
+
+    /**
+     * {@code int sd_bus_process(sd_bus *bus, sd_bus_message **ret)} with {@code ret} NULL: drives the connection one
+     * step (connecting, authentication, the {@code Hello()} reply). Positive when progress was made, zero when the
+     * caller should wait for I/O, negative on failure (sd_bus_process(3)).
+     */
+    int process(long bus);
+
+    /**
+     * {@code int sd_bus_wait(sd_bus *bus, uint64_t timeout_usec)}: waits at most {@code usec} for I/O on the
+     * connection. Positive when I/O was seen, zero on timeout, negative on failure (sd_bus_wait(3)).
+     */
+    int waitFor(long bus, long usec);
 
     /**
      * {@code int sd_bus_message_new_method_call(sd_bus *bus, sd_bus_message **m, const char *destination, const char

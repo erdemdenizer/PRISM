@@ -52,6 +52,12 @@ final class JnaSdBusApi implements SdBusApi {
 
         int sd_bus_set_method_call_timeout(Pointer bus, long usec);
 
+        int sd_bus_is_ready(Pointer bus);
+
+        int sd_bus_process(Pointer bus, PointerByReference ret);
+
+        int sd_bus_wait(Pointer bus, long timeoutUsec);
+
         int sd_bus_message_new_method_call(
                 Pointer bus, PointerByReference m, String destination, String path, String iface, String member);
 
@@ -123,6 +129,22 @@ final class JnaSdBusApi implements SdBusApi {
     @Override
     public int setMethodCallTimeout(long bus, long usec) {
         return lib.sd_bus_set_method_call_timeout(pointer(bus), usec);
+    }
+
+    @Override
+    public int isReady(long bus) {
+        return lib.sd_bus_is_ready(pointer(bus));
+    }
+
+    @Override
+    public int process(long bus) {
+        // ret NULL: no message is handed out, so there is nothing to release (sd_bus_process(3)).
+        return lib.sd_bus_process(pointer(bus), null);
+    }
+
+    @Override
+    public int waitFor(long bus, long usec) {
+        return lib.sd_bus_wait(pointer(bus), usec);
     }
 
     @Override
