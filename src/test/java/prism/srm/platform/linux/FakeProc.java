@@ -39,6 +39,8 @@ final class FakeProc {
         /** Real, effective, saved set and file system user IDs. */
         long[] uids = {OWNER_UID, OWNER_UID, OWNER_UID, OWNER_UID};
 
+        long[] gids = {1000, 1000, 1000, 1000};
+
         final Map<Integer, Integer> threadNice = new LinkedHashMap<>();
     }
 
@@ -84,6 +86,12 @@ final class FakeProc {
     /** The process's real, effective, saved set and file system user IDs. */
     void uids(int pid, long real, long effective, long saved, long fs) {
         processes.get(pid).uids = new long[] {real, effective, saved, fs};
+        render(pid);
+    }
+
+    /** The process's real, effective, saved set and file system group IDs. */
+    void gids(int pid, long real, long effective, long saved, long fs) {
+        processes.get(pid).gids = new long[] {real, effective, saved, fs};
         render(pid);
     }
 
@@ -156,13 +164,17 @@ final class FakeProc {
                 folder.resolve("status"),
                 String.format(
                         Locale.ROOT,
-                        "Name:\t%s\nState:\t%c\nUid:\t%d\t%d\t%d\t%d\nGid:\t1000\t1000\t1000\t1000\n",
+                        "Name:\t%s\nState:\t%c\nUid:\t%d\t%d\t%d\t%d\nGid:\t%d\t%d\t%d\t%d\n",
                         proc.name,
                         proc.state,
                         proc.uids[0],
                         proc.uids[1],
                         proc.uids[2],
-                        proc.uids[3]));
+                        proc.uids[3],
+                        proc.gids[0],
+                        proc.gids[1],
+                        proc.gids[2],
+                        proc.gids[3]));
         for (Map.Entry<Integer, Integer> thread : proc.threadNice.entrySet()) {
             write(
                     folder.resolve("task")

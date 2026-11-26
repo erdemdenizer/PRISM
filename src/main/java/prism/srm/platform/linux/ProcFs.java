@@ -129,6 +129,15 @@ final class ProcFs {
      * {@code /proc/<pid>/status} (proc_pid_status(5): "Uid, Gid: Real, effective, saved set, and filesystem UIDs").
      */
     Reading<List<Long>> uids(int pid) {
+        return ids(pid, "Uid:");
+    }
+
+    /** The real, effective, saved set and file system group IDs of the process, from the {@code Gid:} line. */
+    Reading<List<Long>> gids(int pid) {
+        return ids(pid, "Gid:");
+    }
+
+    private Reading<List<Long>> ids(int pid, String label) {
         Path file = root.resolve(Integer.toString(pid)).resolve("status");
         List<String> lines;
         try {
@@ -141,8 +150,8 @@ final class ProcFs {
             return Reading.not(Status.FAILED, file + ": " + failed);
         }
         for (String line : lines) {
-            if (line.startsWith("Uid:")) {
-                String[] fields = line.substring(4).strip().split("\\s+");
+            if (line.startsWith(label)) {
+                String[] fields = line.substring(label.length()).strip().split("\\s+");
                 if (fields.length != 4) {
                     break;
                 }
@@ -157,7 +166,7 @@ final class ProcFs {
                 }
             }
         }
-        return Reading.not(Status.FAILED, file + " has no Uid line of four IDs");
+        return Reading.not(Status.FAILED, file + " has no " + label + " line of four IDs");
     }
 
     private static Reading<ProcStat> parse(Path file) {

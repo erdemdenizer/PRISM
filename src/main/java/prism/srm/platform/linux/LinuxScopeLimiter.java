@@ -351,6 +351,15 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
             return Optional.of("it does not run wholly as your user (user IDs "
                     + ids.value().get() + ")");
         }
+        // Risk D8: a set-group-ID program runs with a group the user did not start it with; its four group IDs differ.
+        ProcFs.Reading<List<Long>> groups = proc.gids((int) target.pid());
+        if (groups.value().isEmpty()) {
+            return Optional.of("its group IDs could not be read: " + groups.detail());
+        }
+        if (groups.value().get().stream().distinct().count() != 1) {
+            return Optional.of(
+                    "it runs with a set-group-ID (group IDs " + groups.value().get() + ")");
+        }
         return Optional.empty();
     }
 
@@ -360,7 +369,10 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
     /** What signal 0 through a descriptor says about the process it names. */
     private enum Liveness {
         RUNS,
-        /** ESRCH: the process has terminated and been waited on. */
+        /**
+         * ESRCH: the process has terminated and been waited on; or it has terminated and is a zombie, which signal 0
+         * still reaches but which is no longer in its cgroup (risk D8).
+         */
         EXITED,
         /**
          * Any other failure, EPERM in practice (kill(2) rules: its real and saved set-user-IDs are no longer the user's,
@@ -374,17 +386,20 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
      * only ESRCH means the process has exited; EPERM means it runs but this caller may not signal it. A set-user-ID exec
      * keeps the real user ID and so still passes; the user IDs are compared separately ({@link #otherUser}).
      */
-    private Liveness liveness(int fd) {
+    private Liveness liveness(ProcessIdentity target, int fd) {
         LinuxNative.Call checked = calls.pidfdSendSignal(fd, 0);
         if (!checked.failed()) {
-            return Liveness.RUNS;
+            // The descriptor keeps the PID from being reused until the process is waited on, so the stat read is its
+            // own: a zombie ('Z', proc_pid_stat(5)) has terminated, although the signal reached it.
+            ProcFs.Reading<ProcStat> stat = proc.stat((int) target.pid());
+            return stat.value().filter(read -> read.state() == 'Z').isPresent() ? Liveness.EXITED : Liveness.RUNS;
         }
         return checked.errno() == LinuxErrors.ESRCH ? Liveness.EXITED : Liveness.NOT_SIGNALLABLE;
     }
 
     /** Before an adoption: empty when the descriptor's process runs and may be signalled; otherwise the refusal. */
-    private Optional<ApplyResult> notSignallable(int fd) {
-        return switch (liveness(fd)) {
+    private Optional<ApplyResult> notSignallable(ProcessIdentity target, int fd) {
+        return switch (liveness(target, fd)) {
             case RUNS -> Optional.empty();
             case EXITED ->
                 Optional.of(
@@ -433,7 +448,7 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
         String group = proven.cgroupPath().orElseThrow();
         ProcFs.Reading<String> path = files.orElseThrow().processCgroup((int) target.pid());
         ProcFs.Reading<List<Integer>> members = files.orElseThrow().procs(group);
-        switch (liveness(hold.fd)) {
+        switch (liveness(target, hold.fd)) {
             case EXITED -> {
                 return Optional.of(new Outside(Outside.Kind.EXITED, "the process has exited"));
             }
@@ -598,7 +613,7 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
             if (other.isPresent()) {
                 return ApplyResult.notAssigned(fail(OperationResult.PROCESS_NOT_FOUND, other.get()), false);
             }
-            Optional<ApplyResult> notAlive = notSignallable(fd);
+            Optional<ApplyResult> notAlive = notSignallable(target, fd);
             if (notAlive.isPresent()) {
                 return notAlive.get();
             }
@@ -607,7 +622,7 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
             if (user.isPresent()) {
                 return ApplyResult.notAssigned(fail(OperationResult.ACCESS_DENIED, user.get()), false);
             }
-            notAlive = notSignallable(fd);
+            notAlive = notSignallable(target, fd);
             if (notAlive.isPresent()) {
                 return notAlive.get();
             }
@@ -651,7 +666,7 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
                     return refusedStart(target, OperationResult.UNSUPPORTED, start, false);
                 }
                 default -> {
-                    if (liveness(fd) == Liveness.EXITED) {
+                    if (liveness(target, fd) == Liveness.EXITED) {
                         // Refused because the process exited (the manager answers UnixProcessIdUnknown): nothing was
                         // created, and there is nothing left to limit.
                         return refusedStart(target, OperationResult.PROCESS_NOT_FOUND, start, false);
@@ -664,7 +679,7 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
             if (facts.status() == SystemdUserBus.Status.NO_SUCH_UNIT) {
                 holds.remove(target);
                 kept = false;
-                if (identityProblem(target).isPresent() || liveness(fd) == Liveness.EXITED) {
+                if (identityProblem(target).isPresent() || liveness(target, fd) == Liveness.EXITED) {
                     return new ApplyResult(
                             ApplyResult.Phase.ASSIGNED_RELEASED,
                             fail(OperationResult.PROCESS_NOT_FOUND, "the process exited while it was being moved"),
@@ -677,7 +692,7 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
             }
             Optional<ScopeProvenance> proven = facts.value().flatMap(f -> membership(target, fd, unit, f, cgroups));
             if (proven.isEmpty()) {
-                if (liveness(fd) == Liveness.EXITED) {
+                if (liveness(target, fd) == Liveness.EXITED) {
                     // Exited after the move: nothing was limited yet; a scope with only its children is cleared by
                     // forget.
                     return released(target, hold, "the process exited while it was being moved");
@@ -832,7 +847,7 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
             return Optional.empty();
         }
         String group = facts.controlGroup().get();
-        if (!group.startsWith(managerGroup + "/") || liveness(fd) != Liveness.RUNS) {
+        if (!group.startsWith(managerGroup + "/") || liveness(target, fd) != Liveness.RUNS) {
             return Optional.empty();
         }
         if (identityProblem(target).isPresent()) {
@@ -1056,7 +1071,7 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
                         "the scope's ownership could not be recorded, so no limit is set in it");
             }
             // Only an exit ends here; a process that may no longer be signalled is caught by the proof below.
-            if (liveness(hold.fd) == Liveness.EXITED) {
+            if (liveness(target, hold.fd) == Liveness.EXITED) {
                 return notDone(OperationResult.PROCESS_NOT_FOUND, "the process has exited");
             }
             if (hard(spec) && !consent.hardMemory(target)) {
@@ -1152,7 +1167,7 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
             if (hold == null) {
                 return new ForgetResult(ForgetResult.Outcome.NOT_HELD, ControlOutcome.success(), 0, Optional.empty());
             }
-            if (liveness(hold.fd) != Liveness.EXITED) {
+            if (liveness(target, hold.fd) != Liveness.EXITED) {
                 return new ForgetResult(
                         ForgetResult.Outcome.STILL_RUNS,
                         fail(OperationResult.INVALID_ARGUMENT, "the process still runs"),

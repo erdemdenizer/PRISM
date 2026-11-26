@@ -208,6 +208,28 @@ class LinuxScopeLimiterTest {
         assertThat(systemd.calls).isEmpty();
     }
 
+    /** Risk D8: a set-group-ID program runs with a group the user did not start it with; it is not adopted. */
+    @Test
+    void aSetGroupIdProgramIsNotEligible() {
+        proc.gids(PID, 1000, 5, 5, 5);
+
+        assertThat(limiter.capabilitiesFor(DEMO).get(LimitKind.CPU).reason().orElseThrow())
+                .contains("set-group-ID");
+        ApplyResult result = limiter.apply(DEMO, CPU20_THROTTLE256, p -> true);
+        assertThat(result.phase()).isEqualTo(ApplyResult.Phase.NOT_ASSIGNED);
+        assertThat(systemd.calls).noneMatch(call -> call.startsWith("start"));
+    }
+
+    /** Risk D8: a zombie has exited, though signal 0 still reaches it; it is not "moved" out of its scope. */
+    @Test
+    void aZombieHasExitedAlthoughSignalZeroStillReachesIt() {
+        apply(CPU20_THROTTLE256);
+        proc.state(PID, 'Z');
+        systemd.writeMembers(group());
+
+        assertThat(limiter.forget(DEMO).result()).isEqualTo(ForgetResult.Outcome.NOTHING_TO_RELEASE);
+    }
+
     /** Risk D2: the cgroup is read again once the pidfd pins the process; moved out meanwhile, nothing is asked for. */
     @Test
     void aProcessMovedOutOfTheManagerAfterTheOpenIsNotAdopted() {
