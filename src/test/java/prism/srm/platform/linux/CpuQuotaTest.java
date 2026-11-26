@@ -8,9 +8,9 @@ import java.util.OptionalLong;
 import org.junit.jupiter.api.Test;
 
 /**
- * The CPU quota conversion (S2): Prism's whole-machine percentage P over N logical processors to systemd's
+ * The CPU quota conversion (S2): PRISM's whole-machine percentage P over N logical processors to systemd's
  * CPUQuotaPerSecUSec and the kernel's cpu.max, and back from a read-back; exact arithmetic, refused inputs instead of
- * an overflow, and a read-back Prism never writes recognised as foreign.
+ * an overflow, and a read-back PRISM never writes recognised as foreign.
  */
 class CpuQuotaTest {
 

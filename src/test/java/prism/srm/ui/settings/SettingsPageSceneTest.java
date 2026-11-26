@@ -166,9 +166,9 @@ class SettingsPageSceneTest {
     /** LS-03: in the smallest real window (706 x 435 of scene) both paths are whole on screen, never cut. */
     @Test
     void longPathsAreReadableWholeInTheSmallestWindow() {
-        String logs = "C:\\Users\\a.very.long.user.name\\AppData\\Local\\Prism\\SystemResourceManager-UILab\\logs";
+        String logs = "C:\\Users\\a.very.long.user.name\\AppData\\Local\\Prism\\SystemResourceManager\\logs";
         String settings =
-                "C:\\Users\\a.very.long.user.name\\AppData\\Local\\Prism" + "\\SystemResourceManager-UILab\\settings";
+                "C:\\Users\\a.very.long.user.name\\AppData\\Local\\Prism" + "\\SystemResourceManager\\settings";
         List<Object> seen = SnapshotHarness.inspect(
                 Theme.LIGHT,
                 706,

@@ -34,7 +34,7 @@ import prism.srm.domain.ProcessIdentity;
 import prism.srm.domain.ScopeProvenance;
 
 /**
- * The native-limit ledger of one Prism session (milestone 10, plan §6.4, ADR-0012): which processes
+ * The native-limit ledger of one PRISM session (milestone 10, plan §6.4, ADR-0012): which processes
  * this session may have left in a job with limits, so that a later session can say so after a
  * crash. One file, {@code native-limits-<instance>.ledger}, beside the suspension journal of the
  * same instance, whose lock tells a later session whether this one still runs.
@@ -46,7 +46,7 @@ import prism.srm.domain.ScopeProvenance;
  * neither put an older record over a newer one nor bring back a record that was removed. The file
  * is deleted only once the newest version was written and the model is empty.
  *
- * <p><b>Waits (plan D12).</b> What must be on disk before Prism acts waits for its version, at most
+ * <p><b>Waits (plan D12).</b> What must be on disk before PRISM acts waits for its version, at most
  * {@link #WAIT}: a record before an assignment, a change that leaves a limit in force. A wait that
  * runs out fails the ledger for the session: no new native limit, nothing tightened; what is in
  * force stays. Clearing and removing never wait. The writes run on the executor given ({@code
@@ -56,7 +56,7 @@ public final class NativeLimitLedger {
 
     private static final Logger LOG = LoggerFactory.getLogger(NativeLimitLedger.class);
 
-    /** The longest Prism waits for a record to be on disk before it acts on it. */
+    /** The longest PRISM waits for a record to be on disk before it acts on it. */
     public static final Duration WAIT = Duration.ofSeconds(2);
 
     static final String PREFIX = "native-limits-";
@@ -67,7 +67,7 @@ public final class NativeLimitLedger {
     /**
      * Format 2 (milestone 12): each record also carries its memory boundary and, on Linux, its scope provenance.
      * Written only when some record needs them, so a ledger of Job Object records stays byte for byte format 1 and an
-     * older Prism still reads it. An older Prism reads a format 2 file as damaged: it keeps it and holds its barrier.
+     * older PRISM still reads it. An older PRISM reads a format 2 file as damaged: it keeps it and holds its barrier.
      */
     private static final String HEADER_V2 = "prism native limits 2";
 
@@ -104,7 +104,7 @@ public final class NativeLimitLedger {
         this.writes = Objects.requireNonNull(writes, "writes");
         if (folder.isEmpty()) {
             failed = true;
-            problem = "Prism has no state folder";
+            problem = "PRISM has no state folder";
         }
     }
 
@@ -162,7 +162,7 @@ public final class NativeLimitLedger {
         return false;
     }
 
-    /** Records without waiting: what Prism learnt after it acted (applied, cleared, uncertain). */
+    /** Records without waiting: what PRISM learnt after it acted (applied, cleared, uncertain). */
     public void put(LimitRecord record) {
         change(record.identity(), record);
     }

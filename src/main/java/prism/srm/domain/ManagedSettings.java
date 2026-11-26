@@ -28,7 +28,7 @@ public record ManagedSettings(
     public static final ManagedSettings NONE =
             new ManagedSettings(OptionalInt.empty(), OptionalLong.empty(), true, false, OomManagement.OFF);
 
-    /** The smallest memory limit Prism sets: a product bound, not a system one (plan D10). */
+    /** The smallest memory limit PRISM sets: a product bound, not a system one (plan D10). */
     public static final long LEAST_MEMORY_BYTES = 1L << 20;
 
     public ManagedSettings {

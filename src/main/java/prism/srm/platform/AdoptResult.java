@@ -6,25 +6,25 @@ import prism.srm.domain.ControlOutcome;
 
 /**
  * What came of {@link ProcessController#adopt}: whether the process is, as far as the system lets
- * Prism check, still held the way the journal of an earlier session recorded, and if so the
+ * PRISM check, still held the way the journal of an earlier session recorded, and if so the
  * suspension that undoes exactly that.
  *
  * @param verdict what the check found
- * @param suspension present when adopted; present on a refusal too when a check Prism made could
+ * @param suspension present when adopted; present on a refusal too when a check PRISM made could
  *     not be undone completely (on Windows, a probe increment whose ResumeThread failed), holding
- *     that remainder, which is Prism's own, so that it is not forgotten
+ *     that remainder, which is PRISM's own, so that it is not forgotten
  */
 public record AdoptResult(Verdict verdict, ControlOutcome outcome, Optional<Suspension> suspension) {
 
     /** What a check of a process an earlier session recorded as suspended found. */
     public enum Verdict {
-        /** Held as recorded: the suspension undoes it once. Not proof that the stop was Prism's. */
+        /** Held as recorded: the suspension undoes it once. Not proof that the stop was PRISM's. */
         ADOPTED,
         /** The process is not suspended (any more): there is nothing to resume. */
         NOT_SUSPENDED,
         /** The process has exited, or its PID belongs to another process now. */
         GONE,
-        /** It cannot be told whether the hold is Prism's, or the check failed: nothing was changed. */
+        /** It cannot be told whether the hold is PRISM's, or the check failed: nothing was changed. */
         REFUSED
     }
 

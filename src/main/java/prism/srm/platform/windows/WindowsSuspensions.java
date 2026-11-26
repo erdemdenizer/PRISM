@@ -34,12 +34,12 @@ import prism.srm.platform.SuspendResult;
  * the result says so.
  *
  * <p><b>A failure part way</b> (a thread that may not be opened, or SuspendThread failing) is
- * rolled back: each thread Prism suspended gets one ResumeThread. If all of that is undone, the
+ * rolled back: each thread PRISM suspended gets one ResumeThread. If all of that is undone, the
  * handles are closed and the original failure is returned. It is marked transient, the one kind a
  * CPU limit tries again, only when the thread that failed is shown to have ended (GetExitCodeThread
  * on its open handle gives a code other than {@code STILL_ACTIVE}) and the process is shown to be
  * running (GetExitCodeProcess gives {@code STILL_ACTIVE}); a refusal of OpenThread, a thread that
- * still runs, and an answer the system did not give are not. If a live thread keeps Prism's
+ * still runs, and an answer the system did not give are not. If a live thread keeps PRISM's
  * increment, the failure is returned together with a suspension that holds exactly the threads
  * still owned, so the increment is not forgotten and Resume can try again.
  *
@@ -58,7 +58,7 @@ import prism.srm.platform.SuspendResult;
  *
  * <p>WOW64: Microsoft says a 64-bit program <em>can</em> call Wow64SuspendThread on a 32-bit
  * thread, and that for a 32-bit caller it is the same as SuspendThread; it does not say what
- * SuspendThread from a 64-bit program does to such a thread. Prism reads no thread context, where
+ * SuspendThread from a 64-bit program does to such a thread. PRISM reads no thread context, where
  * the two differ, and uses SuspendThread for every thread; MILESTONES.md (milestone 7) records what
  * a 32-bit target showed.
  * https://learn.microsoft.com/en-us/windows/win32/api/wow64apiset/nf-wow64apiset-wow64suspendthread
@@ -98,7 +98,7 @@ final class WindowsSuspensions {
                     ControlOutcome.of(
                             OperationResult.NATIVE_ERROR,
                             unexpected + "; rollback left " + taken.outstanding()
-                                    + " live thread(s) suspended by Prism"),
+                                    + " live thread(s) suspended by PRISM"),
                     Optional.of(taken));
         }
         ControlOutcome failure = pass.failure();
@@ -133,14 +133,14 @@ final class WindowsSuspensions {
             OptionalInt processCode = win32.processExitCode(process.handle());
             boolean running = processCode.isPresent() && processCode.getAsInt() == Win32.STILL_ACTIVE;
             suspension.close();
-            // A thread that ended under Prism's hand, of a process shown to run, undone completely:
+            // A thread that ended under PRISM's hand, of a process shown to run, undone completely:
             // the next attempt may succeed. Anything else is not to be retried as if nothing happened.
             return pass.threadEnded() && running
                     ? SuspendResult.transientFailure(failure)
                     : SuspendResult.failed(failure);
         }
         String detail = failure.detail().orElse("suspend failed") + "; rollback left " + suspension.outstanding()
-                + " live thread(s) suspended by Prism: " + rollback.describe(win32);
+                + " live thread(s) suspended by PRISM: " + rollback.describe(win32);
         return new SuspendResult(
                 new ControlOutcome(OperationResult.NATIVE_ERROR, failure.nativeCode(), Optional.of(detail)),
                 Optional.of(suspension));
@@ -165,7 +165,7 @@ final class WindowsSuspensions {
                     : ControlOutcome.success(release.released + " thread(s) released"
                             + (release.ended > 0 ? ", " + release.ended + " had ended" : ""));
         }
-        String detail = outstanding + " live thread(s) still suspended by Prism: " + release.describe(win32);
+        String detail = outstanding + " live thread(s) still suspended by PRISM: " + release.describe(win32);
         return release.firstError.isPresent()
                 ? ControlOutcome.of(OperationResult.NATIVE_ERROR, release.firstError.getAsInt(), detail)
                 : ControlOutcome.of(OperationResult.NATIVE_ERROR, detail);
@@ -337,19 +337,19 @@ final class WindowsSuspensions {
      *
      * <ul>
      *   <li>A thread that has ended, or whose ID now names another thread (another owner, or another
-     *       creation time), is passed over: it carries nothing of Prism's.
+     *       creation time), is passed over: it carries nothing of PRISM's.
      *   <li>Any thread found at two or more: another suspension holds it as well, another program's
      *       or the process's own. Nothing is taken over and only the probes are undone.
      *   <li>Every thread at zero, or none left: the process is not suspended any more.
      *   <li>Some at zero and some at one: another program has resumed part of it. Nothing is taken over.
      *   <li>Every thread at one: each probe is undone, which must leave one, and each thread's one
      *       increment is taken over by a suspension that undoes it once. That this increment is
-     *       Prism's is likely, not proven: another program may have taken Prism's away and added its
+     *       PRISM's is likely, not proven: another program may have taken PRISM's away and added its
      *       own. The user is told so before asking.
      * </ul>
      *
-     * Without a memento nothing is called at all: which threads Prism held is not known, and a count
-     * found on threads it did not record is no evidence that the suspension is Prism's. A process
+     * Without a memento nothing is called at all: which threads PRISM held is not known, and a count
+     * found on threads it did not record is no evidence that the suspension is PRISM's. A process
      * under a debugger is never touched, and neither is one whose debugger state cannot be read.
      * https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-suspendthread
      * https://learn.microsoft.com/en-us/windows/win32/api/debugapi/nf-debugapi-checkremotedebuggerpresent
@@ -358,7 +358,7 @@ final class WindowsSuspensions {
         if (memento.isEmpty()) {
             return refused(
                     OperationResult.UNSUPPORTED,
-                    "no record of which threads Prism suspended; an anonymous suspension count is no evidence");
+                    "no record of which threads PRISM suspended; an anonymous suspension count is no evidence");
         }
         Optional<List<Recorded>> recorded = parseMemento(memento.get());
         if (recorded.isEmpty()) {
@@ -447,7 +447,7 @@ final class WindowsSuspensions {
                     ControlOutcome.of(
                             OperationResult.INVALID_ARGUMENT,
                             zero + " of " + probes.size()
-                                    + " recorded threads were resumed by another program; Prism does not touch the"
+                                    + " recorded threads were resumed by another program; PRISM does not touch the"
                                     + " rest"));
         }
         return takeOver(process, probes);
@@ -503,7 +503,7 @@ final class WindowsSuspensions {
                     OperationResult.NATIVE_ERROR, error, "GetThreadTimes failed: " + win32.describe(error)));
         }
         if (created.getAsLong() != thread.creationTime()) {
-            // The ID belongs to a newer thread of the process: Prism never held it.
+            // The ID belongs to a newer thread of the process: PRISM never held it.
             win32.close(opened.handle());
             return Step.FOREIGN;
         }
@@ -560,7 +560,7 @@ final class WindowsSuspensions {
 
     /**
      * Takes back the probes' own increments. What cannot be taken back stays held, by a suspension
-     * returned with the refusal, so that Prism's own increment is not forgotten.
+     * returned with the refusal, so that PRISM's own increment is not forgotten.
      */
     private AdoptResult undoProbes(
             PinnedProcess process, List<Probe> probes, AdoptResult.Verdict verdict, ControlOutcome outcome) {
@@ -579,7 +579,7 @@ final class WindowsSuspensions {
                 ControlOutcome.of(
                         OperationResult.NATIVE_ERROR,
                         outcome.detail().orElse("refused") + "; " + probing.outstanding()
-                                + " probe(s) could not be undone and stay held by Prism: " + undone.describe(win32)),
+                                + " probe(s) could not be undone and stay held by PRISM: " + undone.describe(win32)),
                 Optional.of(probing));
     }
 
@@ -623,7 +623,7 @@ final class WindowsSuspensions {
                 ended++;
                 continue;
             }
-            // A live thread keeps Prism's increment: the hold stays owned and its handle open.
+            // A live thread keeps PRISM's increment: the hold stays owned and its handle open.
             failed++;
             if (firstError.isEmpty()) {
                 firstError = OptionalInt.of(resumed.error());

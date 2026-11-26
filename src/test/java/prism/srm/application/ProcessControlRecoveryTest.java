@@ -26,7 +26,7 @@ import prism.srm.platform.StopState;
 /**
  * The user's requests about processes an earlier session may have left suspended, through the
  * process control service (ADR-0011): off the calling thread, one per process at a time, without
- * process monitoring, and never on Prism or a protected process.
+ * process monitoring, and never on PRISM or a protected process.
  */
 class ProcessControlRecoveryTest {
 
@@ -97,7 +97,7 @@ class ProcessControlRecoveryTest {
 
         RecoveryResult result = results.get(0);
         assertThat(result.outcome().succeeded()).isTrue();
-        assertThat(result.text()).contains("is resumed").contains("does not prove the stop was Prism's");
+        assertThat(result.text()).contains("is resumed").contains("does not prove the stop was PRISM's");
         assertThat(controller.calls).containsExactly("facts 4242", "adopt 4242", "resume 4242");
         assertThat(activity.entries())
                 .anySatisfy(entry ->
@@ -114,7 +114,7 @@ class ProcessControlRecoveryTest {
         RecoveryResult result = ask(RecoveryRequest.Action.RESUME, DEMO);
 
         assertThat(result.text())
-                .isEqualTo("Prism did not resume demo (PID 4242). Another suspension also holds it. Prism changed"
+                .isEqualTo("PRISM did not resume demo (PID 4242). Another suspension also holds it. PRISM changed"
                         + " nothing.");
         assertThat(controller.calls).doesNotContain("resume 4242");
     }
@@ -161,7 +161,7 @@ class ProcessControlRecoveryTest {
         RecoveryResult second = ask(RecoveryRequest.Action.DISMISS, DEMO);
 
         assertThat(first.text())
-                .isEqualTo("The entry for demo (PID 4242) is dismissed. Prism did not touch the process.");
+                .isEqualTo("The entry for demo (PID 4242) is dismissed. PRISM did not touch the process.");
         assertThat(second.outcome().result()).isEqualTo(OperationResult.INVALID_ARGUMENT);
         assertThat(controller.calls).isEmpty();
         assertThat(coordinator.recovered()).isEmpty();
@@ -188,7 +188,7 @@ class ProcessControlRecoveryTest {
 
         assertThat(results)
                 .singleElement()
-                .satisfies(result -> assertThat(result.text()).contains("Prism is closing"));
+                .satisfies(result -> assertThat(result.text()).contains("PRISM is closing"));
         assertThat(controller.calls).isEmpty();
     }
 }

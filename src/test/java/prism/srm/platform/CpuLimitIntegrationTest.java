@@ -47,7 +47,7 @@ import prism.srm.domain.SuspensionReason;
  * The emulated CPU limit on the real system (LIM-8, ADR-0011), with the controller and the source
  * of this operating system, on the demo workload only (SAFE-6): what it holds a busy process to,
  * that it leaves one below its limit alone, that every way it ends lets the process run, and what
- * the next start does after Prism was ended without a controlled shutdown. The independent measure
+ * the next start does after PRISM was ended without a controlled shutdown. The independent measure
  * of the CPU time is the JDK's (the process listing on macOS), never the source under test.
  *
  * <p>Runs on Windows, Linux and macOS; what was run where is in the milestone report.
@@ -346,7 +346,7 @@ class CpuLimitIntegrationTest {
             }
             assertThat(mean).as("the limit acts: less than the unlimited use").isLessThan(unlimited * 0.75);
             assertThat(shownHeld.get())
-                    .as("the limiter's holds are never Suspended by Prism")
+                    .as("the limiter's holds are never Suspended by PRISM")
                     .isZero();
             // A target that demands more than its limit is throttled while it is held near it. "Not
             // throttling" is true for an interval in which it used less (a burst of another process
@@ -404,7 +404,7 @@ class CpuLimitIntegrationTest {
     /**
      * Whether the system reports the workload held: on Windows a thread waiting for the reason
      * Suspended (WMI, read without touching it), elsewhere the process stopped (the kernel's
-     * state). Independent of Prism's record of what it holds.
+     * state). Independent of PRISM's record of what it holds.
      */
     private boolean heldBySystem() {
         if (org.junit.jupiter.api.condition.OS.WINDOWS.isCurrentOs()) {
@@ -416,7 +416,7 @@ class CpuLimitIntegrationTest {
     }
 
     /**
-     * Removing a limit releases the whole workload and lets it run as before. What Prism records
+     * Removing a limit releases the whole workload and lets it run as before. What PRISM records
      * ({@code heldFor}) is not taken as the evidence: the system's own report of the threads is, once
      * it has been seen to report the limiter's stops; and the workload must then reach its earlier
      * use. A one-second window over 80 % of it within ten seconds: a neighbour on a busy machine may
@@ -474,7 +474,7 @@ class CpuLimitIntegrationTest {
     }
 
     /**
-     * ADR-0011: after Prism ended without a controlled shutdown, the next start resumes nothing by
+     * ADR-0011: after PRISM ended without a controlled shutdown, the next start resumes nothing by
      * itself; it lists what the journal holds, and resumes it only on the user's request, after the
      * controller's check.
      */
@@ -493,7 +493,7 @@ class CpuLimitIntegrationTest {
                 .as("the user's suspension: %s", suspended)
                 .isEqualTo(SuspensionCoordinator.Change.SUSPENDED);
         assertThat(suspended.recorded()).isTrue();
-        // What a kill of Prism leaves: the entry on disk, the process stopped, nothing held by a live session.
+        // What a kill of PRISM leaves: the entry on disk, the process stopped, nothing held by a live session.
         limits.stopForShutdown();
         coordinator.refuseFurtherSuspensions();
         coordinator.finalizeForShutdown(Duration.ofSeconds(2));
@@ -591,7 +591,7 @@ class CpuLimitIntegrationTest {
                     .filter(prism.srm.domain.ControlMechanism.PER_THREAD_SUSPENSION::equals)
                     .isPresent();
             if (perThread) {
-                // Windows: the limiter keeps no record of its threads, so only the user can act, outside Prism.
+                // Windows: the limiter keeps no record of its threads, so only the user can act, outside PRISM.
                 assertThat(listed)
                         .singleElement()
                         .satisfies(entry -> assertThat(entry.state()).isEqualTo(RecoveryState.MANUAL_INTERVENTION));
@@ -618,7 +618,7 @@ class CpuLimitIntegrationTest {
      * state on Linux and macOS, and no processor time on every system), kills the child, and starts
      * a recovery: the workload stays stopped and is listed; an entry for the same PID with another
      * start time is closed; nothing is resumed until the user asks. Windows keeps no record of the
-     * limiter's threads, so there the entry is left to the user outside Prism and Dismiss touches
+     * limiter's threads, so there the entry is left to the user outside PRISM and Dismiss touches
      * nothing.
      */
     @Test
@@ -756,7 +756,7 @@ class CpuLimitIntegrationTest {
                 assertThat(found.state()).isEqualTo(RecoveryState.MANUAL_INTERVENTION);
                 assertThat(found.resumable()).isFalse();
                 assertThat(later.resumeRecovered(demo.identity()).outcome().succeeded())
-                        .as("Prism offers no resume for it")
+                        .as("PRISM offers no resume for it")
                         .isFalse();
                 assertThat(later.dismissRecovered(demo.identity())).isTrue();
                 assertThat(next.resumes.get()).as("Dismiss touches nothing").isZero();

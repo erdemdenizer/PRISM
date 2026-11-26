@@ -19,7 +19,7 @@ import prism.srm.domain.ActivitySeverity;
  * folder is looked at first and starting the file manager takes its time. One thread at most, gone
  * when idle; a request made while one waits is dropped, as a second click on the same button would be.
  *
- * <p>The answer says what Prism knows: that the system was asked. The system does not say whether a
+ * <p>The answer says what PRISM knows: that the system was asked. The system does not say whether a
  * window opened.
  */
 final class FolderOpener implements AutoCloseable {
@@ -58,7 +58,7 @@ final class FolderOpener implements AutoCloseable {
     private Optional<String> tryOpen(Path folder) {
         if (!Files.isDirectory(folder)) {
             return Optional.of(
-                    "This folder does not exist yet: " + folder + ". Prism creates it when it first writes there.");
+                    "This folder does not exist yet: " + folder + ". PRISM creates it when it first writes there.");
         }
         try {
             fileManager.accept(folder);

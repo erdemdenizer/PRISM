@@ -11,11 +11,11 @@ import java.util.Optional;
  * @param cpu what a CPU limit is on this system: native, emulated, or unavailable with the reason
  *     (LIM-3, CAP-2)
  * @param memory what a memory limit is on this system: native, or unavailable with the reason
- * @param limitsOff why Prism applies no emulated limit now, when it does not: the suspension
+ * @param limitsOff why PRISM applies no emulated limit now, when it does not: the suspension
  *     journal that must record a limit before the limiter may suspend anything could not be written
  *     (ADR-0011); empty while limits can be set
  * @param notices further sentences the page states: a failed limit ledger, jobs of exited processes
- *     that still carry limits, processes an earlier session may still cap, Prism inside a job
+ *     that still carry limits, processes an earlier session may still cap, PRISM inside a job
  */
 public record LimitsSnapshot(
         List<ManagedProcessView> processes,
@@ -27,8 +27,8 @@ public record LimitsSnapshot(
     /** Before the limits are known. */
     public static final LimitsSnapshot EMPTY = new LimitsSnapshot(
             List.of(),
-            LimitCapability.unavailable("Prism is still starting"),
-            LimitCapability.unavailable("Prism is still starting"),
+            LimitCapability.unavailable("PRISM is still starting"),
+            LimitCapability.unavailable("PRISM is still starting"),
             Optional.empty(),
             List.of());
 

@@ -36,7 +36,7 @@ class LogsPageSceneTest {
             new ActivityEntry(
                     T.plusSeconds(5),
                     ActivitySeverity.WARNING,
-                    "Change priority: Access denied: java (PID 4242). The system does not let Prism act on this"
+                    "Change priority: Access denied: java (PID 4242). The system does not let PRISM act on this"
                             + " process. [OpenProcess failed: 5; code 5]"));
 
     @SuppressWarnings("unchecked")
@@ -119,7 +119,7 @@ class LogsPageSceneTest {
                 .as("newest first; once, for the key with Ctrl only")
                 .isEqualTo(
                         "2026-10-08 07:00:05 Warning Change priority: Access denied: java (PID 4242). The system does not let"
-                                + " Prism act on this process. [OpenProcess failed: 5; code 5]");
+                                + " PRISM act on this process. [OpenProcess failed: 5; code 5]");
     }
 
     private static final String OOM_SETTINGS = "OOM Guard settings changed: monitoring on, warning 15 %, critical 8 %,"
@@ -127,7 +127,7 @@ class LogsPageSceneTest {
             + " termination off.";
 
     private static final String SETTINGS_PATH =
-            "Settings read from C:\\Users\\alice\\AppData\\Local\\Prism\\SystemResourceManager-UILab\\settings"
+            "Settings read from C:\\Users\\alice\\AppData\\Local\\Prism\\SystemResourceManager\\settings"
                     + "\\prism.settings";
 
     /** Real-like entries: the OOM Guard settings line and a path, both longer than a 720 px window. */

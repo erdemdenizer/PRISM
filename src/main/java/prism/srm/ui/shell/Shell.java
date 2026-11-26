@@ -59,7 +59,7 @@ import prism.srm.ui.shell.StatusBar.Monitoring;
  * The content of the application window: the navigation on the left, the current page in the
  * middle, the status bar at the bottom.
  *
- * <p>UI lab v2 (lab-docs/LAB_DESIGN_SPEC.md, sections 2 and 7). The navigation takes the form the
+ * <p>UI redesign (docs/design/DESIGN_SPEC.md, sections 2 and 7). The navigation takes the form the
  * width gives it (K1, {@link Sidebar.Mode}): a sidebar with names from {@link
  * Breakpoints#LABELLED_NAV_FROM}, below it the rail of {@link Breakpoints#RAIL_WIDTH}, each icon with
  * its name under it. The navigation is at the left of every window and always names its destinations
@@ -361,7 +361,7 @@ public final class Shell extends BorderPane {
         heightProperty().addListener((observable, before, after) -> adapt());
     }
 
-    // ---- adaptive layout (UI lab v2) ----
+    // ---- adaptive layout (UI redesign) ----
 
     private static final PseudoClass NARROW = PseudoClass.getPseudoClass("narrow");
     private static final PseudoClass WIDE = PseudoClass.getPseudoClass("wide");
@@ -540,7 +540,7 @@ public final class Shell extends BorderPane {
     }
 
     /**
-     * The PID of Prism itself: the Processes page offers no action on its row and says why (CAP-2).
+     * The PID of PRISM itself: the Processes page offers no action on its row and says why (CAP-2).
      * The services refuse such a request on their own as well (SAFE-2). Call on the JavaFX
      * Application Thread.
      */
@@ -577,7 +577,7 @@ public final class Shell extends BorderPane {
     }
 
     /**
-     * Takes the processes Prism holds suspended. The Processes page is given them whether it is on
+     * Takes the processes PRISM holds suspended. The Processes page is given them whether it is on
      * screen or not: once process monitoring has stopped, it is where they can still be resumed.
      * Call on the JavaFX Application Thread.
      */

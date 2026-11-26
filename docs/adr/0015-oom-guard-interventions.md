@@ -11,7 +11,7 @@
 OOM Guard (PRODUCT_SPEC §9, LIM-9) watches memory pressure and may lower the priority of,
 suspend or terminate Managed Processes, and only those, as far as the user's switches allow.
 Every one of those actions is destructive or has a side effect the user must be able to trust
-Prism to undo. The plan approved on 2026-10-12 (revision 3, decisions O1–O17b) settles what
+PRISM to undo. The plan approved on 2026-10-12 (revision 3, decisions O1–O17b) settles what
 the specification leaves open. This record keeps the decisions that are expensive to reverse.
 
 ## Decision
@@ -55,7 +55,7 @@ stops it with a reason the page shows as "not now: …":
 6. the switch for the action is on in that same settings snapshot, the process's effective
    action is that action, and the platform's memory signal is validated;
 7. the identity is in the last listing and is not protected (`ProtectionRules` against
-   Prism's own PID and against fresh `protectionFacts`);
+   PRISM's own PID and against fresh `protectionFacts`);
 8. the incident ledger allows it.
 
 At most one native intervention per evaluation. The controller's own identity check stays the
@@ -94,10 +94,10 @@ Tests: `OomGuardRevocationTest`.
 - **Terminate is Force Kill** (O1), sent at most once per process identity per session (O15),
   whatever its result, and never retried. It needs the global switch and the per-process
   choice (OOM-9).
-- **Lower priority is LOW** (O2). It is offered only where Prism can raise it back without
+- **Lower priority is LOW** (O2). It is offered only where PRISM can raise it back without
   privilege (`Restorability.RESTORABLE`: Windows). Where it cannot (Linux, macOS: the nice
   value), automatic priority reduction is `UNAVAILABLE` and the action falls back to Notify
-  only (O16 (a)): Prism never creates a side effect it cannot undo. At NORMAL a lowered
+  only (O16 (a)): PRISM never creates a side effect it cannot undo. At NORMAL a lowered
   priority is restored to the level it had, one at a time after the resumes; a priority the
   user changed meanwhile is left as is; a restore that fails is an ERROR in the log and on
   the page, never tried twice and never reported as done.
@@ -136,10 +136,10 @@ Lowering and termination are not affected.
   and limits"), then, on `srm-shutdown` and within the shutdown's bound, restores the
   priorities the guard lowered (O7), and releases the `OOM_GUARD` reasons with the other
   automatic reasons (existing step). The restore runs on `srm-shutdown` without a queue,
-  after the limiter executor has terminated, like the other "what Prism undoes itself" steps.
+  after the limiter executor has terminated, like the other "what PRISM undoes itself" steps.
 - The exit hook stops the guard first, then releases the automatic reasons; it does not
   restore priorities (its 1.5 s are for suspensions and native limits).
-- If Prism is killed, a lowered priority stays lowered; an `OOM_GUARD` hold is listed by the
+- If PRISM is killed, a lowered priority stays lowered; an `OOM_GUARD` hold is listed by the
   next start and resumed only by the user.
 - **Stop against an intervention (external review, 2026-10-12).** Every native intervention
   (lowering, suspension with its declaration, termination) begins under one lock. It begins only
@@ -152,9 +152,9 @@ Lowering and termination are not affected.
       hook logs that and exits without waiting further.
     - The controlled shutdown waits for the limiter thread within its own bound (1 s) before it
       restores any priority.
-    - A native call that hangs inside the operating system is not interrupted. Prism does not
+    - A native call that hangs inside the operating system is not interrupted. PRISM does not
       claim it was stopped; it says it was still in flight.
-  - **Not an intervention:** raising back a priority Prism lowered is an undo, not an
+  - **Not an intervention:** raising back a priority PRISM lowered is an undo, not an
     intervention. The shutdown's bounded restore still does it after `stop()`.
   - **Tests:** `OomGuardLifecycleTest` stops OOM Guard exactly between the gate's last check and
     the native call, and holds a native call open while it stops.
@@ -213,14 +213,14 @@ of `HostPlatform.oomSignalStatus` and its test:
 2. The raw reports and those output lines are kept as an evidence file in `docs/evidence/`, with
    the commit and the run named, as for milestone 10.
 3. A note on containers is added: either the evidence ran outside a memory-limited cgroup and
-   the limit below stays a known limit, or the gate reads Prism's own cgroup v2 `memory.max`.
+   the limit below stays a known limit, or the gate reads PRISM's own cgroup v2 `memory.max`.
 4. The external reviewer and the product owner accept the evidence and this ADR note.
 
 Until then the Linux tests remain in the build. They are evidence once they pass, never a
 switch.
 
 Known limits of the gate:
-- **Linux in a container.** `MemAvailable` is host-wide. A cgroup v2 `memory.max` of Prism's
+- **Linux in a container.** `MemAvailable` is host-wide. A cgroup v2 `memory.max` of PRISM's
   own group is not read, so OOM Guard does not see a container's limit. This is one reason
   Linux stays not validated (item 3 above).
 - **A reading of zero.** An available reading of exactly zero is taken as a failed read on

@@ -114,13 +114,34 @@ final class ProcessDock extends Region {
         return Math.max(ProcessesPage.INSPECTOR_MIN, Math.min(Math.min(wanted, ProcessesPage.INSPECTOR_MAX), room));
     }
 
+    /**
+     * Beside the inspector, the least width of the table is the width its columns need without scrolling,
+     * but never so much that the page could not become narrower than {@link Breakpoints#SIDE_FROM}.
+     *
+     * <p>Course release, finding L-1 of the redesign's Linux test (2026-11-12): long user names (system
+     * accounts such as {@code cups-browsed}) widen the user column up to {@link ColumnWidths#USER_MAX}, and
+     * the table's need with them. When that need held the page at or above {@link Breakpoints#SIDE_FROM},
+     * a narrower window could not make the page narrower: the page kept the inspector beside the table and
+     * the area of the page scrolled sideways, with the inspector cut or out of sight. Capped, the page can
+     * always become narrower than that width, so the inspector goes under the table or into its sheet; a
+     * table with such long names scrolls sideways itself, which it does at every narrow width anyway.
+     */
     @Override
     protected double computeMinWidth(double height) {
         double least = table.minWidth(-1);
         if (mode == Breakpoints.Inspector.SIDE) {
-            least += DIVIDER + ProcessesPage.INSPECTOR_MIN;
+            least = Math.min(least, mostTableBesideTheInspector()) + DIVIDER + ProcessesPage.INSPECTOR_MIN;
         }
         return snappedLeftInset() + least + snappedRightInset();
+    }
+
+    /** The widest least width of the table beside the inspector that leaves the page under {@link Breakpoints#SIDE_FROM}. */
+    private double mostTableBesideTheInspector() {
+        double around = snappedLeftInset() + snappedRightInset();
+        if (getParent() instanceof Region page) {
+            around += page.snappedLeftInset() + page.snappedRightInset();
+        }
+        return Math.max(0, Breakpoints.SIDE_FROM - 1 - around - DIVIDER - ProcessesPage.INSPECTOR_MIN);
     }
 
     @Override

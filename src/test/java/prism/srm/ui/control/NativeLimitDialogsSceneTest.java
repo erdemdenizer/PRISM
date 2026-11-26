@@ -28,7 +28,7 @@ import prism.srm.ui.snapshot.SnapshotHarness.Theme;
 class NativeLimitDialogsSceneTest {
 
     private static final FallbackOffer OFFER =
-            new FallbackOffer("it is in a Job Object Prism does not hold", 4, 16, true);
+            new FallbackOffer("it is in a Job Object PRISM does not hold", 4, 16, true);
 
     /** Enter must not set a limit that may make the process fail, nor start the costlier limiter. */
     @Test
@@ -37,7 +37,7 @@ class NativeLimitDialogsSceneTest {
             Dialog<ButtonType> memory = MemoryLimitDialog.build("demo", 42, OptionalLong.empty(), "300 MiB");
             Dialog<ButtonType> offer = FallbackOfferDialog.build("demo", 42, OFFER);
             Dialog<ButtonType> resident =
-                    ResidentOfferDialog.build("demo", 42, "it is in a Job Object Prism does not hold");
+                    ResidentOfferDialog.build("demo", 42, "it is in a Job Object PRISM does not hold");
             return List.of(defaultButton(memory), defaultButton(offer), defaultButton(resident));
         });
 
@@ -133,7 +133,7 @@ class NativeLimitDialogsSceneTest {
     @Test
     void theRefusalOfASecondLaunchHasOnlyCloseAsDefault() {
         List<Object> seen = SnapshotHarness.inspect(Theme.LIGHT, 200, 100, Pane::new, root -> {
-            Dialog<ButtonType> dialog = AlreadyRunningDialog.build("Prism is already running for this user.");
+            Dialog<ButtonType> dialog = AlreadyRunningDialog.build("PRISM is already running for this user.");
             List<ButtonType> buttons = dialog.getDialogPane().getButtonTypes();
             javafx.scene.control.Button close =
                     (javafx.scene.control.Button) dialog.getDialogPane().lookupButton(buttons.get(0));
@@ -184,13 +184,13 @@ class NativeLimitDialogsSceneTest {
                 "dialog-already-running",
                 theme,
                 () -> AlreadyRunningDialog.build(
-                        "Prism is already running for this user. Only one Prism may"
+                        "PRISM is already running for this user. Only one PRISM may"
                                 + " run at a time, so that two never limit the same process; switch to the window that is open."));
         DialogSnapshots.render("dialog-fallback", theme, () -> FallbackOfferDialog.build("chrome.exe", 18812, OFFER));
         DialogSnapshots.render(
                 "dialog-resident-offer",
                 theme,
-                () -> ResidentOfferDialog.build("chrome.exe", 18812, "it is in a Job Object Prism does not hold"));
+                () -> ResidentOfferDialog.build("chrome.exe", 18812, "it is in a Job Object PRISM does not hold"));
     }
 
     private static ButtonData defaultButton(Dialog<ButtonType> dialog) {

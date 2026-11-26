@@ -18,7 +18,7 @@ import javafx.scene.transform.Scale;
 public final class IconView extends Region {
 
     /**
-     * UI lab v2: the stroke is set in screen units, not in grid units. Lucide's 2 units on the 24 grid
+     * UI redesign: the stroke is set in screen units, not in grid units. Lucide's 2 units on the 24 grid
      * give 1.33 px at 16, which renders soft; a fixed width per size keeps every icon equally crisp:
      * 1.25 at 12 and below, 1.5 at 16, 1.6 at 20, 1.75 above.
      */

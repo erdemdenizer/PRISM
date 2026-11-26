@@ -103,7 +103,7 @@ class InspectorRealSizeSnapshotTest {
                             ControlAction.FORCE_KILL,
                             OperationResult.ACCESS_DENIED,
                             "Access denied: audiodg.exe (PID 268).",
-                            "The system does not let Prism act on this process.");
+                            "The system does not let PRISM act on this process.");
                 }));
             }
         }
@@ -160,7 +160,7 @@ class InspectorRealSizeSnapshotTest {
                             LimitRequest.of(LimitAction.DISABLE, identity(30_324), "java.exe"),
                             ControlOutcome.success(),
                             "The limits of java.exe (PID 30324) are disabled.",
-                            "Prism no longer stops it."));
+                            "PRISM no longer stops it."));
                 }));
             }
         }
@@ -252,7 +252,7 @@ class InspectorRealSizeSnapshotTest {
             shell.showLimits(LimitsFixtures.snapshot(LimitsFixtures.throttling(asked, "audiodg.exe", 30, 29.6)));
         }
 
-        /** A process selected that Prism does not manage: Manage is offered, the other choices say why not. */
+        /** A process selected that PRISM does not manage: Manage is offered, the other choices say why not. */
         void selectedNotManaged() {
             shell.showProcesses(ProcessListings.windows(394, 7));
             table().getSelectionModel().select(3);

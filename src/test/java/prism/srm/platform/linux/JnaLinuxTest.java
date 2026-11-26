@@ -48,7 +48,7 @@ class JnaLinuxTest {
     }
 
     /**
-     * The identity Prism checks is the identity the listing gives: this JVM's start time, computed
+     * The identity PRISM checks is the identity the listing gives: this JVM's start time, computed
      * from /proc, equals the JDK's and the process listing's.
      */
     @Test
@@ -89,7 +89,7 @@ class JnaLinuxTest {
         }
     }
 
-    /** errno really reaches Prism from a failing call: an exited child, and a descriptor that is none. */
+    /** errno really reaches PRISM from a failing call: an exited child, and a descriptor that is none. */
     @Test
     @EnabledOnOs(OS.LINUX)
     void aFailingCallOnThisLinuxReportsItsErrno() throws Exception {

@@ -15,7 +15,7 @@ public final class WindowedTarget {
     private WindowedTarget() {}
 
     public static void main(String[] arguments) {
-        Frame frame = new Frame("Prism End Task target");
+        Frame frame = new Frame("PRISM End Task target");
         frame.setSize(320, 160);
         frame.addWindowListener(new WindowAdapter() {
             @Override

@@ -53,7 +53,7 @@ import prism.srm.ui.processes.ProcessOrder.SortKey;
  */
 final class ProcessTable extends TableView<ProcessRow> {
 
-    // The table metrics as table.css sets them (UI lab v2: 30 px rows, 32 px header; 28 in a low window).
+    // The table metrics as table.css sets them (UI redesign: 30 px rows, 32 px header; 28 in a low window).
     private static final double ROW_HEIGHT = 30;
     private static final double HEADER_HEIGHT = 32;
     private static final double FRAME = 2;
@@ -105,7 +105,7 @@ final class ProcessTable extends TableView<ProcessRow> {
         setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
         setMinHeight(FRAME + HEADER_HEIGHT + FEWEST_ROWS * ROW_HEIGHT);
         setPrefHeight(FRAME + HEADER_HEIGHT + FEWEST_ROWS * ROW_HEIGHT);
-        // UI lab v2: a low window sets denser rows in the stylesheet (shell.css); the least height
+        // UI redesign: a low window sets denser rows in the stylesheet (shell.css); the least height
         // follows the row height the table actually has.
         fixedCellSizeProperty().addListener((observable, before, after) -> {
             double row = after.doubleValue() > 0 ? after.doubleValue() : ROW_HEIGHT;
@@ -115,7 +115,7 @@ final class ProcessTable extends TableView<ProcessRow> {
 
         name = column(ProcessColumn.NAME, ColumnWidths.NAME_MIN);
         name.setCellFactory(ignored -> new TextCell(text::name));
-        // UI lab v2: the name takes the room left up to a ceiling; State takes the rest (fitColumns).
+        // UI redesign: the name takes the room left up to a ceiling; State takes the rest (fitColumns).
         name.setMaxWidth(Double.MAX_VALUE);
         addNumberColumn(
                 ProcessColumn.PID,

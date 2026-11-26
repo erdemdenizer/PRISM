@@ -114,7 +114,7 @@ class SuspensionCoordinatorRecoveryTest {
         RecoveredSuspension listedEntry = only();
         assertThat(listedEntry.state()).isEqualTo(RecoveryState.POSSIBLY_SUSPENDED);
         assertThat(listedEntry.resumable()).isTrue();
-        assertThat(listedEntry.explanation()).contains("does not prove the stop is Prism's");
+        assertThat(listedEntry.explanation()).contains("does not prove the stop is PRISM's");
         assertThat(controller.calls).doesNotContain("resume 4242", "adopt 4242");
         assertThat(listed).as("published at once").isNotEmpty();
         assertThat(coordinator.held()).as("never shown as held in this session").isEmpty();
@@ -266,7 +266,7 @@ class SuspensionCoordinatorRecoveryTest {
 
         SuspensionCoordinator.RecoveryOutcome outcome = coordinator.resumeRecovered(DEMO);
 
-        assertThat(outcome.outcome().detail().orElseThrow()).contains("Prism holds it in this session");
+        assertThat(outcome.outcome().detail().orElseThrow()).contains("PRISM holds it in this session");
         assertThat(controller.calls).doesNotContain("adopt 4242");
     }
 

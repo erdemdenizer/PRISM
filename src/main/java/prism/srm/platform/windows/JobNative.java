@@ -10,13 +10,13 @@ import com.sun.jna.win32.StdCallLibrary;
 import com.sun.jna.win32.W32APIOptions;
 
 /**
- * The Job Object functions, rights and information classes Prism uses (ADR-0002, milestone 10).
+ * The Job Object functions, rights and information classes PRISM uses (ADR-0002, milestone 10).
  * {@code jna-platform} 5.19.1 maps none of them, so each is written here from the page Microsoft
  * documents it on. The errors are read with {@link Native#getLastError()}, which JNA saves right
  * after each call; their codes are those of {@code WinError}.
  *
  * <p>What is deliberately absent: {@code JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE}, {@code
- * JOB_OBJECT_LIMIT_JOB_MEMORY}, {@code JOB_OBJECT_TERMINATE} and {@code TerminateJobObject}. Prism
+ * JOB_OBJECT_LIMIT_JOB_MEMORY}, {@code JOB_OBJECT_TERMINATE} and {@code TerminateJobObject}. PRISM
  * never terminates a process to manage a limit, and a job it closes never takes its processes with
  * it (ADR-0002).
  */
@@ -44,7 +44,7 @@ final class JobNative {
     static final int JOB_OBJECT_CPU_RATE_CONTROL_INFORMATION = 15;
 
     /**
-     * {@code LimitFlags}: the per-process committed-memory limit. The only limit flag Prism sets.
+     * {@code LimitFlags}: the per-process committed-memory limit. The only limit flag PRISM sets.
      * https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-jobobject_basic_limit_information
      */
     static final int JOB_OBJECT_LIMIT_PROCESS_MEMORY = 0x00000100;

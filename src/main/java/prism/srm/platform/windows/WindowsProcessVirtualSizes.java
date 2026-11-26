@@ -42,7 +42,7 @@ import prism.srm.platform.ProcessVirtualSizeSource;
  * drop the system's cached performance data; that is how its own process listing works as well.
  *
  * <p>The reader is in a package OSHI does not export. An OSHI upgrade has to re-check it. It is
- * reachable only while Prism runs on the class path: on the module path the call would fail with
+ * reachable only while PRISM runs on the class path: on the module path the call would fail with
  * a {@link LinkageError}, which is an {@link Error} and, like every {@code Error}, is not caught
  * and ends process monitoring.
  */

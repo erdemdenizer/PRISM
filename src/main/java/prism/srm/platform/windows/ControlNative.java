@@ -66,7 +66,7 @@ final class ControlNative {
         /**
          * {@code BOOL CheckRemoteDebuggerPresent(HANDLE hProcess, PBOOL pbDebuggerPresent)}: nonzero
          * on success; the flag is set to TRUE if the process is being debugged. The page names no
-         * access right; Prism opens the process with {@code PROCESS_QUERY_INFORMATION} for it and
+         * access right; PRISM opens the process with {@code PROCESS_QUERY_INFORMATION} for it and
          * takes a failure as "cannot tell".
          * https://learn.microsoft.com/en-us/windows/win32/api/debugapi/nf-debugapi-checkremotedebuggerpresent
          */

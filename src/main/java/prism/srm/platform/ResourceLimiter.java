@@ -37,12 +37,12 @@ public interface ResourceLimiter {
         return List.of();
     }
 
-    /** Whether Prism itself runs inside a job, when the system says; logged once at start-up. */
+    /** Whether PRISM itself runs inside a job, when the system says; logged once at start-up. */
     Optional<Boolean> selfInJob();
 
     /**
      * How each kind could be provided for this process now (LIM-3): native, or unavailable with the
-     * reason (refused, in a job Prism does not hold, gone). Changes nothing.
+     * reason (refused, in a job PRISM does not hold, gone). Changes nothing.
      */
     Map<LimitKind, LimitCapability> capabilitiesFor(ProcessIdentity target);
 
@@ -71,7 +71,7 @@ public interface ResourceLimiter {
     }
 
     /**
-     * Why no second limiter, native or emulated, may start on the process because it runs inside a scope a Prism
+     * Why no second limiter, native or emulated, may start on the process because it runs inside a scope a PRISM
      * session created and this limiter does not hold for it (milestone 12, plan Rev 2.2 §4.5 b: the scope-membership
      * rule, independent of any record); empty when nothing stands against it. Reads only; may be asked from the limiter
      * thread. Empty for every limiter without scopes.
@@ -125,7 +125,7 @@ public interface ResourceLimiter {
     ReleaseResult releaseAll(Duration within);
 
     /**
-     * Whether a Prism session on this system can have set native limits, today or in an earlier
+     * Whether a PRISM session on this system can have set native limits, today or in an earlier
      * session, whatever today's probe says: true on Windows (Job Objects), even where native CPU
      * limits are unavailable now; false where this version has no native limiter at all. Recovery of
      * earlier sessions' native limits runs only where this is true (final source audit).

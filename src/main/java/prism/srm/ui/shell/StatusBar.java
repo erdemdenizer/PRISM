@@ -27,7 +27,7 @@ final class StatusBar extends HBox {
         /** The Overview has no live values any more; whether processes are listed is not said. */
         SYSTEM_STOPPED("System monitoring stopped unexpectedly", true),
         /** The Overview is live; only the process listing has ended. */
-        DEGRADED("Monitoring degraded: process monitoring stopped unexpectedly. Restart Prism to restore it.", true),
+        DEGRADED("Monitoring degraded: process monitoring stopped unexpectedly. Restart PRISM to restore it.", true),
         STOPPED("Monitoring stopped unexpectedly", true);
 
         private final String text;
@@ -104,9 +104,6 @@ final class StatusBar extends HBox {
     private final Tooltip whereToLook = new Tooltip();
     private final Label pressure = new Label();
 
-    /** UI lab: says that this is the lab build and that its data folders are its own. */
-    private final Label labMark = new Label("UI LAB · isolated data");
-
     StatusBar() {
         getStyleClass().add("status-bar");
         monitoring.getStyleClass().addAll("status-text", "text-small");
@@ -117,11 +114,9 @@ final class StatusBar extends HBox {
         pressure.setMinWidth(Region.USE_PREF_SIZE);
         pressure.setVisible(false);
         pressure.managedProperty().bind(pressure.visibleProperty());
-        labMark.getStyleClass().addAll("status-text", "status-lab", "text-small");
-        labMark.setMinWidth(Region.USE_PREF_SIZE);
         Region gap = new Region();
         HBox.setHgrow(gap, Priority.ALWAYS);
-        getChildren().addAll(monitoring, gap, pressure, labMark);
+        getChildren().addAll(monitoring, gap, pressure);
         show(Monitoring.STARTING, "");
     }
 

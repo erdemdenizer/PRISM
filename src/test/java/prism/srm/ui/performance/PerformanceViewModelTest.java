@@ -746,7 +746,7 @@ class PerformanceViewModelTest {
         assertThat(model.status().stateProperty().get()).isEqualTo(PageState.ERROR);
         assertThat(model.status().errorProperty().get())
                 .startsWith("Monitoring could not start")
-                .contains("Restart Prism")
+                .contains("Restart PRISM")
                 .contains("C:\\logs");
         assertNothingIsShown();
     }

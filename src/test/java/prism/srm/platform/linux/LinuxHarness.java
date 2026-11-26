@@ -135,7 +135,7 @@ final class LinuxHarness {
             if (!sleeper.process.waitFor(10, TimeUnit.SECONDS)) {
                 throw new IllegalStateException("the sleeper did not end");
             }
-            return Map.entry(new SystemdScopeManager(api).startScope(unit, fd, "Prism test: reaped process"), unit);
+            return Map.entry(new SystemdScopeManager(api).startScope(unit, fd, "PRISM test: reaped process"), unit);
         } finally {
             linux.close(fd);
         }

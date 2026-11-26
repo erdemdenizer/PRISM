@@ -23,9 +23,9 @@ not a verdict.
 
 The raw results are not in this repository. They are in the handoff package of this stage.
 
-## CAP-2: Prism's own process
+## CAP-2: PRISM's own process
 
-The window offers nothing for Prism's own row, and says why; the service still refuses every request (SAFE-2), so a
+The window offers nothing for PRISM's own row, and says why; the service still refuses every request (SAFE-2), so a
 request that reached it by another way would change nothing.
 
 | Check | Where | Result |
@@ -45,7 +45,7 @@ request that reached it by another way would change nothing.
 | Full log | Nothing said that older entries are not kept here | A line says that only the newest entries are kept and that the log file has the rest | `LogsViewModelTest`, snapshot `logs-full` with 1000 entries |
 | The log folder did not open | The outcome went to the Settings page even when the Logs page asked | It is said on the page that asked | `ShellNavigationTest`, snapshot `logs-folder-failed` |
 | Small window | 720x480 only | 720x480 and 704x441, also 1100x700 and 1600x1000 | `LogsSnapshotTest`, 48 images |
-| Unavailable | n/a: the activity log is Prism's own and is always there | | |
+| Unavailable | n/a: the activity log is PRISM's own and is always there | | |
 
 No other page had a state of this kind missing: the states of the other pages were already rendered (test matrix).
 
@@ -63,7 +63,7 @@ and Space, Enter, Escape and the arrows where they act (`KeyboardRoutesSceneTest
 | Context menu of a row with the context-menu key, 13 items | PASS |
 | The arrows move in the menu | PASS |
 | One Escape closes the menu | PASS |
-| Shift+F10 | INFO: it opens the menu, but on Windows the window also enters the system's menu mode, which takes the next keys; two Escapes close it. JDK-8090022 describes the same. Not a product defect that Prism can fix without an undocumented workaround (K2); the context-menu key works fully |
+| Shift+F10 | INFO: it opens the menu, but on Windows the window also enters the system's menu mode, which takes the next keys; two Escapes close it. JDK-8090022 describes the same. Not a product defect that PRISM can fix without an undocumented workaround (K2); the context-menu key works fully |
 
 Defects found and fixed on the way:
 
@@ -86,7 +86,7 @@ All on the packaged `prism-demo`, never on a user's process.
 | Process control from the window | Priority Below normal (read as the priority class), Suspend 26 of 26 threads, Resume, the load back, End task says that the demo has no window to ask and does not claim it ended, Enter and Escape both decline Force kill, Force kill ends the demo and is logged, close | PASS |
 | Native limits | CPU 5 % measured, removed, memory limit refusing an allocation, cleared at close | PASS (the scenarios of the functional stage, run again) |
 | OOM Guard | Thresholds above the available memory bring Emergency without using memory; the demo, under OOM management with Suspend, is suspended 26 of 26 and the log says so; close releases the hold and the load is back | PASS |
-| OOM Guard and a hard kill of Prism | Killed while it held 26 of 26 threads; the next start resumes nothing, lists it, offers Resume after a check because OOM Guard recorded the threads, and resumes | PASS |
+| OOM Guard and a hard kill of PRISM | Killed while it held 26 of 26 threads; the next start resumes nothing, lists it, offers Resume after a check because OOM Guard recorded the threads, and resumes | PASS |
 | Closing | Closed during start-up, with a dialog open and during a save; one instance | PASS |
 
 ## LIFE-5
@@ -113,7 +113,7 @@ before the measurement. The heap was read with `jcmd GC.run` and `GC.heap_info` 
 | Measure | Value |
 |---|---|
 | Duration | 600.3 s |
-| Processor time used by Prism | 29.05 s |
+| Processor time used by PRISM | 29.05 s |
 | Of one logical processor | 4.84 % |
 | **Of the machine** | **0.302 %** (budget 2 %, **met**) |
 | Heap in use after GC: start, middle, end | 34 788, 34 380, 36 066 K |
@@ -150,7 +150,7 @@ run cannot accept an image, because a JDK is beside it.
 | UI-7 native title bar (WP2) | Not in this stage. Windows 10 limitation open (K12) |
 | Visual review of the 801 snapshot images and the running window | Visual stage |
 | The reason line of the own row is shortened in the middle at 1100x700 ("Prism doe…, end") | Open, layout; the whole text is on every action's tooltip |
-| Shift+F10 on Windows enters the system's menu mode (JDK-8090022) | Open, outside Prism; the context-menu key is the keyboard route |
+| Shift+F10 on Windows enters the system's menu mode (JDK-8090022) | Open, outside PRISM; the context-menu key is the keyboard route |
 | LIFE-5 at log-off | NOT TESTED |
 | Windows 10, SmartScreen with a downloaded ZIP | NOT TESTED |
 | Hosted CI | Not run, by instruction |

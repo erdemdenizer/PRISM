@@ -10,7 +10,7 @@ public enum OperationResult {
     /** The operation was carried out, in the sense its action defines: a close request posted, a termination started, a suspension held, a priority set and read back. */
     SUCCESS,
 
-    /** The system refused, or Prism refused before asking it because the target is protected. */
+    /** The system refused, or PRISM refused before asking it because the target is protected. */
     ACCESS_DENIED,
 
     /** The process no longer exists, or its PID now belongs to another process. */

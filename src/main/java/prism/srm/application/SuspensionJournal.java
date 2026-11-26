@@ -23,15 +23,15 @@ import prism.srm.domain.ProcessIdentity;
 import prism.srm.domain.SuspensionReason;
 
 /**
- * The suspension journal of one session of Prism (LIFE-6, ADR-0011): a small file in the per-user
- * state folder that says which processes Prism holds, or may hold, suspended and why, so that a
+ * The suspension journal of one session of PRISM (LIFE-6, ADR-0011): a small file in the per-user
+ * state folder that says which processes PRISM holds, or may hold, suspended and why, so that a
  * session that ends without a controlled shutdown leaves a record the next session can show.
  *
  * <p><b>One file per session, and a lock.</b> Each session writes its own file, {@code
  * suspensions-<instance>.journal}, and holds an exclusive lock on {@code
  * suspensions-<instance>.lock} for as long as it runs. A lock that can be taken belongs to a
  * session that has ended: that is how a later session tells a journal it may recover from one a
- * running Prism still writes. The lock is taken before the journal is read and held until its
+ * running PRISM still writes. The lock is taken before the journal is read and held until its
  * files are deleted, so two sessions starting together never recover the same journal.
  *
  * <p><b>Written durably, and checked.</b> The whole file is written to a temporary file in the same
@@ -650,7 +650,7 @@ public final class SuspensionJournal implements AutoCloseable {
             }
             long pid = Long.parseLong(fields.get("pid"));
             if (pid <= 0 || pid > Integer.MAX_VALUE) {
-                // No system Prism runs on gives such a PID: the line is not one Prism wrote.
+                // No system PRISM runs on gives such a PID: the line is not one PRISM wrote.
                 return Optional.empty();
             }
             return Optional.of(new JournalEntry(

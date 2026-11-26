@@ -21,9 +21,9 @@ import prism.srm.ui.control.ActionResultLine;
 import prism.srm.ui.control.CutTextTooltip;
 
 /**
- * The processes an earlier session of Prism may have left suspended, at the top of the Processes
+ * The processes an earlier session of PRISM may have left suspended, at the top of the Processes
  * page (ADR-0011): a caption, then each with its name, its PID, why the earlier session held it,
- * what Prism could check, and Resume… where Prism offers it and Dismiss; then the line about the
+ * what PRISM could check, and Resume… where PRISM offers it and Dismiss; then the line about the
  * last request. Takes room only while it has something to show. Layout and binding only.
  *
  * <p>The buttons are made again only when the list changes, so the one that was pressed keeps the
@@ -49,7 +49,7 @@ final class RecoveredSuspensionsPane extends VBox {
         this.model = model;
         this.resume = resume;
         getStyleClass().add("recovered-suspensions");
-        setAccessibleText("Processes an earlier session of Prism may have left suspended");
+        setAccessibleText("Processes an earlier session of PRISM may have left suspended");
 
         Label caption = new Label(RecoveredSuspensions.CAPTION);
         caption.getStyleClass().addAll("text-small", "recovered-suspensions-caption");
@@ -67,7 +67,7 @@ final class RecoveredSuspensionsPane extends VBox {
                                 model.checkProperty().get()),
                         model.checkProperty()));
         incomplete.getStyleClass().addAll("text-small", "recovered-suspensions-incomplete");
-        // In the warning color once Prism has stopped looking, as the summary beside the filter.
+        // In the warning color once PRISM has stopped looking, as the summary beside the filter.
         javafx.css.PseudoClass warning = javafx.css.PseudoClass.getPseudoClass("warning");
         incomplete.pseudoClassStateChanged(warning, model.checkProperty().get() == RecoveryCheck.EXHAUSTED);
         model.checkProperty()
@@ -129,13 +129,13 @@ final class RecoveredSuspensionsPane extends VBox {
             why.setMinWidth(Region.USE_PREF_SIZE);
             Label explanation = new Label(entry.explanation());
             explanation.getStyleClass().addAll("text-small", "text-muted", "recovered-suspension-explanation");
-            // On lines of its own width, wrapped: in the dialog the whole of what Prism could check is read.
+            // On lines of its own width, wrapped: in the dialog the whole of what PRISM could check is read.
             explanation.setWrapText(true);
             explanation.setMinWidth(0);
             explanation.setPrefWidth(EXPLANATION_WIDTH);
             explanation.setMaxWidth(EXPLANATION_WIDTH);
             explanation.setMinHeight(Region.USE_PREF_SIZE);
-            // The whole entry as the journal had it, beside what Prism could check: the evidence (ADR-0011).
+            // The whole entry as the journal had it, beside what PRISM could check: the evidence (ADR-0011).
             Tooltip whole = new Tooltip(entry.explanation() + "\n\n" + entry.evidence());
             whole.setWrapText(true);
             whole.setMaxWidth(560);
@@ -158,7 +158,7 @@ final class RecoveredSuspensionsPane extends VBox {
             dismiss.getStyleClass().add("recovered-suspension-dismiss");
             dismiss.setMinWidth(Region.USE_PREF_SIZE);
             dismiss.setAccessibleText("Dismiss the entry for " + target + "; the process is left as it is");
-            dismiss.setTooltip(new Tooltip("Closes the entry. Prism does not touch the process."));
+            dismiss.setTooltip(new Tooltip("Closes the entry. PRISM does not touch the process."));
             dismiss.setDisable(model.pending(entry));
             dismiss.setOnAction(event -> model.dismiss(entry));
             buttons.add(dismiss);

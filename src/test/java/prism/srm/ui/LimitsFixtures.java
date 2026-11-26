@@ -186,7 +186,7 @@ public final class LimitsFixtures {
                 name,
                 EnumSet.of(SuspensionReason.USER),
                 true,
-                "It is stopped. That does not prove the stop is Prism's: another program may have stopped it.");
+                "It is stopped. That does not prove the stop is PRISM's: another program may have stopped it.");
     }
 
     public static ProcessIdentity identity(long pid) {

@@ -26,7 +26,7 @@ class OverviewArrangementTest {
     }
 
     /**
-     * UI lab v2: in a row of four a tile is at most 520 px wide, the group in the middle of the page; the
+     * UI redesign: in a row of four a tile is at most 520 px wide, the group in the middle of the page; the
      * choice takes the capped tile, so a very wide page that is not low enough keeps two by two.
      */
     @Test

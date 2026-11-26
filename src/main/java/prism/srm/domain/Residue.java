@@ -4,8 +4,8 @@ import java.time.Instant;
 import java.util.Objects;
 
 /**
- * The job of a process that exited while its job still carries limits Prism could not verify as
- * cleared (milestone 10, plan §8.6): the processes the exited one started stay limited. Prism keeps
+ * The job of a process that exited while its job still carries limits PRISM could not verify as
+ * cleared (milestone 10, plan §8.6): the processes the exited one started stay limited. PRISM keeps
  * the job and retries; it never ends those processes.
  *
  * @param survivors how many processes the job still holds, as its accounting said; -1 when unknown

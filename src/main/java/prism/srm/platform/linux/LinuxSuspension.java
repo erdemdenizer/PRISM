@@ -4,7 +4,7 @@ import prism.srm.domain.ProcessIdentity;
 import prism.srm.platform.Suspension;
 
 /**
- * A stop Prism made with SIGSTOP, holding the pidfd it was sent through: the continue goes through
+ * A stop PRISM made with SIGSTOP, holding the pidfd it was sent through: the continue goes through
  * the same descriptor, so it reaches exactly the process that was stopped, or fails with ESRCH once
  * that process has gone, whatever has taken its PID since. The whole process is one unit. The
  * descriptor is closed exactly once: when the stop is undone or the process has gone, or by

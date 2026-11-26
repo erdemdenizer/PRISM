@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Assumptions;
 
 /**
  * The precondition of every native-limit integration test (plan §11.6): a child of the test JVM
- * inherits the test JVM's job, and a process in a job Prism does not hold is refused by design
+ * inherits the test JVM's job, and a process in a job PRISM does not hold is refused by design
  * (plan D1). Where that is so the tests cannot validate anything; with {@code
  * -Dprism.native.required=true} that fails the run, otherwise the test is skipped with the reason,
  * and the separate native-validation check counts every skip as "not validated". Each call prints

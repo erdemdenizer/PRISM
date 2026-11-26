@@ -24,7 +24,7 @@ import prism.srm.platform.WindowChrome;
 
 /**
  * Gives the frame the system draws around each window of the application the colors of the theme (UI
- * lab v2): the caption bar in the chrome token, so that caption, navigation rail, page header and status
+ * redesign): the caption bar in the chrome token, so that caption, navigation rail, page header and status
  * line read as one frame, the caption text in the text token and the border in the hairline token.
  *
  * <p>Every stage that is shown gets them, the main window and each dialog, and all of them get them again
@@ -34,7 +34,7 @@ import prism.srm.platform.WindowChrome;
  * <p>A window that is not the active one (another application is, or one of its own dialogs) shows its
  * caption text in the subtle text token, as Windows dims the text of an inactive caption: the system dims
  * the caption buttons of an inactive window by itself but leaves a text color set by the application as
- * it is (measured, lab-evidence/B-titlebar/dwm-dark-inactive.png). Caption and border stay the same. The
+ * it is (measured on Windows 11). Caption and border stay the same. The
  * text is changed when the stage's {@code focused} property changes, and only when the frame does not
  * show the wanted colors already: a focus change that changes nothing makes no native call.
  *

@@ -13,7 +13,7 @@ time the processors were not idle. *% Processor Utility* scales that by the freq
 processor ran at relative to its nominal frequency, so it rises above the busy share
 under turbo boost; Task Manager has shown it since Windows 8. OSHI reads the time-based
 counters by default and offers the option `oshi.os.windows.cpu.utility` to read the
-utility-based ones. Measured on the development machine, Prism's value tracked
+utility-based ones. Measured on the development machine, PRISM's value tracked
 *% Processor Time* within a few points while *% Processor Utility* was 5 to 12 points
 higher. Linux and macOS have only the time-based figure.
 
@@ -28,7 +28,7 @@ listed counts the same bytes several times.
 ## Decision
 
 1. **The CPU percentage is busy time on every system.** `oshi.os.windows.cpu.utility`
-   stays off. Prism prefers one meaning across systems to matching Task Manager's number
+   stays off. PRISM prefers one meaning across systems to matching Task Manager's number
    on Windows. No second CPU metric and no option is offered.
 2. **Every disk and network interface is reported with its layer**: `PHYSICAL` (a
    hardware device at the bottom of the stack), `LOGICAL` (implemented in software on top

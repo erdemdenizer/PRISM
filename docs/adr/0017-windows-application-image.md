@@ -13,9 +13,9 @@ The feasibility round of milestone 13 measured the default jpackage launcher on 
 
 - The launcher starts a second copy of itself, in a Job Object with `KILL_ON_JOB_CLOSE` and
   `SILENT_BREAKAWAY_OK`, and waits for it. Two processes run for one PRISM.
-- The Prism that runs is the child. SAFE-2 protects the process it knows as its own, so the launcher parent appeared
+- The PRISM that runs is the child. SAFE-2 protects the process it knows as its own, so the launcher parent appeared
   as an ordinary row with Suspend, End task and Force kill enabled, and ending it ended PRISM.
-- A demo in such a job refused the native CPU limit and offered no native memory limit, because Prism does not take a
+- A demo in such a job refused the native CPU limit and offered no native memory limit, because PRISM does not take a
   process another program's job holds (ADR-0012).
 
 ## Decision

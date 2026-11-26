@@ -50,7 +50,7 @@
 }
 
 /*
- * Per-resource data colors (UI lab v2, spec section 4). A page puts the class of the resource on the
+ * Per-resource data colors (UI redesign, spec section 4). A page puts the class of the resource on the
  * panel or section that holds the graph; every graph and grid inside takes the hue. The second series
  * of a pair (write, upload) is drawn dashed by HistoryGraph as well.
  */

@@ -101,20 +101,20 @@ class DialogsFitSceneTest {
                         FallbackOfferDialog.build(
                                 LONG,
                                 18812,
-                                new FallbackOffer("it is in a Job Object Prism does not hold", 4, 16, true)),
+                                new FallbackOffer("it is in a Job Object PRISM does not hold", 4, 16, true)),
                         dialog -> {},
                         scale));
         dialogs.put(
                 "resident offer",
                 () -> DialogFit.measure(
-                        ResidentOfferDialog.build(LONG, 18812, "it is in a Job Object Prism does not hold"),
+                        ResidentOfferDialog.build(LONG, 18812, "it is in a Job Object PRISM does not hold"),
                         dialog -> {},
                         scale));
         dialogs.put(
                 "already running",
                 () -> DialogFit.measure(
                         AlreadyRunningDialog.build(
-                                "Prism is already running for this user. Only one Prism may run at a time,"
+                                "PRISM is already running for this user. Only one PRISM may run at a time,"
                                         + " so that two never limit the same process; switch to the window that is open."),
                         dialog -> {},
                         scale));

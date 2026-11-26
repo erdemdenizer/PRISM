@@ -135,7 +135,7 @@ class LimitRunTest {
         assertThat(use).isCloseTo(0.30, within(0.03));
         assertThat(run.state().status()).isEqualTo(LimitStatus.ACTIVE_THROTTLING);
         assertThat(coordinator.held())
-                .as("the limiter's momentary holds are not shown as Suspended by Prism")
+                .as("the limiter's momentary holds are not shown as Suspended by PRISM")
                 .isEmpty();
     }
 

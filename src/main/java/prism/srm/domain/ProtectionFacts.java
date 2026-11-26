@@ -4,7 +4,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * What the system says about a process that bears on whether Prism may act on it (SAFE-3). These
+ * What the system says about a process that bears on whether PRISM may act on it (SAFE-3). These
  * are facts, read from the system; which of them protect a process is decided above the platform.
  *
  * @param systemProcess the process is one of the system's own by its identity, such as the idle

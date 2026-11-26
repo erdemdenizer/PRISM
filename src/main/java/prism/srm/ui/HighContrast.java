@@ -27,8 +27,8 @@ import javafx.stage.Window;
  * bar and focus ring, because the stylesheets draw selected text in the text token. The preference
  * and the colors are followed while the application runs, and every window that opens gets them.
  *
- * <p>Off, nothing of this is applied and the lab tokens are untouched. Not tested in a real high
- * contrast session (the lab machine was not switched to one); the mapping is tested with a fake map
+ * <p>Off, nothing of this is applied and the theme tokens are untouched. Not tested in a real high
+ * contrast session (the test machine was not switched to one); the mapping is tested with a fake map
  * of preferences (HighContrastTest).
  *
  * <p>Used on the JavaFX Application Thread only. {@link #close()} stops it following the platform.

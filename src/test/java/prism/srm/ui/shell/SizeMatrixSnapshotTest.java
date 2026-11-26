@@ -30,7 +30,7 @@ import prism.srm.ui.snapshot.SnapshotHarness;
 import prism.srm.ui.snapshot.SnapshotHarness.Theme;
 
 /**
- * UI lab: every page in both themes at the sizes of the lab's review matrix, from 720 x 480 (narrow,
+ * UI redesign: every page in both themes at the sizes of the review matrix, from 720 x 480 (narrow,
  * low) through 1100 x 700 (default), 1366 x 768, 1440 x 900, 1600 x 500 (wide and low), 1920 x 1080
  * (docked) and 900 x 1200 (tall) to 2560 x 1440 and 3440 x 1440 (ultrawide), with the same live data,
  * a short session in the activity log and a Windows-like control profile. For the eye; each render
@@ -57,18 +57,18 @@ class SizeMatrixSnapshotTest {
     private static final Instant T = Instant.parse("2026-10-08T07:00:00Z");
 
     private static final List<ActivityEntry> SESSION = List.of(
-            new ActivityEntry(T, ActivitySeverity.INFO, "Prism System Resource Manager started on Java 25.0.4.1."),
+            new ActivityEntry(T, ActivitySeverity.INFO, "PRISM started on Java 25.0.4.1."),
             new ActivityEntry(T.plusSeconds(2), ActivitySeverity.INFO, "Monitoring started: system metrics every 1 s."),
             new ActivityEntry(
                     T.plusSeconds(55),
                     ActivitySeverity.WARNING,
-                    "Change priority: Access denied: svchost.exe (PID 1288). The system does not let Prism act on"
+                    "Change priority: Access denied: svchost.exe (PID 1288). The system does not let PRISM act on"
                             + " this process. [OpenProcess failed: 5 (Access is denied.); code 5]"),
             new ActivityEntry(
                     T.plusSeconds(61),
                     ActivitySeverity.ERROR,
                     "Resume: The system did not resume java (PID 30324). The Logs page has the details. [1 live"
-                            + " thread(s) still suspended by Prism: 23 resumed, 0 ended, 1 failed (6 (The handle is"
+                            + " thread(s) still suspended by PRISM: 23 resumed, 0 ended, 1 failed (6 (The handle is"
                             + " invalid.)); code 6]"));
 
     private static final ControlProfile WINDOWS_LIKE = new ControlProfile(

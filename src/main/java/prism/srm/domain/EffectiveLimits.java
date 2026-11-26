@@ -7,16 +7,16 @@ import java.util.OptionalInt;
 import java.util.OptionalLong;
 
 /**
- * The native limits a system holds for a process, as it reads them back, or as Prism means to set
+ * The native limits a system holds for a process, as it reads them back, or as PRISM means to set
  * them. Kept apart per kind, because each kind is set by a call of its own and either takes effect
  * as a whole or not at all (milestone 10, plan revision 4.1).
  *
  * @param cpuRate the CPU cap as a share of the whole machine in hundredths of a percent (2000 is 20
  *     %); empty when no cap is in force
  * @param memoryBytes the committed memory each process of the limit may have; empty when none
- * @param foreign what the system holds that Prism never sets, in words (a weight-based rate,
+ * @param foreign what the system holds that PRISM never sets, in words (a weight-based rate,
  *     another limit flag); present only for a read-back. Limits with something foreign are never
- *     Prism's.
+ *     PRISM's.
  * @param memoryBoundary which kind of boundary the memory limit is (milestone 12): {@link MemoryBoundary#HARD}
  *     for a Job Object's commit limit or Linux {@code memory.max}, {@link MemoryBoundary#THROTTLE} for Linux
  *     {@code memory.high}. Without a memory limit it is always {@code HARD}, so that two limits without memory
@@ -74,7 +74,7 @@ public record EffectiveLimits(
     }
 
     /**
-     * The value of one kind, for comparing a read-back with what Prism recorded: the CPU rate, or the memory limit. A
+     * The value of one kind, for comparing a read-back with what PRISM recorded: the CPU rate, or the memory limit. A
      * hard memory limit is its bytes, as in milestone 10; a throttling one is its bytes together with the boundary, so
      * that a hard limit never stands for a throttling one of the same size.
      */

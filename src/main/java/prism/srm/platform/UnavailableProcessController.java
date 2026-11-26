@@ -13,9 +13,9 @@ import prism.srm.domain.ProtectionFacts;
 import prism.srm.domain.Restorability;
 
 /**
- * The controller of a system Prism cannot control processes on yet: every action is reported as
+ * The controller of a system PRISM cannot control processes on yet: every action is reported as
  * {@link Capability#UNAVAILABLE}, and every call answers {@link OperationResult#UNSUPPORTED}
- * without touching anything. A system Prism has no controller for uses it.
+ * without touching anything. A system PRISM has no controller for uses it.
  */
 final class UnavailableProcessController implements ProcessController {
 

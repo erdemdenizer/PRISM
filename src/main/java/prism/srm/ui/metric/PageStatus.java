@@ -46,7 +46,7 @@ public final class PageStatus {
      * @param logFolder where the log file with the cause is, as text for the user
      */
     public void startupFailed(String logFolder) {
-        failed("Monitoring could not start, so no values are shown. Restart Prism; if that does not help, "
+        failed("Monitoring could not start, so no values are shown. Restart PRISM; if that does not help, "
                 + "the log file in " + logFolder + " has the details.");
     }
 
@@ -56,7 +56,7 @@ public final class PageStatus {
      * @param logFolder where the log file with the cause is, as text for the user
      */
     public void monitoringStopped(String logFolder) {
-        failed("System monitoring stopped unexpectedly, so no values are shown. Restart Prism; the log file in "
+        failed("System monitoring stopped unexpectedly, so no values are shown. Restart PRISM; the log file in "
                 + logFolder + " has the details.");
     }
 
@@ -66,7 +66,7 @@ public final class PageStatus {
      * @param logFolder where the log file with the cause is, as text for the user
      */
     public void processMonitoringStopped(String logFolder) {
-        failed("Process monitoring stopped unexpectedly, so no processes are shown. Restart Prism; the log file in "
+        failed("Process monitoring stopped unexpectedly, so no processes are shown. Restart PRISM; the log file in "
                 + logFolder + " has the details.");
     }
 
@@ -79,7 +79,7 @@ public final class PageStatus {
      */
     public void processesNotListed(String logFolder) {
         failed("System monitoring stopped unexpectedly before the processes were listed. If none appear, restart"
-                + " Prism; the log file in " + logFolder + " has the details.");
+                + " PRISM; the log file in " + logFolder + " has the details.");
     }
 
     private void failed(String why) {

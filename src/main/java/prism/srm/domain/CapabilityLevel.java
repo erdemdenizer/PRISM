@@ -13,7 +13,7 @@ public enum CapabilityLevel {
      */
     NATIVE_SOFT,
 
-    /** Enforced by Prism itself, approximately, and only while Prism runs. */
+    /** Enforced by PRISM itself, approximately, and only while PRISM runs. */
     EMULATED,
 
     /** Not possible here. */

@@ -157,13 +157,13 @@ event=end reason=completed elapsed=20s exit=0
 ```
 
 `cpu-self` is the share of the machine the process measured for itself from its own CPU
-time, to be compared with the CPU column of Prism. The end line names the reason:
+time, to be compared with the CPU column of PRISM. The end line names the reason:
 `completed` (exit code 0), `allocation-failed` (the system refused a chunk, which is what
 a commit limit on the process looks like on Windows; a Linux cgroup limit may instead end
 the process without a line; the memory held so far is released and the run ends, exit
 code 1), or `interrupted` (Ctrl+C or a termination request; the shutdown hook waits up to
 2 s for this line, which says `exit=signal` because the exit code is then the JVM's for
-the signal, 130 after Ctrl+C). In Prism
+the signal, 130 after Ctrl+C). In PRISM
 the process is listed as `java` like any other; it is found by its PID, which the start
 line prints, and the inspector shows the jar in its command line.
 
@@ -173,7 +173,7 @@ with a fake allocator that refuses a chunk, so no test takes real memory beyond 
 smoke test; `DemoRunTest` runs the whole thing for 300 ms and asserts what was printed,
 why it ended and that no worker thread is left; `DemoWorkloadProcessTest` starts the
 entry point as a child JVM with no load for one second and checks the exit codes. The
-load and the memory are verified against the system's counters and against Prism's
+load and the memory are verified against the system's counters and against PRISM's
 process table by hand ([MILESTONES.md](MILESTONES.md), milestone 6).
 
 ## Process control
@@ -210,7 +210,7 @@ Milestone 7 tests process control at three levels.
   process. `ProcessActionsSceneTest` (tag `ui-snapshot`) checks the confirmation (Cancel
   is the default, the act button is not), the context menu, and actions shown disabled
   with the reason when the report says `UNAVAILABLE`. The snapshots show the actions,
-  a result, a failure, "Suspended by Prism", the unavailable state and the Logs page.
+  a result, a failure, "Suspended by PRISM", the unavailable state and the Logs page.
 
 Milestone 7.5 adds the interaction around them:
 
@@ -218,7 +218,7 @@ Milestone 7.5 adds the interaction around them:
   level asked for until a listing shows it; none for a number that stands for no level), the
   line beside the actions (the action on its way, a result in two parts and its tone, the reason
   never as a result), when a result goes (another selection, a filter, monitoring stopping) and
-  when it stays (listings, an exit), and the state "Suspended by Prism" in the inspector.
+  when it stays (listings, an exit), and the state "Suspended by PRISM" in the inspector.
 - `ProcessActionsSceneTest` (tag `ui-snapshot`): the order of the actions in the inspector and in
   the context menu; the mark of the Priority menus and its move with the listing; the focus on the
   table once the action that had it is disabled, and back on the button after a declined
@@ -274,7 +274,7 @@ Milestone 8 brings Linux and macOS, at the same three levels:
 - **What a runner gives is read, not assumed.** The runners differ from a desk machine: GitHub's
   Windows runner starts jobs below normal, and its macOS runner starts them at nice -10.
   - The priority tests start from the level or nice value the process actually has.
-  - On Linux and macOS that value is read by Prism and checked against `ps`
+  - On Linux and macOS that value is read by PRISM and checked against `ps`
     (`platform.SpecNice`, `platform.Ps`: read-only, test code only; SAFE-5 binds production
     code).
   - They lower it to the next level of the CTL-6 table, written in the test independently of the
@@ -414,7 +414,7 @@ a window of the tester's own making, never an application someone uses.
   (this failed before the change) and the page is told pending, then complete; a running
   session's journal is neither read nor waited for and the page is told nothing; a shutdown
   while a journal waits ends within its bound, keeps the file and never says the list is
-  whole; a journal still locked when Prism stops looking is reported as not checked and kept.
+  whole; a journal still locked when PRISM stops looking is reported as not checked and kept.
   `RecoveredSuspensionsTest` covers what the summary says in each state, and
   `ProcessesSnapshotTest` (`processes-recovery-pending`, `processes-recovered-pending`,
   `processes-recovery-exhausted`, `processes-recovered-incomplete`) and
@@ -442,7 +442,7 @@ a window of the tester's own making, never an application someone uses.
   hook clear the native limits, and an earlier session's ledger is read at start-up.
 - **On the real system, Windows only, on processes the test starts.**
   `WindowsJobIntegrationTest` (the 20 % cap, the commit limit, a process in another program's
-  job, an exited process, forget), `NativeLimitRecoveryIntegrationTest` (a Prism stand-in,
+  job, an exited process, forget), `NativeLimitRecoveryIntegrationTest` (a PRISM stand-in,
   `NativeLimitingChild`, is killed while it holds a limit: the cap stays, the name is gone, and
   the next start's verdict is measured; also a crash between the two halves of a change and a
   child of an exited target) and `ParentExitsChildSurvivesTest` (through `SpawningTarget`).
@@ -452,19 +452,19 @@ a window of the tester's own making, never an application someone uses.
 - **The recovery trust boundary (audit, 2026-10-10).** `FaultyJournalFiles.metadataUnknown`
   makes a file's state impossible to tell, as `Files.exists` sees an unreadable one; tests in
   `NativeLimitLedgerTest`, `NativeRecoveryTest` and `NioJournalFilesTest` show that "cannot tell"
-  is never "not there", that a session is read as ended only on proof (its lock taken, its Prism
+  is never "not there", that a session is read as ended only on proof (its lock taken, its PRISM
   process gone), and that a folder that cannot be listed is not an empty one.
   `WindowsJobLimiterTest` and `NativeLimitRecoveryIntegrationTest`
   (`recoveryNeverChangesTheJobOfAPrismSessionThatStillRuns`, on the real system) show that recovery
   reads a reopened job and changes nothing.
-- **One Prism per user profile (ADR-0013).** `InstanceLockTest` takes real locks across JVMs it
+- **One PRISM per user profile (ADR-0013).** `InstanceLockTest` takes real locks across JVMs it
   starts (`InstanceLockHolder`): a second launch refused while the first keeps its journal, a
   hard kill freeing the profile, two launches with one winner, failures that refuse, channels
   closed. `ConcurrentInstancesTest` is the characterization of what two instances would do
   without the rule. The application-level refusal was checked by a real double launch on
   Windows (the second JVM showed only the refusal dialog and ran no `srm-*` thread). Runs that
-  start a second Prism (the verification procedures of milestones 7.5 and 8) need the
-  developer's own Prism closed first, or another user profile.
+  start a second PRISM (the verification procedures of milestones 7.5 and 8) need the
+  developer's own PRISM closed first, or another user profile.
 - **The `native-validation` check.** `.github/scripts/native-validation.mjs` reads the Windows
   surefire reports and passes only if every native suite ran and none of its tests was skipped,
   failed or ended in error; a skip is never a pass. It runs as a job of its own in `ci.yml`
@@ -490,7 +490,7 @@ a window of the tester's own making, never an application someone uses.
     doubled-backslash paths in Maven's `argLine`.
   - The hashes of the originals and of the copies are listed.
 - **By hand.** `JobObjectProbe` (the experiments E0 to E4) and `NativeLimitCostProbe` (the
-  cost of a native limit to Prism) are not part of the build.
+  cost of a native limit to PRISM) are not part of the build.
 - **The pages.** `LimitsViewModelNativeTest`, `MemoryLimitDialogTest`;
   `LimitsSnapshotTest` (`limits-native`, `limits-native-result`) and
   `NativeLimitDialogsSceneTest` (`dialog-memory-*`, `dialog-fallback-*`) for the eye.
@@ -637,7 +637,7 @@ The checks look at what happens to processes: threads counted from outside, CPU 
 The state of a button proves nothing. A first version of this check read the disabled buttons of a row that was not
 selected and reported a false PASS for SAFE-2. Each refusal is therefore counted in the log as well, so that a request
 that never arrived does not pass as one that was refused; a limit has a floor as well as a ceiling; and a release is
-proved only if the process was held at that moment. On Prism's own row the window offers nothing (CAP-2), so there the log
+proved only if the process was held at that moment. On PRISM's own row the window offers nothing (CAP-2), so there the log
 must show that no request reached the service at all.
 
 The checks added when milestone 13 was completed follow the same rule:
@@ -659,7 +659,7 @@ The checks added when milestone 13 was completed follow the same rule:
   next keys; JDK-8090022 describes the same. That is recorded as INFO, and is a FAIL only if Escape never closes the menu.
 - A console close is the console of a test launcher closed with `WM_CLOSE` while the limiter holds a process and the user
   holds another. The system ends the process as soon as the JVM's own console handler returns, before the shutdown hooks
-  have released anything, so LIFE-5 here rests on Prism's console control handler (`WindowsConsoleClose`). `demo-ctrl-c`
+  have released anything, so LIFE-5 here rests on PRISM's console control handler (`WindowsConsoleClose`). `demo-ctrl-c`
   gives the demo its own console and sends it Ctrl+C while a native limit holds it.
 
 `PackagingConfigTest`, in `verify`, pins the modules, the launcher key, the mandatory checks and the rules of the verdict.

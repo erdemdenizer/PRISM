@@ -107,7 +107,7 @@ class LimitsViewModelTest {
     void aLimitBelowTheFloorIsNeverCalledHeldAndSaysTheLowestReached() {
         LimitRow row = statusOf(
                 LimitStatus.ACTIVE_ABOVE_TARGET,
-                Optional.of("floor: the limit is below the lowest share Prism can hold this process to"),
+                Optional.of("floor: the limit is below the lowest share PRISM can hold this process to"),
                 OptionalDouble.of(6.1),
                 OptionalDouble.of(6.1));
 
@@ -146,7 +146,7 @@ class LimitsViewModelTest {
     @Test
     void limitsThatAreOffSayWhyAsAFailureAndAnUnavailableLimitAsAFact() {
         model.show(new LimitsSnapshot(
-                List.of(), LimitsFixtures.EMULATED, Optional.of("Limits are off: Prism cannot record them.")));
+                List.of(), LimitsFixtures.EMULATED, Optional.of("Limits are off: PRISM cannot record them.")));
         assertThat(model.noticeProperty().get()).startsWith("Limits are off");
         assertThat(model.limitsOffProperty().get()).isTrue();
 

@@ -69,7 +69,7 @@ public final class MetricPanel extends VBox {
 
     /**
      * Below this width of the window a panel with two series puts their values on a line of their
-     * own under its title where they do not fit beside it (UI lab v2: two long rates beside the
+     * own under its title where they do not fit beside it (UI redesign: two long rates beside the
      * title were cut). Where they fit, they stay beside it, so the page keeps its height (UI-8).
      * Panels with one value keep it beside the title.
      */

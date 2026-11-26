@@ -8,8 +8,8 @@ import prism.srm.domain.RecoveryResult;
 import prism.srm.platform.AdoptResult;
 
 /**
- * The words of the results of requests about processes an earlier session of Prism may have left
- * suspended (ADR-0011). A resume is never called proof that the stop was Prism's.
+ * The words of the results of requests about processes an earlier session of PRISM may have left
+ * suspended (ADR-0011). A resume is never called proof that the stop was PRISM's.
  */
 final class RecoveryMessages {
 
@@ -35,11 +35,11 @@ final class RecoveryMessages {
     }
 
     static Wording shuttingDown(RecoveryRequest request) {
-        return new Wording(nothingDone(request), "Prism is closing.");
+        return new Wording(nothingDone(request), "PRISM is closing.");
     }
 
     static Wording notMonitoring(RecoveryRequest request) {
-        return new Wording(nothingDone(request), "Prism is not monitoring processes.");
+        return new Wording(nothingDone(request), "PRISM is not monitoring processes.");
     }
 
     static Wording busy(RecoveryRequest request) {
@@ -59,17 +59,17 @@ final class RecoveryMessages {
     }
 
     static Wording refused(RecoveryRequest request, ProtectionRules.Refusal refusal) {
-        String headline = "Prism does not resume " + target(request) + ".";
+        String headline = "PRISM does not resume " + target(request) + ".";
         return switch (refusal) {
-            case OWN_PROCESS -> new Wording(headline, "It is Prism's own process.");
+            case OWN_PROCESS -> new Wording(headline, "It is PRISM's own process.");
             case SYSTEM_PROCESS, SYSTEM_EXECUTABLE ->
-                new Wording(headline, "It is a system process, which Prism never suspends.");
-            case CRITICAL_PROCESS -> new Wording(headline, "The system marks it as critical; Prism never suspends it.");
+                new Wording(headline, "It is a system process, which PRISM never suspends.");
+            case CRITICAL_PROCESS -> new Wording(headline, "The system marks it as critical; PRISM never suspends it.");
         };
     }
 
     static Wording dismissed(RecoveryRequest request) {
-        return new Wording("The entry for " + target(request) + " is dismissed.", "Prism did not touch the process.");
+        return new Wording("The entry for " + target(request) + " is dismissed.", "PRISM did not touch the process.");
     }
 
     static Wording noEntry(RecoveryRequest request) {
@@ -81,7 +81,7 @@ final class RecoveryMessages {
         ControlOutcome result = outcome.outcome();
         String detail = result.detail().orElse("");
         if (outcome.verdict().isEmpty()) {
-            return new Wording("Prism did not resume " + target(request) + ".", sentence(detail));
+            return new Wording("PRISM did not resume " + target(request) + ".", sentence(detail));
         }
         AdoptResult.Verdict verdict = outcome.verdict().get();
         return switch (verdict) {
@@ -89,17 +89,17 @@ final class RecoveryMessages {
                 result.succeeded()
                         ? new Wording(
                                 target(request) + " is resumed.",
-                                "It was stopped as recorded; that does not prove the stop was Prism's.")
+                                "It was stopped as recorded; that does not prove the stop was PRISM's.")
                         : new Wording(
                                 "Not every thread of " + target(request) + " could be resumed.",
-                                "Prism keeps what is left and lists it as held by Prism.");
+                                "PRISM keeps what is left and lists it as held by PRISM.");
             case NOT_SUSPENDED ->
                 new Wording(target(request) + " was not suspended any more.", "Nothing was done; the entry is closed.");
             case GONE -> new Wording(target(request) + " has exited.", "The entry is closed.");
             case REFUSED ->
                 new Wording(
-                        "Prism did not resume " + target(request) + ".",
-                        sentence(detail.isEmpty() ? "the check did not hold" : detail) + " Prism changed nothing.");
+                        "PRISM did not resume " + target(request) + ".",
+                        sentence(detail.isEmpty() ? "the check did not hold" : detail) + " PRISM changed nothing.");
         };
     }
 

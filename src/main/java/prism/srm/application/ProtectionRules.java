@@ -5,11 +5,11 @@ import prism.srm.domain.ProcessIdentity;
 import prism.srm.domain.ProtectionFacts;
 
 /**
- * Which processes Prism refuses to act on (SAFE-2, SAFE-3). Applied before any action reaches the
+ * Which processes PRISM refuses to act on (SAFE-2, SAFE-3). Applied before any action reaches the
  * platform: a refused process is never touched.
  *
  * <ul>
- *   <li>Prism's own process, by its PID. While Prism runs its PID cannot belong to another process,
+ *   <li>PRISM's own process, by its PID. While PRISM runs its PID cannot belong to another process,
  *       so the PID is enough here.
  *   <li>A process the system names as one of its own by identity (the idle and the kernel process
  *       on Windows, PID 1 elsewhere).
@@ -19,11 +19,11 @@ import prism.srm.domain.ProtectionFacts;
  * </ul>
  *
  * <p>When criticality cannot be determined, that alone does not protect a process: the action
- * itself then meets the system's own access checks, which refuse what Prism may not touch.
+ * itself then meets the system's own access checks, which refuse what PRISM may not touch.
  */
 public final class ProtectionRules {
 
-    /** Why Prism refuses a process. */
+    /** Why PRISM refuses a process. */
     public enum Refusal {
         OWN_PROCESS,
         SYSTEM_PROCESS,

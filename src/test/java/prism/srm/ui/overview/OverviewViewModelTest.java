@@ -194,7 +194,7 @@ class OverviewViewModelTest {
         assertThat(model.status().stateProperty().get()).isEqualTo(PageState.ERROR);
         assertThat(model.status().errorProperty().get())
                 .startsWith("Monitoring could not start")
-                .contains("Restart Prism")
+                .contains("Restart PRISM")
                 .contains("C:\\Users\\alice\\AppData\\Local\\Prism\\SystemResourceManager\\logs");
         for (MetricReadout readout : readouts()) {
             assertThat(readout.stateProperty().get()).isEqualTo(MetricState.UNAVAILABLE);
@@ -219,7 +219,7 @@ class OverviewViewModelTest {
         assertThat(model.status().stateProperty().get()).isEqualTo(PageState.ERROR);
         assertThat(model.status().errorProperty().get())
                 .startsWith("System monitoring stopped unexpectedly")
-                .contains("Restart Prism")
+                .contains("Restart PRISM")
                 .contains("C:\\logs");
         for (MetricReadout readout : readouts()) {
             assertThat(readout.stateProperty().get()).isEqualTo(MetricState.UNAVAILABLE);

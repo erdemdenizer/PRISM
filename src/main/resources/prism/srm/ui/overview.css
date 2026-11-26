@@ -14,7 +14,7 @@
   -fx-vgap: 12;
 }
 
-/* The lower row: the facts of the system and those of Prism, two panels as wide as each other. */
+/* The lower row: the facts of the system and those of PRISM, two panels as wide as each other. */
 .overview-facts {
   -fx-hgap: 12;
 }

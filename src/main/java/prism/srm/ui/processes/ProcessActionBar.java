@@ -398,7 +398,7 @@ final class ProcessActionBar extends Pane {
         Button button = new Button(text);
         button.setOnAction(event -> act.accept(action, Optional.empty()));
         if (action == ControlAction.FORCE_KILL) {
-            // UI lab v2: only Force kill has the danger words; End task is set apart by its place in
+            // UI redesign: only Force kill has the danger words; End task is set apart by its place in
             // the danger zone and its wording. Both still ask for confirmation.
             button.getStyleClass().add("destructive");
         }

@@ -96,10 +96,10 @@ Two facts shaped the answer:
     kept per process.
   - `maxHistory` 30 deletes files that are 31 to 62 days old, at start and at each
     rollover. `totalSizeCap` sums the files of the last 30 days only.
-  - So a file that is never 31 to 62 days old on a day Prism starts or rolls over is
-    never deleted. Used in autumn and not again before spring, Prism leaves the autumn
+  - So a file that is never 31 to 62 days old on a day PRISM starts or rolls over is
+    never deleted. Used in autumn and not again before spring, PRISM leaves the autumn
     files, up to about 20 MB of them, for good.
-  A hard bound needs a sweep of Prism's own at start-up, which deletes its files older
+  A hard bound needs a sweep of PRISM's own at start-up, which deletes its files older
   than a set age. That is a decision that has not been made.
 - No run has produced 2 MB of log yet, so no rollover and no deletion was observed.
 - If the folder cannot be created or written, Logback reports it on the console and the
@@ -109,19 +109,19 @@ Two facts shaped the answer:
   name pattern after inserting the folder. Windows allows `%` in a folder name. Not
   handled.
 - Logback's shutdown hook stops logging when the JVM exits. Shutdown hooks run in no
-  set order, so what a later hook of Prism logs (the suspension release of milestone 9)
+  set order, so what a later hook of PRISM logs (the suspension release of milestone 9)
   may be lost unless that milestone orders the two. The hook also waits for Logback's
   clean-up job, so the exit can take longer than the 5 seconds the controlled shutdown
   allows itself.
 - On Linux the specification asks that a missing directory be created "with permission
-  0700". Prism creates nothing itself; Logback creates the folder with the default mode
+  0700". PRISM creates nothing itself; Logback creates the folder with the default mode
   of the process, so other local users may be able to read the log where the home
   folder lets them in. To be settled when the code first runs on Linux.
 - On Linux the default is built on `$HOME`, as the specification words it, and on
   Java's `user.home` only when the variable holds no absolute path.
 - A home folder the file system cannot express as a path, or an empty one, gives a log
   folder below the working directory instead of an exception before logging exists.
-- Two instances of Prism write to the same file, and nothing coordinates them. What
+- Two instances of PRISM write to the same file, and nothing coordinates them. What
   that does to the file was not tested, and Logback's `prudent` mode, which exists for
   this case, was not evaluated. A single-instance rule, if wanted, is a product decision
   that has not been made.

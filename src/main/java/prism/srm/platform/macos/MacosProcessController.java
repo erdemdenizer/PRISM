@@ -36,7 +36,7 @@ import prism.srm.platform.Suspension;
  *
  * <p>A zombie is answered as gone: kill(2) succeeds on a zombie in xnu, which would report a
  * signal that reached nothing. A process stopped already (SSTOP), by a signal or a debugger, is
- * not suspended again: Prism does not take over a stop it did not make.
+ * not suspended again: PRISM does not take over a stop it did not make.
  *
  * <p><b>Priority</b> is the nice value of the process. Without privilege it can only be raised (a
  * lower priority): a lower value is refused with EACCES, also back to one the process had before.
@@ -144,7 +144,7 @@ public final class MacosProcessController implements ProcessController {
         }
         if (reading.info().orElseThrow().state() == SSTOP) {
             return SuspendResult.stoppedElsewhere(ControlOutcome.of(
-                    OperationResult.INVALID_ARGUMENT, "already stopped (SSTOP); Prism does not take it over"));
+                    OperationResult.INVALID_ARGUMENT, "already stopped (SSTOP); PRISM does not take it over"));
         }
         MacosNative.Call sent = calls.kill(pid(target), SIGSTOP);
         if (sent.failed()) {
@@ -166,7 +166,7 @@ public final class MacosProcessController implements ProcessController {
             }
             ControlOutcome checked = verify(stop.identity(), calls.processInfo(pid(stop.identity())));
             if (checked.result() == OperationResult.PROCESS_NOT_FOUND) {
-                // The process Prism stopped has gone; the PID names no process of Prism's any more.
+                // The process PRISM stopped has gone; the PID names no process of PRISM's any more.
                 stop.spent();
                 return checked;
             }
@@ -277,7 +277,7 @@ public final class MacosProcessController implements ProcessController {
         }
         if (reading.status() == MacosNative.Status.FAILED) {
             // Nothing is known about the process: a native error, never an exit, so that a stop
-            // Prism holds is not let go on a read that failed.
+            // PRISM holds is not let go on a read that failed.
             return reading.errno() != 0
                     ? ControlOutcome.of(
                             OperationResult.NATIVE_ERROR,

@@ -285,7 +285,7 @@ public final class SettingsPage extends VBox {
         units.setTooltip(unitTooltip());
         HBox row = new HBox(theme, choices, gap, units, unitChoices);
         row.getStyleClass().add("settings-row");
-        VBox block = new VBox(row, note("System follows the operating system, also while Prism runs."));
+        VBox block = new VBox(row, note("System follows the operating system, also while PRISM runs."));
         block.getStyleClass().add("settings-section");
         return block;
     }
@@ -452,7 +452,7 @@ public final class SettingsPage extends VBox {
     }
 
     /**
-     * The rows of a section on a panel of their own (UI lab v2: grouped rows, as system settings
+     * The rows of a section on a panel of their own (UI redesign: grouped rows, as system settings
      * are). The panel holds no live value, so it may have the surface and the hairline of a panel.
      */
     private static VBox group(Region... rows) {

@@ -22,7 +22,7 @@ import prism.srm.platform.ForgetResult;
 
 /**
  * A target that exits while a process it started after the limit lives on in its job (plan §8.6,
- * §11.3 E7): Prism counts the survivor, clears its own limits on the job, verifies, and only then lets
+ * §11.3 E7): PRISM counts the survivor, clears its own limits on the job, verifies, and only then lets
  * the job go; the survivor runs freely again and stays a member, which limits nothing. Only processes
  * this test starts are touched, and each is ended before the test returns (SAFE-6).
  */

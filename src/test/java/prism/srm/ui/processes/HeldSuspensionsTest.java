@@ -20,7 +20,7 @@ import prism.srm.ui.control.ResultTone;
 import prism.srm.ui.format.ValueFormatter;
 
 /**
- * After process monitoring stopped, a suspension Prism holds can still be released from the page,
+ * After process monitoring stopped, a suspension PRISM holds can still be released from the page,
  * and nothing else can be done. Through the view model as the page uses it; needs no toolkit.
  */
 class HeldSuspensionsTest {
@@ -102,7 +102,7 @@ class HeldSuspensionsTest {
         model.showControlResult(result(
                 sent.get(0),
                 OperationResult.PROCESS_NOT_FOUND,
-                "demo (PID 10) has exited; Prism no longer holds it suspended."));
+                "demo (PID 10) has exited; PRISM no longer holds it suspended."));
         assertThat(held.lineToneProperty().get()).isEqualTo(ResultTone.WARNING);
 
         held.resume(demo);
@@ -164,10 +164,10 @@ class HeldSuspensionsTest {
                 sent.get(0),
                 ControlOutcome.of(OperationResult.PROCESS_NOT_FOUND, "exited"),
                 "demo (PID 10) has exited.",
-                "Prism no longer holds it suspended."));
+                "PRISM no longer holds it suspended."));
 
         assertThat(held.lineHeadlineProperty().get()).isEqualTo("demo (PID 10) has exited.");
-        assertThat(held.lineExplanationProperty().get()).isEqualTo("Prism no longer holds it suspended.");
+        assertThat(held.lineExplanationProperty().get()).isEqualTo("PRISM no longer holds it suspended.");
         assertThat(held.lineToneProperty().get()).isEqualTo(ResultTone.WARNING);
         assertThat(held.newResultProperty().get()).isEqualTo(before + 1);
     }

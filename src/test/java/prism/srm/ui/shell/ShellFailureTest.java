@@ -57,7 +57,7 @@ class ShellFailureTest {
 
         assertThat(seen.status())
                 .isEqualTo(
-                        "Monitoring degraded: process monitoring stopped unexpectedly. Restart Prism to restore it.");
+                        "Monitoring degraded: process monitoring stopped unexpectedly. Restart PRISM to restore it.");
         assertThat(seen.statusIsAFailure()).isTrue();
         assertThat(seen.statusTooltip()).contains(LOG_FOLDER);
         assertThat(seen.message()).isNull();
@@ -77,7 +77,7 @@ class ShellFailureTest {
 
         assertThat(seen.status())
                 .isEqualTo(
-                        "Monitoring degraded: process monitoring stopped unexpectedly. Restart Prism to restore it.");
+                        "Monitoring degraded: process monitoring stopped unexpectedly. Restart PRISM to restore it.");
         assertThat(seen.unavailable()).isZero();
     }
 

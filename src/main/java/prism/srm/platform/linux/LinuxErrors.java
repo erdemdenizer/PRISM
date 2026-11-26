@@ -44,7 +44,7 @@ final class LinuxErrors {
     }
 
     /**
-     * Whether a failure of the pidfd calls on Prism's own process means that the mechanism is not
+     * Whether a failure of the pidfd calls on PRISM's own process means that the mechanism is not
      * there: the system call does not exist (ENOSYS), a seccomp filter refuses it (EPERM, which
      * pidfd_open does not document for itself), or the anonymous inode file system is missing
      * (ENODEV). Any other failure is unexpected, and is reported as such.

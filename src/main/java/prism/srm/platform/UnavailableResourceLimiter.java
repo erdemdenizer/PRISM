@@ -13,7 +13,7 @@ import prism.srm.domain.ProcessIdentity;
 import prism.srm.domain.RecoveredLimit;
 
 /**
- * The limiter of a system without native limits Prism uses (Linux until milestone 12, macOS, LIM-7):
+ * The limiter of a system without native limits PRISM uses (Linux until milestone 12, macOS, LIM-7):
  * every kind is unavailable, with the reason, and nothing native is touched. The limit service then
  * runs the emulated CPU limit as in milestone 9, without asking (plan D11).
  */

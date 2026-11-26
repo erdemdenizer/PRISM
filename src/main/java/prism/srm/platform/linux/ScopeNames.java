@@ -8,7 +8,7 @@ import prism.srm.domain.ProcessIdentity;
 import prism.srm.domain.ScopeProvenance;
 
 /**
- * The name of the systemd scope Prism would ask for to limit one process (milestone 12, plan Rev 2.1 §2.1):
+ * The name of the systemd scope PRISM would ask for to limit one process (milestone 12, plan Rev 2.1 §2.1):
  * {@code prism-srm-limit-<pid>-<start time in milliseconds>.scope}, derived from the process identity alone, so that a
  * later session can find the scope by it. One identity has exactly one name and one name exactly one identity: no
  * leading zeros, no sign, nothing else around it.
@@ -65,7 +65,7 @@ final class ScopeNames {
     }
 
     /**
-     * The Prism scope a cgroup path is inside: the first segment that is a Prism scope name, so a cgroup below such a
+     * The PRISM scope a cgroup path is inside: the first segment that is a PRISM scope name, so a cgroup below such a
      * scope counts too, whose limits still apply to it; empty when there is none.
      */
     static Optional<String> enclosingPrismScope(String cgroupPath) {

@@ -14,7 +14,7 @@ import javafx.scene.layout.VBox;
 import prism.srm.ui.Stylesheets;
 
 /**
- * Asks whether Prism may watch the resident memory of a process whose native memory limit could not
+ * Asks whether PRISM may watch the resident memory of a process whose native memory limit could not
  * be applied (LIM-9, plan O9: offered, never assumed). It says why the native limit was not applied
  * and that the watched limit is not a cap. Cancel is the default; nothing is watched unless the user
  * chooses it.
@@ -27,7 +27,7 @@ public interface ResidentOfferDialog {
 
     /** What the offer says, in words. */
     static String text(String reason) {
-        return "The native memory limit was not applied: " + reason + ". Prism can watch the resident memory of the"
+        return "The native memory limit was not applied: " + reason + ". PRISM can watch the resident memory of the"
                 + " process instead. That is not a cap: the process may use more. When it goes above the limit, OOM"
                 + " Guard applies the emergency action of the process, as far as its automatic intervention switches"
                 + " allow and only while OOM management is on for it.";

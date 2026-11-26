@@ -6,7 +6,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * One column of {@code ps} for one process: a read-only system tool that reads the system's own
- * process table, not through Prism's native code, for comparing with what Prism reads. Test
+ * process table, not through PRISM's native code, for comparing with what PRISM reads. Test
  * diagnostics only; production code never runs a command (SAFE-5).
  */
 public final class Ps {

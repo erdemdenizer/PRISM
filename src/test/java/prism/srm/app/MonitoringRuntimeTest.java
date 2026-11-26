@@ -1083,11 +1083,11 @@ class MonitoringRuntimeTest {
         assertThat(runtime.awaitStopped(PATIENCE_SECONDS, TimeUnit.SECONDS)).isTrue();
         runtime.requestProcessAction(ControlRequest.of(ControlAction.SUSPEND, DEMO, "java"));
         assertThat(controlResults.poll().text())
-                .isEqualTo("Nothing was done to java (PID 4242). Prism is not monitoring processes.");
+                .isEqualTo("Nothing was done to java (PID 4242). PRISM is not monitoring processes.");
         assertThat(controller.calls).isEmpty();
     }
 
-    /** PROC-6: a process Prism holds suspended is shown so in the next listing, from Prism's own record. */
+    /** PROC-6: a process PRISM holds suspended is shown so in the next listing, from PRISM's own record. */
     @Test
     void aProcessPrismSuspendedIsMarkedInTheListingsThatFollow() throws InterruptedException {
         processes.list(List.of(FakeProcessSource.reading(DEMO, 100, 0, 0)));
@@ -1139,7 +1139,7 @@ class MonitoringRuntimeTest {
         assertThat(controller.suspensions.get(0).closes).isEqualTo(1);
         assertThat(messages(ActivitySeverity.WARNING))
                 .contains(
-                        "Left suspended, as the user asked: java (PID 4242). They stay suspended after Prism closes.");
+                        "Left suspended, as the user asked: java (PID 4242). They stay suspended after PRISM closes.");
         assertThat(runtime.executorsTerminated()).isTrue();
         assertThat(messages(ActivitySeverity.INFO))
                 .contains("Shutdown complete: monitoring and its executors are stopped.");
@@ -1278,8 +1278,8 @@ class MonitoringRuntimeTest {
     }
 
     /**
-     * Process monitoring ends for good while Prism holds a suspension the user made: only Resume
-     * is still taken, it releases the suspension through what Prism kept of it, and the held list
+     * Process monitoring ends for good while PRISM holds a suspension the user made: only Resume
+     * is still taken, it releases the suspension through what PRISM kept of it, and the held list
      * says so.
      */
     @Test
@@ -1311,7 +1311,7 @@ class MonitoringRuntimeTest {
             runtime.requestProcessAction(ControlRequest.of(action, DEMO, "java"));
             assertThat(nextResult().text())
                     .as(action.name())
-                    .isEqualTo("Nothing was done to java (PID 4242). Prism is not monitoring processes.");
+                    .isEqualTo("Nothing was done to java (PID 4242). PRISM is not monitoring processes.");
         }
         runtime.requestProcessAction(ControlRequest.priority(DEMO, "java", prism.srm.domain.PriorityLevel.LOW));
         assertThat(nextResult().result()).isEqualTo(OperationResult.UNSUPPORTED);
@@ -1332,7 +1332,7 @@ class MonitoringRuntimeTest {
                 .hasSize(1);
     }
 
-    /** LIFE-2 also after monitoring ended: closing Prism leaves a suspension the user made in place. */
+    /** LIFE-2 also after monitoring ended: closing PRISM leaves a suspension the user made in place. */
     @Test
     void aSuspensionTheUserMadeStaysWhenPrismClosesAfterProcessMonitoringEnded() throws Exception {
         CountDownLatch firstListing = new CountDownLatch(1);
@@ -1384,7 +1384,7 @@ class MonitoringRuntimeTest {
     private final FakeProcessController controller = new FakeProcessController();
     /** Every result of an action, in order; a test waits on it with poll. */
     private final LinkedBlockingQueue<ProcessControlResult> controlResults = new LinkedBlockingQueue<>();
-    /** Every list of the processes Prism holds suspended, as the coordinator handed them over. */
+    /** Every list of the processes PRISM holds suspended, as the coordinator handed them over. */
     private final LinkedBlockingQueue<List<prism.srm.domain.SuspendedProcess>> heldSeen = new LinkedBlockingQueue<>();
     /** Every report of the capabilities. */
     private final LinkedBlockingQueue<prism.srm.domain.ControlProfile> capabilitiesSeen = new LinkedBlockingQueue<>();

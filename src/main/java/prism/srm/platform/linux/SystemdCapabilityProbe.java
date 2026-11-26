@@ -12,7 +12,7 @@ import java.util.function.Function;
  * plan Rev 2.2 §2.3 P1–P7, P9, K13). It gathers the facts {@link LinuxNativeReadiness#classify} decides from and
  * checks that the two sources agree: the manager's control group is the user's {@code user@UID.service}, its
  * {@code app.slice} lies inside it, the controllers delegated there ({@code cgroup.controllers}) and enabled
- * ({@code cgroup.subtree_control}) are reported apart, and Prism's own unit (when this manager has one) names the cgroup
+ * ({@code cgroup.subtree_control}) are reported apart, and PRISM's own unit (when this manager has one) names the cgroup
  * {@code /proc/self/cgroup} names.
  *
  * <p>It only reads: files, {@code dlsym}, and the methods of {@link SystemdUserBus.ReadOnlyMethod}. It creates no unit,
@@ -137,12 +137,12 @@ final class SystemdCapabilityProbe {
             if (ownGroup.isPresent()
                     && own.value().isPresent()
                     && !ownGroup.get().equals(own.value().get())) {
-                findings.add("Prism's unit names the cgroup " + ownGroup.get() + " but /proc/self/cgroup names "
+                findings.add("PRISM's unit names the cgroup " + ownGroup.get() + " but /proc/self/cgroup names "
                         + own.value().get());
             }
             if (own.value().isPresent() && !own.value().get().startsWith(expected + "/")) {
                 findings.add(
-                        "Prism runs outside its user manager (in " + own.value().get() + ")");
+                        "PRISM runs outside its user manager (in " + own.value().get() + ")");
             }
         }
 

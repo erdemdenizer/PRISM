@@ -24,7 +24,7 @@ The latest example at the time of writing is run 42374199438 on `main` at `9f4ec
 
 - The hosted Windows runner runs the job inside a Job Object. The log of `verify (windows-latest)` says
   `native-validation: selfInJob=Optional[true] childInJob=Optional[true]`.
-- A child of the test JVM inherits that job, and Prism refuses a process in a job it does not hold. There the tests cannot validate
+- A child of the test JVM inherits that job, and PRISM refuses a process in a job it does not hold. There the tests cannot validate
   anything, so the test helper `NativeValidation` skips them, or fails them under `-Dprism.native.required=true`.
 - [native-validation.mjs](../../.github/scripts/native-validation.mjs) counts a skip as "not validated", on purpose.
 

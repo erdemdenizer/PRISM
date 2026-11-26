@@ -19,7 +19,7 @@ import prism.srm.ui.snapshot.SnapshotHarness;
 import prism.srm.ui.snapshot.SnapshotHarness.Theme;
 
 /**
- * UI lab v2: the lookup of a window's frame, driven on the JavaFX Application Thread with a frame that
+ * UI redesign: the lookup of a window's frame, driven on the JavaFX Application Thread with a frame that
  * answers what the test says. The retries go through {@code Platform.runLater} and then a 50 ms
  * {@code PauseTransition}, so the toolkit runs; the test waits on a latch the frame counts down, never on
  * a sleep, and reads the result on a later turn of the thread, after the attempt that ended the lookup.

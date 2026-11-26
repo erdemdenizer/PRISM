@@ -179,7 +179,7 @@ public final class OomGuardPage extends VBox {
         FactView since = new FactView("Since", model.since(), null);
         since.setMinWidth(Region.USE_PREF_SIZE);
         FactsPanel facts = new FactsPanel(stateFact, available, since);
-        // UI lab v2: the state band. The state word as calm as its state, the memory available as the
+        // UI redesign: the state band. The state word as calm as its state, the memory available as the
         // figure the page is about, and next to the facts whether OOM Guard may act on its own at all:
         // beside them, not at the far end of a wide window (UI audit LO-24). The values stand on one
         // baseline; a value that is no figure ("–", "Reading…") is set in the size of words (LO-13).

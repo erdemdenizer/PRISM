@@ -9,13 +9,13 @@ import java.util.Set;
 
 /**
  * What the native-limit ledger records for one process (milestone 10, ADR-0012): written durably
- * before Prism assigns the process to a job or tightens its limits, so that a later session knows
+ * before PRISM assigns the process to a job or tightens its limits, so that a later session knows
  * which limits an earlier one may have left on it.
  *
- * @param values the limits Prism set, or means to set (INTENDED), on the process's job
+ * @param values the limits PRISM set, or means to set (INTENDED), on the process's job
  * @param pendingTo while a change is under way (PENDING_CHANGE), the limits it changes to; the
  *     system then holds, per kind, the value of {@code values} or of {@code pendingTo}
- * @param instance the Prism session that wrote it
+ * @param instance the PRISM session that wrote it
  * @param provenance on Linux (milestone 12), the systemd scope the record's limits live in and the evidence that
  *     ties the record to one run of it; empty for Job Objects, and for a Linux record written before the scope was
  *     known. Evidence for a later, separately authorized decision, never a permission by itself: recovery classifies
@@ -37,7 +37,7 @@ public record LimitRecord(
         UNCERTAIN,
         /** A change was made but its result could not be read back. */
         UNVERIFIED,
-        /** The process exited while its job still carried limits Prism had not cleared. */
+        /** The process exited while its job still carried limits PRISM had not cleared. */
         TARGET_EXITED
     }
 
@@ -55,7 +55,7 @@ public record LimitRecord(
         }
         if (values.foreign().isPresent()
                 || pendingTo.flatMap(EffectiveLimits::foreign).isPresent()) {
-            throw new IllegalArgumentException("A record holds only limits Prism sets");
+            throw new IllegalArgumentException("A record holds only limits PRISM sets");
         }
     }
 

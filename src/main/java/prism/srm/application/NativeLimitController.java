@@ -102,7 +102,7 @@ final class NativeLimitController {
     }
 
     /**
-     * A change of a job Prism holds (§8.1b): PENDING_CHANGE{from, to} on disk first when the change
+     * A change of a job PRISM holds (§8.1b): PENDING_CHANGE{from, to} on disk first when the change
      * leaves a limit in force; a pure clearing records it without waiting. {@code from} is what the
      * job is known to hold; a change of a job whose limits are unknown is not made. Empty when the
      * ledger could not record a change that leaves a limit in force: then the system was not asked.

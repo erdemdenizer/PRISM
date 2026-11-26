@@ -36,7 +36,7 @@ final class RailName {
     /** The room between the rail's edge and the name. */
     static final double GAP = 8;
 
-    /** How long the pointer rests on an entry before its name shows (LAB_DESIGN_SPEC section 2). */
+    /** How long the pointer rests on an entry before its name shows (DESIGN_SPEC section 2). */
     static final Duration DELAY = Duration.millis(500);
 
     /** How soon after a name went the next entry under the pointer shows its own at once. */

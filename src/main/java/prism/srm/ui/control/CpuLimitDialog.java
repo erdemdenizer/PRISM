@@ -47,9 +47,9 @@ public interface CpuLimitDialog {
         if (capability.mechanism().filter(ControlMechanism.JOB_OBJECT::equals).isPresent()) {
             return "Native hard: the system caps the process and the child processes it starts afterwards at this"
                     + " share of the whole machine. The process stays in its job until it exits; removing the limit"
-                    + " clears it. If Prism is ended without closing, the limit stays until the process exits.";
+                    + " clears it. If PRISM is ended without closing, the limit stays until the process exits.";
         }
-        return "Emulated: Prism stops and continues the process in short cycles, so the limit is approximate."
+        return "Emulated: PRISM stops and continues the process in short cycles, so the limit is approximate."
                 + " It cannot hold a process below about 5 % of what it would use.";
     }
 

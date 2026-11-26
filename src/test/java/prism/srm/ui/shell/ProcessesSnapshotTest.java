@@ -145,7 +145,7 @@ class ProcessesSnapshotTest {
                     page.show(ProcessListings.windows(394, 7));
                     page.shell.showFailures(Set.of(MonitoringFailure.PROCESS_MONITORING_STOPPED));
                 }));
-                // Process monitoring stopped while Prism holds a suspension: Resume is still offered.
+                // Process monitoring stopped while PRISM holds a suspension: Resume is still offered.
                 cases.add(Arguments.of("processes-error-stopped-held", theme, size, (Consumer<Page>) page -> {
                     page.show(ProcessListings.windows(394, 7));
                     page.capabilities(FakeProcessController.windowsLike());
@@ -178,7 +178,7 @@ class ProcessesSnapshotTest {
                             ControlRequest.of(ControlAction.RESUME, java, "java"),
                             ControlOutcome.of(OperationResult.PROCESS_NOT_FOUND, "exited"),
                             "java (PID 4242) has exited.",
-                            "Prism no longer holds it suspended."));
+                            "PRISM no longer holds it suspended."));
                 }));
                 // A Resume on its way.
                 cases.add(Arguments.of("processes-error-stopped-held-resuming", theme, size, (Consumer<Page>) page -> {
@@ -261,7 +261,7 @@ class ProcessesSnapshotTest {
                             ControlAction.FORCE_KILL,
                             OperationResult.ACCESS_DENIED,
                             "Access denied: audiodg.exe (PID 268).",
-                            "The system does not let Prism act on this process.");
+                            "The system does not let PRISM act on this process.");
                 }));
                 cases.add(Arguments.of("processes-suspended-by-prism", theme, size, (Consumer<Page>) page -> {
                     page.show(ProcessListings.windows(394, 7));
@@ -310,7 +310,7 @@ class ProcessesSnapshotTest {
                             ControlAction.CHANGE_PRIORITY,
                             OperationResult.ACCESS_DENIED,
                             "Access denied: audiodg.exe (PID 268).",
-                            "Raising a priority, or changing another user's process, needs privileges Prism does not"
+                            "Raising a priority, or changing another user's process, needs privileges PRISM does not"
                                     + " have.");
                 }));
                 // Linux without pidfd signalling: four actions unavailable, priority offered.
@@ -379,7 +379,7 @@ class ProcessesSnapshotTest {
                             prism.srm.domain.LimitRequest.cpuLimit(page.asked, "audiodg.exe", 30),
                             ControlOutcome.success(),
                             "audiodg.exe (PID 268) is limited to 30 % of the CPU.",
-                            "Approximate: Prism stops and continues the process in short cycles."));
+                            "Approximate: PRISM stops and continues the process in short cycles."));
                 }));
                 // Milestone 9: what an earlier session may have left suspended, above the table.
                 cases.add(Arguments.of("processes-recovered", theme, size, (Consumer<Page>) page -> {
@@ -388,7 +388,7 @@ class ProcessesSnapshotTest {
                     page.capabilities(FakeProcessController.windowsLike());
                     page.shell.showRecovered(recoveredEntries());
                 }));
-                // Milestone 9: a journal of an earlier session not read yet, and one Prism stopped looking for.
+                // Milestone 9: a journal of an earlier session not read yet, and one PRISM stopped looking for.
                 cases.add(Arguments.of("processes-recovery-pending", theme, size, (Consumer<Page>) page -> {
                     page.show(ProcessListings.windows(394, 7));
                     page.select(3);
@@ -429,7 +429,7 @@ class ProcessesSnapshotTest {
     }
 
     /**
-     * UI lab v2: the window sizes of the layout matrix (lab-docs/LAB_DESIGN_SPEC.md, section 7):
+     * UI redesign: the window sizes of the layout matrix (docs/design/DESIGN_SPEC.md, section 7):
      * the inspector beside the table from 1320 px, under it from 1100 px where the window is at least
      * 560 px high, and a sheet over the page elsewhere ({@link prism.srm.ui.Breakpoints}), rendered
      * closed and open.
@@ -554,7 +554,7 @@ class ProcessesSnapshotTest {
     }
 
     /**
-     * The line of the actions is under them, and the page keeps its usual 12 px. UI lab v2: the
+     * The line of the actions is under them, and the page keeps its usual 12 px. UI redesign: the
      * inspector is a sheet over the page in a narrow or low window and takes no height in it; under
      * the table its sections stand in columns and the line under them all. The compact state of the
      * page (8 px apart when the line under the actions cost a line of height) was reached by no window
@@ -610,7 +610,7 @@ class ProcessesSnapshotTest {
                 });
     }
 
-    /** One entry Prism offers to resume, and one only the user can handle outside Prism. */
+    /** One entry PRISM offers to resume, and one only the user can handle outside PRISM. */
     private static List<prism.srm.domain.RecoveredSuspension> recoveredEntries() {
         return List.of(
                 prism.srm.ui.LimitsFixtures.recovered(
@@ -624,8 +624,8 @@ class ProcessesSnapshotTest {
                         "a-build-tool-with-a-long-name-from-the-earlier-session.exe",
                         java.util.EnumSet.of(prism.srm.domain.SuspensionReason.CPU_LIMITER),
                         false,
-                        "Prism did not record which threads it suspended, and a suspension count does not show whose"
-                                + " it is. Prism changes nothing. If the process is stuck, resume it outside Prism, for"
+                        "PRISM did not record which threads it suspended, and a suspension count does not show whose"
+                                + " it is. PRISM changes nothing. If the process is stuck, resume it outside PRISM, for"
                                 + " example in Resource Monitor."));
     }
 
@@ -747,7 +747,7 @@ class ProcessesSnapshotTest {
         }
 
         void filter(String text) {
-            // The filter is in the title line, which the shell shows in the page toolbar (UI lab v2).
+            // The filter is in the title line, which the shell shows in the page toolbar (UI redesign).
             ((TextField) shell.toolbar().lookup(".process-filter")).setText(text);
         }
 

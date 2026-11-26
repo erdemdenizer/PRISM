@@ -4,7 +4,7 @@ import prism.srm.domain.ProcessIdentity;
 import prism.srm.platform.Suspension;
 
 /**
- * A stop Prism made with SIGSTOP. macOS has no documented descriptor that refers to one process,
+ * A stop PRISM made with SIGSTOP. macOS has no documented descriptor that refers to one process,
  * so the stop holds only the identity, which is checked again before the continue. The whole
  * process is one unit. Holds no operating-system resource.
  */

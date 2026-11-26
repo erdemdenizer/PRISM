@@ -159,7 +159,7 @@ class InspectorActionReachSceneTest {
                         LimitRequest.of(LimitAction.DISABLE, identity(30_324), "java.exe"),
                         prism.srm.domain.ControlOutcome.success(),
                         "The limits of java.exe (PID 30324) are disabled.",
-                        "Prism no longer stops it."));
+                        "PRISM no longer stops it."));
             }));
             cases.add(Arguments.of("none", size, (Consumer<Shell>)
                     shell -> shell.showLimits(LimitsFixtures.nativeSnapshot(

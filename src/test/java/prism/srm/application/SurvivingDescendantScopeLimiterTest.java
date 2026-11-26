@@ -117,7 +117,7 @@ class SurvivingDescendantScopeLimiterTest {
                 .as("it stays in the scope until it exits")
                 .isTrue();
         assertThat(third.scopeBarrier(child))
-                .as("still no second limiter in a Prism scope")
+                .as("still no second limiter in a PRISM scope")
                 .isPresent();
         assertThat(system.unitCount()).as("no scope was stopped").isEqualTo(1);
     }

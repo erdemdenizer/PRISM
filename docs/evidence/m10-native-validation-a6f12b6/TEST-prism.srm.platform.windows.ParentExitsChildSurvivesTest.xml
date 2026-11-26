@@ -19,7 +19,7 @@
   <testcase name="whenTheTargetExitsPrismClearsItsLimitsForTheChildAndLetsTheJobGo" classname="prism.srm.platform.windows.ParentExitsChildSurvivesTest" time="20.27">
     <system-out><![CDATA[native-validation: selfInJob=Optional[false] childInJob=Optional[false] pid=36196
 01:31:47.872 INFO  [junit-timeout-thread-5] p.s.p.windows.WindowsJobLimiter - Native limits: CPU LimitCapability[level=NATIVE_HARD, mechanism=Optional[JOB_OBJECT], reason=Optional.empty], memory LimitCapability[level=NATIVE_HARD, mechanism=Optional[JOB_OBJECT], reason=Optional.empty]
-01:31:57.964 INFO  [junit-timeout-thread-5] p.s.p.windows.WindowsJobLimiter - The job of exited PID 36196 held 2 process(es); Prism cleared its limits
+01:31:57.964 INFO  [junit-timeout-thread-5] p.s.p.windows.WindowsJobLimiter - The job of exited PID 36196 held 2 process(es); PRISM cleared its limits
 parent-exits: limited=20.5 RELEASED survivors=2 childChildren=[58344:conhost.exe] free=58.3
 ]]></system-out>
   </testcase>

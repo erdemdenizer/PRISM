@@ -177,7 +177,7 @@ final class ProcessesViewModel {
         return actions;
     }
 
-    /** The PID of Prism itself: no action of the page is offered on it (CAP-2). */
+    /** The PID of PRISM itself: no action of the page is offered on it (CAP-2). */
     void showOwnProcess(long pid) {
         actions.showOwnProcess(pid);
         managed.showOwnProcess(pid);
@@ -192,12 +192,12 @@ final class ProcessesViewModel {
         held.accept(result);
     }
 
-    /** What Prism holds suspended, and Resume for it once monitoring has stopped. */
+    /** What PRISM holds suspended, and Resume for it once monitoring has stopped. */
     HeldSuspensions held() {
         return held;
     }
 
-    /** The processes Prism holds suspended, from its own record. */
+    /** The processes PRISM holds suspended, from its own record. */
     void showHeld(List<SuspendedProcess> processes) {
         held.show(Objects.requireNonNull(processes, "processes"));
     }

@@ -1,12 +1,12 @@
 # 0010. Unix process control and process identity
 
-- Status: Accepted (run on Ubuntu x86_64 and macOS arm64 in CI; see Verification). Narrowed by [0011](0011-suspension-journal-and-recovery.md): Resume never ends a stop that existed before Prism acted, but a stop added while Prism holds the process ends with it; after a crash a stop is taken over (adopt) only on the user's request, only while it is a plain stop (`T`, never `t`)
+- Status: Accepted (run on Ubuntu x86_64 and macOS arm64 in CI; see Verification). Narrowed by [0011](0011-suspension-journal-and-recovery.md): Resume never ends a stop that existed before PRISM acted, but a stop added while PRISM holds the process ends with it; after a crash a stop is taken over (adopt) only on the user's request, only while it is a plain stop (`T`, never `t`)
 - Date: 2026-10-08 (proposed and accepted)
 
 ## Context
 
 Milestone 8 brings End Task, Force Kill, Suspend, Resume and Change Priority to Linux and
-macOS (CTL-3, CTL-5, CTL-6). Prism names a process by its identity, PID and start time
+macOS (CTL-3, CTL-5, CTL-6). PRISM names a process by its identity, PID and start time
 (PROC-3), and must never act on a process that took over a PID. Checked against the
 man pages, the Linux and xnu sources, the JDK sources and the OSHI 7.7.0 jar:
 
@@ -41,12 +41,12 @@ man pages, the Linux and xnu sources, the JDK sources and the OSHI 7.7.0 jar:
   identity would match again. The check after the open makes it
   hold for the descriptor: a process that took the PID later started later. A suspension
   holds its pidfd until it is resumed or let go. The path is probed once, on first use, on
-  Prism's own process (open, signal 0, close). Where it fails, the four actions are
-  `UNAVAILABLE` and the activity log says why; Prism never falls back to `kill(2)`. The
+  PRISM's own process (open, signal 0, close). Where it fails, the four actions are
+  `UNAVAILABLE` and the activity log says why; PRISM never falls back to `kill(2)`. The
   calls are made through `syscall(2)` with the kernel's numbers 434 and 424, on x86_64 and
   aarch64 only, whose system call and signal numbers are verified; elsewhere nothing is
   tried. (The glibc wrappers were not used: looking for a symbol that is missing throws an
-  `Error` in JNA, which Prism does not catch; on the two architectures the system call is
+  `Error` in JNA, which PRISM does not catch; on the two architectures the system call is
   what the wrapper makes.)
 - **macOS, check then act.** The identity, the state and the flags are read with
   `sysctl(KERN_PROC_PID)` through a minimal JNA structure over the head of `kinfo_proc`;
@@ -59,7 +59,7 @@ man pages, the Linux and xnu sources, the JDK sources and the OSHI 7.7.0 jar:
   stated, as above. `NATIVE_SOFT`: a preference, which autogrouping and cgroup weights
   limit on Linux.
 - **Suspension ownership.** A process that is stopped already (T or t on Linux, SSTOP on
-  macOS) is not suspended: Prism takes over no stop it did not make, so its Resume never
+  macOS) is not suspended: PRISM takes over no stop it did not make, so its Resume never
   continues one. A continue by another program goes unnoticed; reconciling it from the
   listing is deferred, because the listing's state is not reliable enough for it (OSHI reads
   the leading thread on Linux, and maps macOS states wrongly).
@@ -81,7 +81,7 @@ man pages, the Linux and xnu sources, the JDK sources and the OSHI 7.7.0 jar:
   an exit between the check and the call, but cannot make them one; not used.
 - Only the main thread's nice value on Linux, as `renice` does: little effect on a process
   of many threads.
-- Dropping Prism's hold when the listing shows a held process running: could discard a
+- Dropping PRISM's hold when the listing shows a held process running: could discard a
   valid hold on an unreliable reading; deferred.
 
 ## Consequences
@@ -91,10 +91,10 @@ man pages, the Linux and xnu sources, the JDK sources and the OSHI 7.7.0 jar:
   architectures, only Change Priority is offered.
 - On macOS, and for priority on both systems, the identity is checked microseconds before
   the call, not with it; the report and ARCHITECTURE say so.
-- A process stopped by someone else cannot be suspended by Prism; a process Prism stopped
-  and someone else continued still shows as suspended by Prism until Resume. End Task on a
-  process Prism has stopped is delivered and stays pending until Resume; the result says
-  "asked", never that the process ended. A process killed while Prism held it stopped is a
+- A process stopped by someone else cannot be suspended by PRISM; a process PRISM stopped
+  and someone else continued still shows as suspended by PRISM until Resume. End Task on a
+  process PRISM has stopped is delivered and stays pending until Resume; the result says
+  "asked", never that the process ended. A process killed while PRISM held it stopped is a
   zombie until collected; Resume answers it as gone.
 - Verified by tests against fakes that follow the documentation, on every system, and by
   tests on the running system (`@EnabledOnOs`) on Linux and macOS, in CI (below).
@@ -103,7 +103,7 @@ man pages, the Linux and xnu sources, the JDK sources and the OSHI 7.7.0 jar:
 
 The record was Proposed until the decision had run on Linux and macOS. It has, in the CI
 workflow (`.github/workflows/ci.yml`): run
-[37802133378](https://github.com/erdemdenizer/PRISM-internal/actions/runs/37802133378) on commit
+`37802133378` on commit
 `c44f87a`, the full gate (`./mvnw -B verify`) passing on all three jobs. Which tests ran
 on which system was read from each job's surefire reports, not taken from the job's
 result.
@@ -122,7 +122,7 @@ result.
   between two readings of `ps`, so its units are right on arm64.
 - GitHub's macOS runner starts every job at nice -10: `ps` shows it from the first process
   under launchd onwards, down to the test's JVM. The priority tests start from the value
-  the process has, read by Prism and checked against `ps`; they do not assume 0.
+  the process has, read by PRISM and checked against `ps`; they do not assume 0.
 - **Not verified**: aarch64 Linux, a kernel without pidfd or a seccomp filter that refuses
   it (covered by fakes only), the privileged paths (root, `CAP_SYS_NICE`, an
   `RLIMIT_NICE`), x86_64 macOS, and the running application on Linux or macOS: the

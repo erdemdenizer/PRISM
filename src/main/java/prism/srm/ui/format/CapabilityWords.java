@@ -29,10 +29,10 @@ public final class CapabilityWords {
             case KILL_SIGNAL -> "The kill signal; the process cannot ignore it";
             case STOP_SIGNAL -> "The stop and continue signals; other programs can continue the process";
             case NICE_VALUE -> "The nice value; without privileges it can only be raised";
-            case DUTY_CYCLE -> "A duty cycle Prism runs; approximate, and only while Prism runs";
+            case DUTY_CYCLE -> "A duty cycle PRISM runs; approximate, and only while PRISM runs";
             case JOB_OBJECT -> "A Job Object, enforced by the system";
             case SYSTEMD_SCOPE -> "A systemd scope, enforced by the system";
-            case RESIDENT_POLICY -> "Resident memory watched by Prism; not a cap, and only while Prism runs";
+            case RESIDENT_POLICY -> "Resident memory watched by PRISM; not a cap, and only while PRISM runs";
         };
     }
 }

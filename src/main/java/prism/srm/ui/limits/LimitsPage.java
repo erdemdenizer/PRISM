@@ -50,7 +50,7 @@ import prism.srm.ui.format.ValueFormatter;
 /**
  * The Limits page (UI-4): the managed processes with their CPU limit, their memory limit, the
  * status of the CPU limit and how it is applied (native, emulated, or unavailable); beside the table
- * (UI lab v2) a panel about the selected one with the actions on it in their three groups and, under
+ * (UI redesign) a panel about the selected one with the actions on it in their three groups and, under
  * them in the panel, the line about the last action (fix round G, LO-09). Where the panel is a sheet,
  * the same line stands under the table too, with the name of the selected process, so a result is on
  * screen while the sheet is closed. Why limits are off or unavailable, and what an earlier session or

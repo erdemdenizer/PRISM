@@ -12,7 +12,7 @@ import java.util.Optional;
  *     native, or unavailable with the reason; the page disables and explains from it (CAP-2)
  * @param offer the emulated CPU limit offered after the native one was not applied; it runs only
  *     once the user accepts it (MILESTONES section 10)
- * @param residentOffer why the native memory limit was not applied, when Prism offers to watch the
+ * @param residentOffer why the native memory limit was not applied, when PRISM offers to watch the
  *     resident memory of the process instead (LIM-9, plan O9); nothing is watched unless the user
  *     accepts
  */

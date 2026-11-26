@@ -119,7 +119,7 @@ class MacosControlIntegrationTest {
 
     /**
      * The nice value the workload starts with, through getpriority, and the same value through ps:
-     * the independent reading that tells a value the runner gave from a misreading of Prism's.
+     * the independent reading that tells a value the runner gave from a misreading of PRISM's.
      */
     private int baselineNice() throws Exception {
         int read = niceNow();

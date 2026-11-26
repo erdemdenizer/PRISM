@@ -58,7 +58,7 @@ final class ProcessDetailsModel {
     private final DetailValue ioRead = new DetailValue();
     private final DetailValue ioWrite = new DetailValue();
     private final DetailValue user = new DetailValue();
-    // UI lab v2: the values of the row again, for the inspector beside the table (its "Now" group).
+    // UI redesign: the values of the row again, for the inspector beside the table (its "Now" group).
     private final DetailValue cpu = new DetailValue();
     private final DetailValue memory = new DetailValue();
     private final DetailValue io = new DetailValue();
@@ -96,7 +96,7 @@ final class ProcessDetailsModel {
     }
 
     /**
-     * "Suspended by Prism" while the listing shows the process so (PROC-6), with the words of the
+     * "Suspended by PRISM" while the listing shows the process so (PROC-6), with the words of the
      * State column; empty otherwise. From the listing only, as the column: the two never differ.
      */
     ReadOnlyStringProperty suspendedByPrismProperty() {

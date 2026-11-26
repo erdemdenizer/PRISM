@@ -362,7 +362,7 @@ class ProcessActionsSceneTest {
 
     /**
      * What is undone easily first, the two that end a process last; the context menu in the same order.
-     * UI lab v2: at 1100 x 700 the inspector is under the table, its sections in columns, so the two
+     * UI redesign: at 1100 x 700 the inspector is under the table, its sections in columns, so the two
      * that end a process stand on the row of the control group in a column of their own, at least 24 px
      * to the right of it (before, the bar was one row and the groups were 16 px apart).
      */
@@ -378,7 +378,7 @@ class ProcessActionsSceneTest {
             javafx.scene.Node priority = scene.control("Priority").getParent();
             javafx.scene.Node endTask = scene.control("End task…").getParent();
             javafx.scene.Node forceKill = scene.control("Force kill…").getParent();
-            // Layout edges, not visual bounds: the focus ring (UI lab v2) is drawn outside a button
+            // Layout edges, not visual bounds: the focus ring (UI redesign) is drawn outside a button
             // and is not part of the gap between two buttons.
             double usualGap = priority.getLayoutX() - right(resume);
             double groupGap = endTask.getLayoutX() - right(priority);
@@ -526,7 +526,7 @@ class ProcessActionsSceneTest {
      * The smallest window (what Windows 11 leaves of 720 x 480) leaves the line too little room beside
      * the buttons: it goes under them and the buttons stay where they were.
      *
-     * <p>UI lab v2: in the smallest window the inspector is the sheet over the page, opened here as
+     * <p>UI redesign: in the smallest window the inspector is the sheet over the page, opened here as
      * Details opens it; the bar is stacked in its 360 px, so the line is under Force kill and shows
      * its first part, with the whole in its tooltip (before, under the table, it had the whole width).
      * At 1100 x 700 the inspector is under the table, its sections in columns, and the line spans them
@@ -912,7 +912,7 @@ class ProcessActionsSceneTest {
                 .doesNotContain("Ask this process to close?");
     }
 
-    /** CAP-2 in the page itself: on Prism's own row the inspector and the context menu offer nothing and say why. */
+    /** CAP-2 in the page itself: on PRISM's own row the inspector and the context menu offer nothing and say why. */
     @Test
     void prismsOwnRowHasEveryControlAndMenuItemDisabledWithTheReason() {
         List<Object> seen = inPage(true, scene -> {

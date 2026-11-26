@@ -78,7 +78,7 @@ class LinuxProcessControllerTest {
         assertThat(controller.limitations()).isEmpty();
     }
 
-    /** The probe tries the whole path on Prism's own process, and closes what it opened. */
+    /** The probe tries the whole path on PRISM's own process, and closes what it opened. */
     @Test
     void theProbeOpensSignalsAndClosesOnPrismsOwnProcessOnce() {
         controller.capabilities();
@@ -282,7 +282,7 @@ class LinuxProcessControllerTest {
         assertThat(linux.openFds()).isEmpty();
     }
 
-    /** Stopped by another program or a tracer: Prism takes nothing over, so it never continues it. */
+    /** Stopped by another program or a tracer: PRISM takes nothing over, so it never continues it. */
     @ParameterizedTest
     @ValueSource(chars = {'T', 't'})
     void aProcessStoppedAlreadyIsNotSuspended(char state) {

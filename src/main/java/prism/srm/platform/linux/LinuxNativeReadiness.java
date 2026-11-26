@@ -202,7 +202,7 @@ final class LinuxNativeReadiness {
             return Optional.of("it runs outside your session manager (in " + path + ")");
         }
         if (ScopeNames.enclosingPrismScope(path).isPresent()) {
-            return Optional.of("it is in a scope with Prism's name; an earlier session may limit it");
+            return Optional.of("it is in a scope with PRISM's name; an earlier session may limit it");
         }
         return Optional.empty();
     }

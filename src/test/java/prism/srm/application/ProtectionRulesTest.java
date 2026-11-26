@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 import prism.srm.domain.ProcessIdentity;
 import prism.srm.domain.ProtectionFacts;
 
-/** SAFE-2 and SAFE-3: what Prism refuses, decided from facts, a name only adding to them. */
+/** SAFE-2 and SAFE-3: what PRISM refuses, decided from facts, a name only adding to them. */
 class ProtectionRulesTest {
 
     private static final long OWN = 7_777;

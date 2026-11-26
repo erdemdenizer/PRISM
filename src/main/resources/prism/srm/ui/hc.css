@@ -3,7 +3,7 @@
  * the "high-contrast" class, this stylesheet, and the seven system colors of the theme as looked-up
  * colors (-hc-window, -hc-windowtext, -hc-highlight, -hc-highlighttext, -hc-graytext, -hc-btnface,
  * -hc-hotlight). Every token of app.css is mapped to one of them, so the user's colors replace the
- * lab's everywhere:
+ * theme's everywhere:
  *
  * - surfaces take the window color (controls the button face);
  * - text and every boundary take the window text color, so each edge is a 1 px line of it;

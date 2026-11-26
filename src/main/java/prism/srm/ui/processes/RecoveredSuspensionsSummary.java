@@ -11,8 +11,8 @@ import prism.srm.domain.RecoveryCheck;
  * At the right of the filter line, while an earlier session may have left processes suspended:
  * how many, in one short sentence, and a plain Review… button that opens the list (ADR-0011).
  * While a journal of an earlier session is unread it also says the list may be incomplete, even
- * when nothing is listed: muted while Prism is still checking and nothing is listed, in the
- * warning color once Prism has stopped looking. It takes no height of its own, so the table keeps
+ * when nothing is listed: muted while PRISM is still checking and nothing is listed, in the
+ * warning color once PRISM has stopped looking. It takes no height of its own, so the table keeps
  * its rows in the smallest window, and it gives way before the filter does. Layout and binding only.
  */
 final class RecoveredSuspensionsSummary extends HBox {
@@ -54,7 +54,7 @@ final class RecoveredSuspensionsSummary extends HBox {
         model.rows().addListener((javafx.collections.ListChangeListener<Object>) change -> tone.run());
         Button open = new Button("Review…");
         open.setMinWidth(Region.USE_PREF_SIZE);
-        open.setAccessibleText("Review the processes an earlier session of Prism may have left suspended");
+        open.setAccessibleText("Review the processes an earlier session of PRISM may have left suspended");
         open.setOnAction(event -> review.run());
         open.visibleProperty().bind(Bindings.isNotEmpty(model.rows()));
         open.managedProperty().bind(open.visibleProperty());

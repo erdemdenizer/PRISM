@@ -101,7 +101,7 @@ class SuspensionCoordinatorTest {
         assertThat(outcome.remaining()).containsExactly(SuspensionReason.CPU_LIMITER);
         assertThat(controller.calls).containsExactly("suspend 4242");
         assertThat(coordinator.held())
-                .as("the limiter's own hold is shown by its limit, not as suspended by Prism")
+                .as("the limiter's own hold is shown by its limit, not as suspended by PRISM")
                 .isEmpty();
         assertThat(coordinator.heldFor(DEMO)).containsExactly(SuspensionReason.CPU_LIMITER);
 
@@ -146,7 +146,7 @@ class SuspensionCoordinatorTest {
 
         assertThat(outcome.change()).isEqualTo(Change.INCOMPLETE);
         assertThat(outcome.outstanding()).isEqualTo(1);
-        assertThat(coordinator.held()).as("Prism still holds part of it").containsExactly(DEMO);
+        assertThat(coordinator.held()).as("PRISM still holds part of it").containsExactly(DEMO);
         assertThat(coordinator.reasons(DEMO)).isEmpty();
 
         SuspensionCoordinator.Outcome resumed = coordinator.release(DEMO, SuspensionReason.USER);
@@ -230,7 +230,7 @@ class SuspensionCoordinatorTest {
         assertThat(controller.calls).doesNotContain("resume 4242");
         assertThat(activity.entries())
                 .extracting(ActivityEntry::message)
-                .containsExactly("java (PID 4242) exited while Prism held it suspended.");
+                .containsExactly("java (PID 4242) exited while PRISM held it suspended.");
     }
 
     @Test
@@ -326,7 +326,7 @@ class SuspensionCoordinatorTest {
         assertThat(coordinator.reasons(OTHER)).containsExactly(SuspensionReason.USER);
     }
 
-    /** LIFE-2: what the user suspended stays suspended when Prism closes; its resources are let go. */
+    /** LIFE-2: what the user suspended stays suspended when PRISM closes; its resources are let go. */
     @Test
     void finalizingLeavesTheUsersSuspensionInPlaceAndClosesItsResources() {
         coordinator.suspend(DEMO, "java", SuspensionReason.USER);
@@ -339,7 +339,7 @@ class SuspensionCoordinatorTest {
         assertThat(activity.entries())
                 .extracting(ActivityEntry::message)
                 .containsExactly(
-                        "Left suspended, as the user asked: java (PID 4242). They stay suspended after Prism closes.");
+                        "Left suspended, as the user asked: java (PID 4242). They stay suspended after PRISM closes.");
     }
 
     @Test
@@ -357,13 +357,13 @@ class SuspensionCoordinatorTest {
         assertThat(activity.entries())
                 .extracting(ActivityEntry::severity, ActivityEntry::message)
                 .containsExactly(org.assertj.core.groups.Tuple.tuple(
-                        ActivitySeverity.ERROR, "Threads Prism suspended could not all be released: java (PID 4242)."));
+                        ActivitySeverity.ERROR, "Threads PRISM suspended could not all be released: java (PID 4242)."));
     }
 
     /**
      * LIFE-3 with LIFE-1: the step that releases the automatic reasons failed or ran out of time, and
-     * this step gets the lock. What is Prism's own is never let go of as it stands: a process nobody
-     * asked to suspend would stay frozen after Prism closes.
+     * this step gets the lock. What is PRISM's own is never let go of as it stands: a process nobody
+     * asked to suspend would stay frozen after PRISM closes.
      */
     @Test
     void finalizingReleasesAnAutomaticHoldTheEarlierStepLeftInsteadOfAbandoningIt() {
@@ -397,7 +397,7 @@ class SuspensionCoordinatorTest {
                 .filteredOn(entry -> entry.severity() == ActivitySeverity.ERROR)
                 .extracting(ActivityEntry::message)
                 .anyMatch(message -> message.startsWith("java (PID 4242) could not be resumed: "))
-                .contains("Threads Prism suspended could not all be released: java (PID 4242).");
+                .contains("Threads PRISM suspended could not all be released: java (PID 4242).");
     }
 
     /** Both tries throw: nothing is let go of, so that the exit hook still finds the hold. */
@@ -428,7 +428,7 @@ class SuspensionCoordinatorTest {
         assertThat(activity.entries())
                 .extracting(ActivityEntry::message)
                 .contains(
-                        "Left suspended, as the user asked: java (PID 4242). They stay suspended after Prism closes.");
+                        "Left suspended, as the user asked: java (PID 4242). They stay suspended after PRISM closes.");
     }
 
     /** A shutdown never waits for ever on an action that holds the coordinator in the system. */
@@ -615,6 +615,6 @@ class SuspensionCoordinatorTest {
         assertThat(activity.entries())
                 .extracting(ActivityEntry::severity, ActivityEntry::message)
                 .containsExactly(org.assertj.core.groups.Tuple.tuple(
-                        ActivitySeverity.INFO, "java (PID 4242) has exited; Prism no longer holds it suspended."));
+                        ActivitySeverity.INFO, "java (PID 4242) has exited; PRISM no longer holds it suspended."));
     }
 }

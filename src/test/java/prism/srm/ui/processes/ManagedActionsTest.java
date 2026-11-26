@@ -135,11 +135,11 @@ class ManagedActionsTest {
         model.showLimitResult(new LimitResult(
                 sent.get(0),
                 ControlOutcome.of(OperationResult.ACCESS_DENIED, "refused"),
-                "Prism does not manage demo (PID 10).",
+                "PRISM does not manage demo (PID 10).",
                 "It is a system process."));
 
         assertThat(model.actions().messageProperty().get())
-                .isEqualTo("Prism does not manage demo (PID 10). It is a system process.");
+                .isEqualTo("PRISM does not manage demo (PID 10). It is a system process.");
         assertThat(model.actions().lineToneProperty().get()).isEqualTo(prism.srm.ui.control.ResultTone.WARNING);
     }
 
@@ -152,7 +152,7 @@ class ManagedActionsTest {
                         "other",
                         EnumSet.of(SuspensionReason.CPU_LIMITER),
                         false,
-                        "Prism changes nothing.")));
+                        "PRISM changes nothing.")));
         RecoveredSuspensions recovered = model.recovered();
 
         assertThat(recovered.shownProperty().get()).isTrue();
@@ -210,7 +210,7 @@ class ManagedActionsTest {
         assertThat(sent).containsExactly(LimitRequest.oom(demo, "demo", chosen.withManaged(false)));
     }
 
-    /** MGD-4 and CAP-2: Prism's own process cannot be managed, limited or put under OOM management, and the page says why. */
+    /** MGD-4 and CAP-2: PRISM's own process cannot be managed, limited or put under OOM management, and the page says why. */
     @Test
     void prismsOwnProcessOffersNoManagementAndSendsNothing() {
         model.showLimits(LimitsFixtures.snapshot());

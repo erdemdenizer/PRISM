@@ -11,7 +11,7 @@
   <!--
     KinfoProc is a JNA Structure over the start of macOS's struct kinfo_proc (ADR-0010). JNA writes
     its public fields by reflection when it reads the native memory, so SpotBugs sees them as never
-    written; p_vmspace and p_sigacts are never read by Prism but must be declared, because their
+    written; p_vmspace and p_sigacts are never read by PRISM but must be declared, because their
     places give p_flag, p_stat and p_pid their offsets. An unavoidable consequence of mapping a
     native structure with JNA, which the milestone 8 review asked for instead of bare offsets.
   -->
@@ -24,7 +24,7 @@
     JOBOBJECT_BASIC_LIMIT_INFORMATION, JOBOBJECT_EXTENDED_LIMIT_INFORMATION,
     JOBOBJECT_CPU_RATE_CONTROL_INFORMATION and JOBOBJECT_BASIC_ACCOUNTING_INFORMATION. JNA writes and
     reads their public fields by reflection around each call, and every documented field must be
-    declared for the others to have their documented offsets, although Prism reads only a few of
+    declared for the others to have their documented offsets, although PRISM reads only a few of
     them. The same unavoidable consequence of mapping a native structure as for KinfoProc. Their
     fields keep the names of the documented C structures (ControlFlags, CpuRate, LimitFlags, ...), as
     jna-platform's own structures do (WinNT.IO_COUNTERS), so that each can be checked against

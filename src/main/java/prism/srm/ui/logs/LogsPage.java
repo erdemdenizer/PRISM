@@ -46,7 +46,7 @@ import prism.srm.ui.icon.Icon;
 import prism.srm.ui.icon.IconView;
 
 /**
- * The Logs page (UI-6): what Prism did and noticed during this session, newest first, among it
+ * The Logs page (UI-6): what PRISM did and noticed during this session, newest first, among it
  * every action on a process and its result with the detail the message left out. A filter, and a
  * button that opens the folder of the log file, which keeps the entries of earlier sessions. Its
  * states are those of {@link LogsViewModel}.
@@ -65,7 +65,7 @@ public final class LogsPage extends VBox {
     private static final PseudoClass ERROR = PseudoClass.getPseudoClass("error");
 
     /**
-     * The widest the message column gets in an ultrawide window (LAB_DESIGN_SPEC section 7): a line
+     * The widest the message column gets in an ultrawide window (DESIGN_SPEC section 7): a line
      * of text is read, not scanned across 2000 px. The whole message is in the detail pane.
      */
     static final double READABLE_MESSAGE_WIDTH = 960;
@@ -123,7 +123,7 @@ public final class LogsPage extends VBox {
         open.getStyleClass().add("logs-open");
         open.setTooltip(new Tooltip(logFolder));
         open.setOnAction(event -> openLogFolder.run());
-        // The page toolbar (UI lab v2): the filter, the count and the folder button on the title's row.
+        // The page toolbar (UI redesign): the filter, the count and the folder button on the title's row.
         HBox trailing = new HBox(toolbar(), count, open);
         trailing.getStyleClass().add("logs-trailing");
         header.setTrailing(trailing);

@@ -48,7 +48,7 @@
 }
 
 /*
- * UI lab v2: the sheet over a page (ui.control.SheetOverlay), from the right, on the raised surface with a
+ * UI redesign: the sheet over a page (ui.control.SheetOverlay), from the right, on the raised surface with a
  * hairline at its left edge, over a scrim. No shadow: what it shows changes every second.
  */
 .sheet-scrim {

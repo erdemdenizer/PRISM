@@ -21,7 +21,7 @@ import prism.srm.domain.ProcessIdentity;
 import prism.srm.domain.SuspensionReason;
 
 /**
- * A disk that stops answering while Prism holds processes (milestone 9 review, item 3), with the
+ * A disk that stops answering while PRISM holds processes (milestone 9 review, item 3), with the
  * journal written on a thread of its own as in the running application: whatever must wait for the
  * journal waits within {@link SuspensionCoordinator#JOURNAL_WAIT} and fails it; nothing that
  * releases a process waits at all.

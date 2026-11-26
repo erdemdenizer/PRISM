@@ -94,19 +94,19 @@ public final class App extends Application {
         log = LoggingSetup.start(logFolder, App.class);
         Thread.setDefaultUncaughtExceptionHandler(this::logUncaught);
 
-        // One Prism per user profile, decided before anything is monitored, limited or recovered:
+        // One PRISM per user profile, decided before anything is monitored, limited or recovered:
         // a second one could limit a process this one already limits (milestone 10). Kept until the
         // process exits; the system lets go of it then, also after a hard kill.
         instance = InstanceLock.acquireAtLaunch(HostPlatform.userFolders().state());
         if (instance.refusal().isPresent()) {
-            log.warn("Prism does not start: {}", instance.refusal().get());
+            log.warn("PRISM does not start: {}", instance.refusal().get());
             return;
         }
 
         activity = new ActivityLog(ACTIVITY_CAPACITY, InstantSource.system());
         activity.record(
                 ActivitySeverity.INFO,
-                "Prism System Resource Manager started on Java " + System.getProperty("java.version") + " ("
+                "PRISM started on Java " + System.getProperty("java.version") + " ("
                         + System.getProperty("java.vendor") + "), JavaFX "
                         + System.getProperty("javafx.runtime.version") + ".");
         activity.record(ActivitySeverity.INFO, "Detected system: " + HostPlatform.systemDescription() + ".");
@@ -132,7 +132,7 @@ public final class App extends Application {
     @Override
     public void start(Stage stage) {
         if (instance.refusal().isPresent()) {
-            // Nothing is created: no monitor, no limit, no recovery; the other Prism is not touched.
+            // Nothing is created: no monitor, no limit, no recovery; the other PRISM is not touched.
             AlreadyRunningDialog.build(instance.refusal().get()).showAndWait();
             Platform.exit();
             return;
@@ -213,7 +213,7 @@ public final class App extends Application {
         // What process control is on this system comes once; a relay of the same kind is enough.
         LatestValueRelay<ControlProfile> controlProfileToUserInterface =
                 new LatestValueRelay<>(Platform::runLater, shell::showControlProfile);
-        // The processes Prism holds suspended, whole each time they change: only the newest matters.
+        // The processes PRISM holds suspended, whole each time they change: only the newest matters.
         LatestValueRelay<List<SuspendedProcess>> heldToUserInterface =
                 new LatestValueRelay<>(Platform::runLater, shell::showHeldSuspensions);
         // The activity log is handed over whole each time it changes; only the newest state matters.
@@ -285,7 +285,7 @@ public final class App extends Application {
         theme = new ThemeController(stage.getScene());
         // The appearance of the settings file, chosen on the Settings page (UI-7).
         theme.modeProperty().set(settings.appearance());
-        // UI lab v2: the system's caption and border in the colors of the theme, where the system allows it.
+        // UI redesign: the system's caption and border in the colors of the theme, where the system allows it.
         titleBar = new TitleBarTint(HostPlatform.windowChrome(), theme.modeProperty(), log);
         // The content in the colors of a Windows high-contrast theme while one is on.
         highContrast = new HighContrast();

@@ -1,7 +1,7 @@
 package prism.srm.domain;
 
 /**
- * Why Prism holds a process suspended (CTL-9). A process is resumed only when no reason remains,
+ * Why PRISM holds a process suspended (CTL-9). A process is resumed only when no reason remains,
  * so one owner can never wake a process another still wants stopped.
  */
 public enum SuspensionReason {
@@ -15,7 +15,7 @@ public enum SuspensionReason {
     /** OOM Guard, as an emergency action. */
     OOM_GUARD;
 
-    /** Whether Prism releases this reason by itself on shutdown and recovery (LIFE-1, LIFE-6). */
+    /** Whether PRISM releases this reason by itself on shutdown and recovery (LIFE-1, LIFE-6). */
     public boolean automatic() {
         return this != USER;
     }

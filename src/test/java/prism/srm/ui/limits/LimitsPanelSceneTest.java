@@ -31,7 +31,7 @@ import prism.srm.ui.snapshot.SnapshotHarness;
 import prism.srm.ui.snapshot.SnapshotHarness.Theme;
 
 /**
- * The panel of the Limits page (UI lab v2): beside the table from {@link Breakpoints#SIDE_FROM}, under it
+ * The panel of the Limits page (UI redesign): beside the table from {@link Breakpoints#SIDE_FROM}, under it
  * with its groups in columns from 1100 px where the window is high enough, a sheet over the page
  * elsewhere (the rule of the Processes page, {@link Breakpoints#inspectorFor}). The sheet opens by
  * Enter, a double click or its button, keeps the keyboard while it is open and gives it back to what
@@ -123,7 +123,7 @@ class LimitsPanelSceneTest {
 
     /**
      * From 1100 px and 560 px high the panel is under the table, its three groups in columns;
-     * every column has its least width and the table does not scroll sideways. UI lab v2 change: at
+     * every column has its least width and the table does not scroll sideways. UI redesign change: at
      * 1100 x 700 the panel was beside the table, which left the table too narrow for its columns. Fix
      * round G (LO-01, LO-02, K2): the columns are the three groups only, pinned at the top of the panel;
      * the facts stand under them in the part that scrolls, as wide as the panel.

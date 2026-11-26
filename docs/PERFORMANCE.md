@@ -16,7 +16,7 @@ Numbers are from the development machine and say nothing about other systems.
 | Measure | Value |
 |---|---|
 | Duration | 600.3 s |
-| Processor time used by Prism | 29.05 s |
+| Processor time used by PRISM | 29.05 s |
 | Of one logical processor | 4.84 % |
 | **Of the machine** | **0.302 %** (budget 2 %, **met**) |
 | Heap after GC: start, middle, end | 34 788, 34 380, 36 066 K |
@@ -36,7 +36,7 @@ on, every automatic switch off).
 | Measure | Value |
 |---|---|
 | Duration | 609 s |
-| Processor time used by Prism | 31.4 s |
+| Processor time used by PRISM | 31.4 s |
 | Of one logical processor | 5.15 % |
 | **Of the machine** | **0.322 %** (budget 2 %, **met**) |
 | Heap after GC: start, middle, end | 23 300, 25 427, 23 602 K |
@@ -56,7 +56,7 @@ classes of commit `3d6e4eb`, which come after the P0 and P1 fixes. PRISM used an
 | Measure | Value |
 |---|---|
 | Duration | 610 s |
-| Processor time used by Prism | 33.9 s |
+| Processor time used by PRISM | 33.9 s |
 | Of one logical processor | 5.56 % |
 | **Of the machine** | **0.348 %** (budget 2 %, **met**) |
 | Heap after GC: start, middle, end | 23 087, 22 983, 22 980 K |
@@ -81,7 +81,7 @@ default switches it makes no native call.
 
 ## Native limits on Windows (milestone 10)
 
-**What one native CPU limit costs Prism (2026-10-10).** `NativeLimitCostProbe` (Windows 11,
+**What one native CPU limit costs PRISM (2026-10-10).** `NativeLimitCostProbe` (Windows 11,
 16 logical processors): the limit service holds the demo workload (4 workers, 25 % of the
 machine) at a limit of 10 % through a Job Object; this JVM's processor time over 30 s is set
 against the same 30 s asleep.
@@ -100,7 +100,7 @@ user chooses after a native one was not applied keeps the cost measured below, a
 fallback dialog says so.
 
 **MON-12, the running application idle (2026-10-10).** The protocol of milestone 9 (below),
-idle with the Processes page on screen, 612 s: Prism used 59.5 s of processor time, 9.73 % of
+idle with the Processes page on screen, 612 s: PRISM used 59.5 s of processor time, 9.73 % of
 one logical processor, **0.608 % of the machine** (budget 2 %, **met**). The machine was busier
 than in milestone 9 (17.4 % against 6.2 % on average), which the listing's share follows.
 Heap after GC: 33 516, 33 288, 32 452 K; handles 1 159 to 1 155; threads 80 to 77; working set
@@ -108,7 +108,7 @@ Heap after GC: 33 516, 33 288, 32 452 K; handles 1 159 to 1 155; threads 80 to 7
 
 **Ten minutes with a native limit (2026-10-10).** The same protocol, with one demo workload
 (4 workers, 20 % of the machine) limited to 10 % through the Limits page ("Enforced", a Job
-Object), 610 s: Prism used 24.7 s, 4.06 % of one logical processor, **0.254 % of the
+Object), 610 s: PRISM used 24.7 s, 4.06 % of one logical processor, **0.254 % of the
 machine** (milestone 9, the emulated limit: 0.946 %); **met**. The workload got 11.09 % of the
 machine. Heap after GC 44 798, 43 032, 40 622 K; handles 1 193 to 1 188; threads 82 to 79.
 Closing took 373 ms; the workload then ran at 19.95 % (its cap was cleared), and the journal
@@ -260,7 +260,7 @@ limit measured above. **The heap:** the idle run's three single readings rise by
 class histograms show where: 8,021 more `com.sun.jna.Memory$MemoryDisposer` with their
 cleaner references and boxed addresses (about 1.3 MiB), native memory of OSHI's listings that
 JNA's cleaner had not yet released, and 316 more entries of JavaFX's text layout cache (both
-seen in milestone 3). Prism's own instances went from 3,750 to 3,812: 49 more
+seen in milestone 3). PRISM's own instances went from 3,750 to 3,812: 49 more
 `ProcessIdentity` and 13 more `ProcessSnapshot`, with more processes running. The limit run's
 heap fell. **The handles** move by up to about 30 while a limit runs, the thread handles a
 suspension holds during a stop phase (the target has 25 to 29 threads), and come back; no
@@ -280,10 +280,10 @@ coordinator without a copy or a set being built; with one held, the identities o
 listing are put in a set once and the held ones marked, a few hundred lookups every 2 s.
 
 A suspension costs at most three system-wide Toolhelp thread snapshots and one open handle
-per thread of the target for as long as it is held: Prism's handle count rose by 24 for a
+per thread of the target for as long as it is held: PRISM's handle count rose by 24 for a
 27-thread workload and fell back when it was resumed or when the workload was killed.
 
-Measured on 2026-10-08 with the demo workload (MILESTONES.md, milestone 7): Prism's own CPU
+Measured on 2026-10-08 with the demo workload (MILESTONES.md, milestone 7): PRISM's own CPU
 over a 153-second run of every action, with the UI read through UI Automation every few
 seconds, was 1.1% of the machine; idle with the Processes page on screen it is about 0.25%
 (milestone 5). The listing went on every 2 s throughout.
@@ -295,7 +295,7 @@ the segmented selector, the sort mark, the inspector and short finite transition
 measured before and after on the same day, with the same scripts, on the same machine
 (Windows 11 Pro 26200, 16 logical processors, JDK 25.0.4.1, JavaFX 25.0.4; the application
 started from a copy of `target/classes` with the dependency classpath so that the measured
-code did not change while the redesign was being written; another instance of Prism of an
+code did not change while the redesign was being written; another instance of PRISM of an
 older build, left running by the user, and the IDE were alive throughout). Before is the
 milestone 5 code at `caba442`.
 
@@ -446,7 +446,7 @@ moves out of view; without one the scene does not grow. The running application 
 it: an instance that no accessibility client had touched, driven by the keyboard alone, sorted
 by CPU with the selected row out of view, kept 25 rows of cells through 90 listings in three
 minutes, while its `javafx.scene.*` count moved by 87 instances in all. It is JavaFX's, not
-Prism's, and is left as a known limit (milestone 5 in MILESTONES.md). With a screen reader attached over hours it was not
+PRISM's, and is left as a known limit (milestone 5 in MILESTONES.md). With a screen reader attached over hours it was not
 measured; the probe says it is bounded.
 
 **Not measured.** The cost while the window is minimized. Pulse times of the toolkit. Hot
@@ -525,9 +525,9 @@ side.
 
 ## Idle cost of the running application (milestone 3, MON-12)
 
-MON-12: with the window visible and idle, Prism averages below 2% of total machine CPU
+MON-12: with the window visible and idle, PRISM averages below 2% of total machine CPU
 capacity, and its heap does not grow over a 10-minute run. **Met: a third of a percent of
-the machine, and no growth of Prism's own data.**
+the machine, and no growth of PRISM's own data.**
 
 Measured on the application as `./mvnw -q javafx:run` starts it, with both monitors at
 their default cadences. Processes are listed although no page shows them before
@@ -560,7 +560,7 @@ their own printing.
 in run 2 the middle one is the highest. What the class histograms of run 2 show between
 start and end:
 
-- Nothing of Prism accumulates. Its instances went from 1 287 to 1 324, all of them
+- Nothing of PRISM accumulates. Its instances went from 1 287 to 1 324, all of them
   `ProcessIdentity` and the sampler's per-process counters: there were 13 more processes.
 - The scene does not grow. The 40 additional `javafx.scene.*` instances are no nodes:
   they are properties and drag-detection state that JavaFX creates on the first mouse
@@ -608,7 +608,7 @@ display. Anything longer than ten minutes.
 Measured with `./mvnw -q test -Dtest=HostProcessProbe -Dprobe.cycles=100
 -Dprobe.busyThreads=0 -Dprobe.child=false`: 100 cycles at the 2-second cadence through
 `ProcessMonitor` and the real source. Three runs, because the machine's own load changes
-the result more than anything in Prism does. Only the first is of the final code, which
+the result more than anything in PRISM does. Only the first is of the final code, which
 reads the Windows virtual sizes in every cycle; the other two were made before that read
 existed.
 

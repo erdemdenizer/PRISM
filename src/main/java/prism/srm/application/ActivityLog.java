@@ -10,7 +10,7 @@ import prism.srm.domain.ActivityEntry;
 import prism.srm.domain.ActivitySeverity;
 
 /**
- * What Prism did and noticed during this session: start-up and shutdown, the detected system,
+ * What PRISM did and noticed during this session: start-up and shutdown, the detected system,
  * and later the actions on processes and their results.
  *
  * <p>Every event is kept in memory for the application to show, and written through SLF4J so that

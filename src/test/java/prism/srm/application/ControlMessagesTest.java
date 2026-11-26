@@ -71,7 +71,7 @@ class ControlMessagesTest {
         ControlRequest suspend = request(ControlAction.SUSPEND);
         assertThat(ControlMessages.of(suspend, ControlOutcome.of(OperationResult.ACCESS_DENIED, 5, "OpenProcess")))
                 .isEqualTo(new Wording(
-                        "Access denied: java (PID 4242).", "The system does not let Prism act on this process."));
+                        "Access denied: java (PID 4242).", "The system does not let PRISM act on this process."));
         assertThat(ControlMessages.of(suspend, ControlOutcome.of(OperationResult.PROCESS_NOT_FOUND, "gone")))
                 .isEqualTo(new Wording("java (PID 4242) is no longer running.", ""));
         assertThat(ControlMessages.of(suspend, ControlOutcome.of(OperationResult.NATIVE_ERROR, 31, "SuspendThread")))
@@ -86,20 +86,20 @@ class ControlMessagesTest {
     void refusalsSayWhyPrismDoesNotAct() {
         ControlRequest kill = request(ControlAction.FORCE_KILL);
         assertThat(ControlMessages.refused(kill, ProtectionRules.Refusal.OWN_PROCESS))
-                .isEqualTo(new Wording("Prism does not act on java (PID 4242).", "It is Prism's own process."));
+                .isEqualTo(new Wording("PRISM does not act on java (PID 4242).", "It is PRISM's own process."));
         assertThat(ControlMessages.refused(kill, ProtectionRules.Refusal.CRITICAL_PROCESS))
-                .isEqualTo(new Wording("Prism does not act on java (PID 4242).", "The system marks it as critical."));
+                .isEqualTo(new Wording("PRISM does not act on java (PID 4242).", "The system marks it as critical."));
         assertThat(ControlMessages.refused(kill, ProtectionRules.Refusal.SYSTEM_PROCESS))
-                .isEqualTo(new Wording("Prism does not act on java (PID 4242).", "It is a system process."));
+                .isEqualTo(new Wording("PRISM does not act on java (PID 4242).", "It is a system process."));
     }
 
     @Test
     void requestsNotCarriedOutSayNothingWasDoneAndWhy() {
         ControlRequest kill = request(ControlAction.FORCE_KILL);
         assertThat(ControlMessages.notMonitoring(kill))
-                .isEqualTo(new Wording("Nothing was done to java (PID 4242).", "Prism is not monitoring processes."));
+                .isEqualTo(new Wording("Nothing was done to java (PID 4242).", "PRISM is not monitoring processes."));
         assertThat(ControlMessages.busy(kill).explanation()).isEqualTo("Another action on it is in progress.");
-        assertThat(ControlMessages.shuttingDown(kill).explanation()).isEqualTo("Prism is closing.");
+        assertThat(ControlMessages.shuttingDown(kill).explanation()).isEqualTo("PRISM is closing.");
         assertThat(ControlMessages.tooManyPending(kill).explanation()).isEqualTo("Too many actions are waiting.");
     }
 
@@ -123,7 +123,7 @@ class ControlMessagesTest {
                                 SuspensionCoordinator.Change.STILL_HELD,
                                 Set.of(SuspensionReason.OOM_GUARD),
                                 0)))
-                .isEqualTo(new Wording("java (PID 4242) stays suspended.", "Prism still holds it for OOM Guard."));
+                .isEqualTo(new Wording("java (PID 4242) stays suspended.", "PRISM still holds it for OOM Guard."));
         assertThat(ControlMessages.suspension(
                         resume,
                         new SuspensionCoordinator.Outcome(
@@ -133,7 +133,7 @@ class ControlMessagesTest {
                                 2)))
                 .isEqualTo(new Wording(
                         "Resuming java (PID 4242) was not completed.",
-                        "2 thread(s) Prism suspended could not be released; Resume tries again."));
+                        "2 thread(s) PRISM suspended could not be released; Resume tries again."));
         assertThat(ControlMessages.suspension(
                         resume,
                         new SuspensionCoordinator.Outcome(
@@ -141,7 +141,7 @@ class ControlMessagesTest {
                                 SuspensionCoordinator.Change.EXITED,
                                 Set.of(),
                                 0)))
-                .isEqualTo(new Wording("java (PID 4242) has exited.", "Prism no longer holds it suspended."));
+                .isEqualTo(new Wording("java (PID 4242) has exited.", "PRISM no longer holds it suspended."));
     }
 
     @Test
@@ -256,7 +256,7 @@ class ControlMessagesTest {
                                         1),
                                 STOPS)
                         .explanation())
-                .isEqualTo("Prism could not let it run again; Resume tries again.");
+                .isEqualTo("PRISM could not let it run again; Resume tries again.");
     }
 
     /** K5: a process another program stopped is left to that program, and the words say so. */
@@ -268,13 +268,13 @@ class ControlMessagesTest {
                         STOPS))
                 .isEqualTo(new Wording(
                         "java (PID 4242) is already stopped.",
-                        "Another program stopped it; Prism does not take over that stop."));
+                        "Another program stopped it; PRISM does not take over that stop."));
         assertThat(ControlMessages.of(
                                 request(ControlAction.SUSPEND),
                                 ControlOutcome.of(OperationResult.INVALID_ARGUMENT, "x"),
                                 ControlMessages.Means.UNKNOWN)
                         .headline())
-                .isEqualTo("Prism could not do that to java (PID 4242).");
+                .isEqualTo("PRISM could not do that to java (PID 4242).");
     }
 
     /** CTL-6: the refusal of a nice value says that raising needs privileges. */
@@ -286,14 +286,14 @@ class ControlMessagesTest {
                 .isEqualTo(
                         new Wording(
                                 "Access denied: java (PID 4242).",
-                                "Raising a priority, or changing another user's process, needs privileges Prism does not have."));
+                                "Raising a priority, or changing another user's process, needs privileges PRISM does not have."));
         assertThat(ControlMessages.of(
                                 request(ControlAction.FORCE_KILL),
                                 ControlOutcome.of(OperationResult.ACCESS_DENIED, 1, "x"),
                                 NICE_UNLISTED)
                         .explanation())
                 .as("only a change of priority")
-                .isEqualTo("The system does not let Prism act on this process.");
+                .isEqualTo("The system does not let PRISM act on this process.");
     }
 
     /** Where the table shows no level (macOS), the set level is confirmed by the system, not by the table. */
@@ -339,7 +339,7 @@ class ControlMessagesTest {
                                 0)))
                 .isEqualTo(new Wording(
                         "java (PID 4242) is already stopped.",
-                        "Another program stopped it; Prism does not take over that stop."));
+                        "Another program stopped it; PRISM does not take over that stop."));
         assertThat(ControlMessages.suspension(
                                 suspend,
                                 new SuspensionCoordinator.Outcome(

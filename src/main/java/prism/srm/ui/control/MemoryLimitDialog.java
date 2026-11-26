@@ -35,7 +35,7 @@ public interface MemoryLimitDialog {
      * What a watched memory limit is (LIM-9, CAP-3): said under the field, every time, where no native
      * limit is available or the user chose the watched one.
      */
-    String WATCHED_MEANS = "Not a cap: Prism watches the resident memory of the process, shared pages included,"
+    String WATCHED_MEANS = "Not a cap: PRISM watches the resident memory of the process, shared pages included,"
             + " and when it goes above the limit OOM Guard applies the emergency action of the process, as far as its"
             + " automatic intervention switches allow and only while OOM management is on for it. A process it"
             + " suspends keeps its memory, so such a hold is usually ended by you. A limit below what the process"
@@ -43,7 +43,7 @@ public interface MemoryLimitDialog {
 
     /** What a memory limit is: said under the field, every time. */
     String MEANS = "Caps the memory the process may commit, not what it has in RAM. A process that reaches the cap"
-            + " cannot allocate memory; most programs then fail or crash, and Prism cannot undo that. The child"
+            + " cannot allocate memory; most programs then fail or crash, and PRISM cannot undo that. The child"
             + " processes it starts afterwards get the same cap each.";
 
     /**

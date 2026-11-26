@@ -25,7 +25,7 @@ import prism.srm.ui.snapshot.SnapshotHarness.Theme;
  * Manual measurement (fix round H, perf): what a resize of the window costs on the JavaFX Application
  * Thread, split by phase, for a populated shell kept in ONE scene, as a window resize keeps it.
  *
- * <p>The sizes are the scene sizes of the real measurement (lab-spikes/perf/perf-run.ps1, "resize-40")
+ * <p>The sizes are the scene sizes of the real measurement (the "resize-40" run of the perf script)
  * at 125 %: outer 1366x768, 1100x700, 800x600, 1440x900 and 720x480 are scenes of 1352x730.4,
  * 1085.6x662.4, 785.6x562.4, 1425.6x862.4 and 705.6x442.4 (FIX_BRIEF_H, K8). Each step crosses a line
  * of the layout. A second sequence stays in one layout (all sizes 1330 to 1426 wide, 730 to 862 high:
@@ -51,8 +51,8 @@ import prism.srm.ui.snapshot.SnapshotHarness.Theme;
  * pages (by the name of their entry), {@code -Dprobe.rounds=5} the measured rounds of 40 steps, {@code
  * -Dprobe.sequences=crossing,still,count,dirty,parts} the sequences, {@code -Dprobe.select=true} selects
  * the first row of a table before measuring. The source compiles unchanged against the classes of the
- * product baseline (19b7fbe) too, which is how the two are compared: lab-spikes/perf/breakpoint-probe.sh
- * runs it outside Maven against any tree, and lab-docs/fix-h/PERF_DIAGNOSIS_TR.md says how.
+ * product baseline (19b7fbe) too, which is how the two are compared: a script
+ * runs it outside Maven against any tree, and docs/design/fix-h/PERF_DIAGNOSIS_TR.md says how.
  */
 @Tag("ui-snapshot")
 class BreakpointCrossingProbe {
@@ -374,7 +374,7 @@ class BreakpointCrossingProbe {
         }
     }
 
-    /** Fires the navigation entry of a page, by its name; the same in the lab and in the product. */
+    /** Fires the navigation entry of a page, by its name; the same in every build. */
     private static void go(Parent shell, String page) {
         for (Node node : shell.lookupAll(".nav-item")) {
             if (node instanceof ToggleButton entry && page.equals(entry.getText())) {

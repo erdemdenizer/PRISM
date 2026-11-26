@@ -9,7 +9,7 @@ import prism.srm.domain.ProcessSnapshot;
 import prism.srm.domain.ProcessState;
 
 /**
- * Shows in a listing which processes Prism holds suspended (PROC-6). The state comes from Prism's
+ * Shows in a listing which processes PRISM holds suspended (PROC-6). The state comes from PRISM's
  * own record, not from scanning threads: a scan would be too expensive on every listing, and a
  * process suspended by another program is therefore not detected on Windows (a documented
  * limitation). Matched by identity, so a process that took over a suspended process's PID is not

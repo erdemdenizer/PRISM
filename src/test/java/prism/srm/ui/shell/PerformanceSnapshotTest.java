@@ -300,7 +300,7 @@ class PerformanceSnapshotTest {
                     ScrollPane area = ((Shell) root).pageArea();
                     Node grid = area.getContent().lookup(".history-grid");
                     Node facts = area.getContent().lookup(".facts-panel");
-                    // In the coordinates of the page: the page toolbar stands above it in the scene (UI lab v2).
+                    // In the coordinates of the page: the page toolbar stands above it in the scene (UI redesign).
                     Node page = area.getContent();
                     return new double[] {
                         page.getLayoutBounds().getHeight(),
@@ -429,7 +429,7 @@ class PerformanceSnapshotTest {
     }
 
     private static ToggleButton tab(Shell shell, String section) {
-        // The sections are chosen in the title line, which the shell shows in the page toolbar (UI lab v2).
+        // The sections are chosen in the title line, which the shell shows in the page toolbar (UI redesign).
         return shell.toolbar().lookupAll(".segment").stream()
                 .map(ToggleButton.class::cast)
                 .filter(entry -> entry.getText().equals(section))

@@ -51,7 +51,7 @@ class IconTest {
                     complaints.add(icon + " is " + view.getWidth() + " x " + view.getHeight());
                 }
                 Bounds strokes = view.getChildrenUnmodifiable().getFirst().getBoundsInParent();
-                // A row of dots (ELLIPSIS, UI lab) is a flat glyph by design: wide, not tall.
+                // A row of dots (ELLIPSIS, UI redesign) is a flat glyph by design: wide, not tall.
                 boolean flat = icon == Icon.ELLIPSIS && strokes.getWidth() >= 4;
                 if (strokes.isEmpty() || strokes.getWidth() < 4 || (strokes.getHeight() < 4 && !flat)) {
                     complaints.add(icon + " draws nothing: " + strokes);
@@ -77,7 +77,7 @@ class IconTest {
         assertThat(outside).isEmpty();
     }
 
-    /** The stroke is set in screen units (UI lab v2): 1.5 px at 16, 1.6 at 20, whatever the grid. */
+    /** The stroke is set in screen units (UI redesign): 1.5 px at 16, 1.6 at 20, whatever the grid. */
     @Test
     void theStrokeWidthIsFixedInScreenUnitsPerSize() {
         assertThat(IconView.strokeInUnits(16) * 16 / Icon.GRID)

@@ -10,7 +10,7 @@ import prism.srm.platform.ChromeColors;
 import prism.srm.platform.WindowChrome.Result;
 import prism.srm.platform.windows.WindowsWindowChrome.ThreadWindow;
 
-/** UI lab v2: the decisions of the title bar colors. No native call is made. */
+/** UI redesign: the decisions of the title bar colors. No native call is made. */
 class WindowsWindowChromeTest {
 
     private static final String STAGE = "GlassWndClass-GlassWindowClass-2";
@@ -37,9 +37,9 @@ class WindowsWindowChromeTest {
     /** The values of the DWMWINDOWATTRIBUTE page, not the constants: a wrong constant must fail here. */
     @Test
     void theAttributesAreTheDocumentedOnesInTheirOrder() {
-        FakeDwm dwm = new FakeDwm(true, List.of(new ThreadWindow(7, STAGE, "Prism")));
+        FakeDwm dwm = new FakeDwm(true, List.of(new ThreadWindow(7, STAGE, "PRISM")));
 
-        Result result = new WindowsWindowChrome(dwm).apply("Prism", DARK);
+        Result result = new WindowsWindowChrome(dwm).apply("PRISM", DARK);
 
         assertThat(result).isEqualTo(Result.APPLIED);
         assertThat(dwm.calls).containsExactly("7:20=1", "7:35=1d1816", "7:36=f2eeec", "7:34=362e2a");
@@ -48,21 +48,21 @@ class WindowsWindowChromeTest {
 
     @Test
     void aLightThemeTurnsTheDarkModeOff() {
-        FakeDwm dwm = new FakeDwm(true, List.of(new ThreadWindow(7, STAGE, "Prism")));
+        FakeDwm dwm = new FakeDwm(true, List.of(new ThreadWindow(7, STAGE, "PRISM")));
 
-        new WindowsWindowChrome(dwm).apply("Prism", new ChromeColors(false, 0xEEF0F3, 0x15181E, 0xD5D9E0));
+        new WindowsWindowChrome(dwm).apply("PRISM", new ChromeColors(false, 0xEEF0F3, 0x15181E, 0xD5D9E0));
 
         assertThat(dwm.calls.get(0)).isEqualTo("7:20=0");
     }
 
     @Test
     void beforeBuild22000NothingIsLookedForOrSet() {
-        FakeDwm dwm = new FakeDwm(false, List.of(new ThreadWindow(7, STAGE, "Prism")));
+        FakeDwm dwm = new FakeDwm(false, List.of(new ThreadWindow(7, STAGE, "PRISM")));
         WindowsWindowChrome chrome = new WindowsWindowChrome(dwm);
 
         assertThat(chrome.available()).isFalse();
-        assertThat(chrome.apply("Prism", DARK)).isEqualTo(Result.UNAVAILABLE);
-        assertThat(chrome.apply("Prism", DARK)).isEqualTo(Result.UNAVAILABLE);
+        assertThat(chrome.apply("PRISM", DARK)).isEqualTo(Result.UNAVAILABLE);
+        assertThat(chrome.apply("PRISM", DARK)).isEqualTo(Result.UNAVAILABLE);
 
         assertThat(dwm.calls).isEmpty();
         assertThat(dwm.lookups).isZero();
@@ -82,9 +82,9 @@ class WindowsWindowChromeTest {
     /** A reset gives each frame color the documented default 0xFFFFFFFF and turns the dark mode off. */
     @Test
     void aResetGivesTheSystemColorsBack() {
-        FakeDwm dwm = new FakeDwm(true, List.of(new ThreadWindow(7, STAGE, "Prism")));
+        FakeDwm dwm = new FakeDwm(true, List.of(new ThreadWindow(7, STAGE, "PRISM")));
 
-        Result result = new WindowsWindowChrome(dwm).reset("Prism");
+        Result result = new WindowsWindowChrome(dwm).reset("PRISM");
 
         assertThat(result).isEqualTo(Result.APPLIED);
         assertThat(dwm.calls).containsExactly("7:20=0", "7:35=ffffffff", "7:36=ffffffff", "7:34=ffffffff");
@@ -92,11 +92,11 @@ class WindowsWindowChromeTest {
 
     @Test
     void aFailingNativeBindingIsAFailedResultNotAnException() {
-        FakeDwm dwm = new FakeDwm(true, List.of(new ThreadWindow(7, STAGE, "Prism")));
+        FakeDwm dwm = new FakeDwm(true, List.of(new ThreadWindow(7, STAGE, "PRISM")));
         dwm.broken = true;
         WindowsWindowChrome chrome = new WindowsWindowChrome(dwm);
 
-        assertThat(chrome.apply("Prism", DARK)).isEqualTo(Result.FAILED);
+        assertThat(chrome.apply("PRISM", DARK)).isEqualTo(Result.FAILED);
         assertThat(chrome.detail()).contains("native call failed");
         assertThat(dwm.calls).isEmpty();
     }
@@ -104,14 +104,14 @@ class WindowsWindowChromeTest {
     @Test
     void onlyAStageWindowWithExactlyTheTitleIsSelected() {
         List<ThreadWindow> windows = List.of(
-                new ThreadWindow(1, "GlassWndClass-GlassToolkitWindowClass-1", "Prism"),
-                new ThreadWindow(2, "MSCTFIME UI", "Prism"),
+                new ThreadWindow(1, "GlassWndClass-GlassToolkitWindowClass-1", "PRISM"),
+                new ThreadWindow(2, "MSCTFIME UI", "PRISM"),
                 new ThreadWindow(3, "Default IME", ""),
-                new ThreadWindow(4, STAGE, "Prism - Settings"),
+                new ThreadWindow(4, STAGE, "PRISM - Settings"),
                 new ThreadWindow(5, STAGE, "prism"),
-                new ThreadWindow(6, STAGE, "Prism"));
+                new ThreadWindow(6, STAGE, "PRISM"));
 
-        assertThat(WindowsWindowChrome.select(windows, "Prism"))
+        assertThat(WindowsWindowChrome.select(windows, "PRISM"))
                 .extracting(ThreadWindow::hwnd)
                 .containsExactly(6L);
     }
@@ -121,7 +121,7 @@ class WindowsWindowChromeTest {
     void aWindowWhoseTitleIsNotSetYetIsNotFound() {
         FakeDwm dwm = new FakeDwm(true, List.of(new ThreadWindow(7, STAGE, "")));
 
-        assertThat(new WindowsWindowChrome(dwm).apply("Prism", DARK)).isEqualTo(Result.NOT_FOUND);
+        assertThat(new WindowsWindowChrome(dwm).apply("PRISM", DARK)).isEqualTo(Result.NOT_FOUND);
         assertThat(dwm.calls).isEmpty();
     }
 
@@ -136,11 +136,11 @@ class WindowsWindowChromeTest {
 
     @Test
     void theFirstRefusedValueEndsTheAttempt() {
-        FakeDwm dwm = new FakeDwm(true, List.of(new ThreadWindow(7, STAGE, "Prism")));
+        FakeDwm dwm = new FakeDwm(true, List.of(new ThreadWindow(7, STAGE, "PRISM")));
         dwm.refuse = 35;
         WindowsWindowChrome chrome = new WindowsWindowChrome(dwm);
 
-        assertThat(chrome.apply("Prism", DARK)).isEqualTo(Result.FAILED);
+        assertThat(chrome.apply("PRISM", DARK)).isEqualTo(Result.FAILED);
 
         assertThat(dwm.calls).containsExactly("7:20=1", "7:35=1d1816");
         assertThat(chrome.detail()).contains("35").contains("80070057");

@@ -9,17 +9,17 @@ import prism.srm.domain.ProcessIdentity;
 import prism.srm.domain.SuspensionReason;
 
 /**
- * One process in the suspension journal (LIFE-6, ADR-0011): why Prism holds it or may hold it
- * suspended, written before Prism suspends it for those reasons and kept until it is let go.
+ * One process in the suspension journal (LIFE-6, ADR-0011): why PRISM holds it or may hold it
+ * suspended, written before PRISM suspends it for those reasons and kept until it is let go.
  *
- * @param reasons why Prism holds it or may hold it: the user's suspension, a CPU limit in force
+ * @param reasons why PRISM holds it or may hold it: the user's suspension, a CPU limit in force
  *     (written when the limit starts, not on every cycle), OOM Guard; empty for a suspension that
  *     failed part way and still holds threads ({@code incomplete})
  * @param memento which units the suspension holds, as the platform recorded them (Windows: the
  *     threads); empty where the identity is the unit, or where it was not recorded
  * @param cause what brought the suspension about, for whoever reads the entry later
- * @param writer which session of Prism wrote it
- * @param incomplete part of a suspension Prism made could not be undone and is still held
+ * @param writer which session of PRISM wrote it
+ * @param incomplete part of a suspension PRISM made could not be undone and is still held
  * @param carried listed after a crash of an earlier session and carried into this one's journal,
  *     so that it survives another crash until the user acts on it
  */

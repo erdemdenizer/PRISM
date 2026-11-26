@@ -14,7 +14,7 @@ import prism.srm.domain.ProcessIdentity;
 import prism.srm.domain.ProcessSnapshot;
 import prism.srm.domain.ProcessState;
 
-/** PROC-6: the mark comes from Prism's own record, by identity, and changes nothing else. */
+/** PROC-6: the mark comes from PRISM's own record, by identity, and changes nothing else. */
 class SuspendedByPrismTest {
 
     private static final ProcessIdentity HELD = new ProcessIdentity(4_242, Instant.EPOCH);

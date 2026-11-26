@@ -135,7 +135,7 @@
 }
 
 /*
- * After process monitoring stopped: the processes Prism still holds suspended, each with Resume.
+ * After process monitoring stopped: the processes PRISM still holds suspended, each with Resume.
  * Below the notice, 8 px between its lines; the name, its PID and the button 8 px apart; a plain
  * button, as everywhere.
  */
@@ -151,7 +151,7 @@
 
 /*
  * What an earlier session may have left suspended: the caption, then each entry on a line, its
- * name, PID, reasons, what Prism could check (cut, with the whole in a tooltip) and its buttons,
+ * name, PID, reasons, what PRISM could check (cut, with the whole in a tooltip) and its buttons,
  * 8 px apart; then the line about the last request.
  */
 .recovered-suspensions {
@@ -179,7 +179,7 @@
   -fx-text-fill: -srm-text-muted;
 }
 
-/* Prism has stopped looking for an unread journal of an earlier session: the list may be incomplete. */
+/* PRISM has stopped looking for an unread journal of an earlier session: the list may be incomplete. */
 .recovered-summary-text:warning,
 .recovered-suspensions-incomplete:warning {
   -fx-text-fill: -srm-warning;
@@ -190,7 +190,7 @@
 }
 
 /*
- * UI lab v2: the filter is on the title line, 260 px; it gives way to 160 px in a narrow line and
+ * UI redesign: the filter is on the title line, 260 px; it gives way to 160 px in a narrow line and
  * then folds into its search button (in code). The summary before it is cut first.
  */
 .process-toolbar > .filter-field {
@@ -204,7 +204,7 @@
 }
 
 /*
- * UI lab v2: the inspector beside the table. The divider is the 12 px gutter between them, with a
+ * UI redesign: the inspector beside the table. The divider is the 12 px gutter between them, with a
  * hairline while the pointer is on it; the inspector is a panel, as high as the table, and scrolls
  * inside where its sections are taller. No shadow: its values change every second, and the panel is
  * told apart by its border and its surface. Fix round H: the dock (ProcessDock) lays them out in every

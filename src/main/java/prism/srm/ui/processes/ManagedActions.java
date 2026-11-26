@@ -32,7 +32,7 @@ import prism.srm.domain.ProcessIdentity;
  * OOM management, a process is acted on as Notify only until the user chooses another emergency
  * action (milestone 11). While a request about a process is on its way, all three are
  * disabled for it. Set CPU limit is disabled, with the reason, where no CPU limit is available.
- * All of them are disabled, with the reason, on Prism's own process (MGD-4, CAP-2); the service
+ * All of them are disabled, with the reason, on PRISM's own process (MGD-4, CAP-2); the service
  * refuses it as well.
  */
 final class ManagedActions {
@@ -99,7 +99,7 @@ final class ManagedActions {
         refresh();
     }
 
-    /** The PID of Prism itself: it is never managed (MGD-4). */
+    /** The PID of PRISM itself: it is never managed (MGD-4). */
     void showOwnProcess(long pid) {
         ownPid = OptionalLong.of(pid);
         refresh();
@@ -251,7 +251,7 @@ final class ManagedActions {
 
     private static String description(Choice choice) {
         return switch (choice) {
-            case MANAGE -> "Lets Prism limit this process. It stays managed until it exits or Prism closes.";
+            case MANAGE -> "Lets PRISM limit this process. It stays managed until it exits or PRISM closes.";
             case SET_CPU_LIMIT -> "Limits the share of the CPU this process uses, managing it first if needed.";
             case OOM_MANAGE ->
                 "Lets OOM Guard act on this process under memory pressure, as far as its switches allow; Notify only"

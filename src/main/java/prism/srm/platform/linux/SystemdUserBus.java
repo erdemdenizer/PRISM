@@ -11,7 +11,7 @@ import java.util.regex.Pattern;
 /**
  * Read-only inspection of the calling user's systemd manager over its D-Bus API (milestone 12, S3A, plan Rev 2.2 §2.3
  * P4–P7, §5.2). It can send exactly the methods of {@link ReadOnlyMethod} — {@code GetUnit}, {@code GetUnitByPID} for
- * Prism's own process only, and {@code org.freedesktop.DBus.Properties.Get} — none of which changes anything. There is
+ * PRISM's own process only, and {@code org.freedesktop.DBus.Properties.Get} — none of which changes anything. There is
  * no way here to start, stop, kill, change or attach a unit, to pass a file descriptor, or to name another process.
  *
  * <p>Every reply is checked before it is read: its whole signature must equal the method's ({@code o} or {@code v}),
@@ -21,10 +21,10 @@ import java.util.regex.Pattern;
  *
  * <p>Each inspection opens its own connection, uses it on the calling thread only and closes it before returning;
  * every message is released on every path. One inspection at a time (sd-bus objects are not thread-safe). Every method
- * call Prism makes is bounded by {@link #CALL_TIMEOUT_USEC}. The {@code Hello} call that brings the connection up is
+ * call PRISM makes is bounded by {@link #CALL_TIMEOUT_USEC}. The {@code Hello} call that brings the connection up is
  * not: {@code sd_bus_open_user} queues it inside {@code sd_bus_start}, sealed with libsystemd's default method-call
  * timeout ({@code SYSTEMD_BUS_TIMEOUT}, else 25 s; v255 sd-bus.c {@code bus_send_hello}, {@code bus_seal_message}),
- * before Prism can set its own; the first call waits for it. The SASL authentication before it is bounded only by
+ * before PRISM can set its own; the first call waits for it. The SASL authentication before it is bounded only by
  * libsystemd's own authentication timeout. So a hung bus broker can block an inspection for longer (final review,
  * 2026-10-16). It must never run on the JavaFX Application Thread.
  *
@@ -64,7 +64,7 @@ final class SystemdUserBus {
     static final int ECONNREFUSED = 111;
     static final int ENOMEDIUM = 123;
 
-    /** A unit name Prism may ask about: systemd's unit-name characters, a kind whose cgroup it can read. */
+    /** A unit name PRISM may ask about: systemd's unit-name characters, a kind whose cgroup it can read. */
     private static final Pattern UNIT_NAME = Pattern.compile("[A-Za-z0-9:_.@\\\\-]{1,240}\\.(slice|scope|service)");
 
     /** A unit object path as the manager hands it out (bus_label_escape: [A-Za-z0-9_] only). */
@@ -98,12 +98,12 @@ final class SystemdUserBus {
         /** No connection to the user bus ({@code sd_bus_open_user} failed), or no user manager on it. */
         NO_BUS,
         NO_SUCH_UNIT,
-        /** Prism's own process is in no unit of this manager (it runs outside it). */
+        /** PRISM's own process is in no unit of this manager (it runs outside it). */
         NO_UNIT_FOR_PROCESS,
         ACCESS_DENIED,
         TIMEOUT,
         MALFORMED_REPLY,
-        /** The question itself was refused before anything was sent (a name Prism does not ask about). */
+        /** The question itself was refused before anything was sent (a name PRISM does not ask about). */
         REFUSED,
         FAILED
     }
@@ -201,30 +201,30 @@ final class SystemdUserBus {
     /** A loaded unit by name; a name that is not a slice, scope or service name is refused without a call. */
     Reading<UnitFacts> unit(String name) {
         if (!UNIT_NAME.matcher(name).matches()) {
-            return Reading.not(Status.REFUSED, "not a unit name Prism asks about: " + name);
+            return Reading.not(Status.REFUSED, "not a unit name PRISM asks about: " + name);
         }
         return inspect(bus -> unitFacts(bus, objectPath(bus, ReadOnlyMethod.GET_UNIT, name, 0)));
     }
 
     /**
      * One string property of a loaded scope unit ({@code org.freedesktop.systemd1.Scope}, for example {@code
-     * OOMPolicy}); a name or property Prism does not ask about is refused without a call.
+     * OOMPolicy}); a name or property PRISM does not ask about is refused without a call.
      */
     Reading<String> scopeStringProperty(String name, String property) {
         if (!UNIT_NAME.matcher(name).matches()
                 || !name.endsWith(".scope")
                 || !PROPERTY.matcher(property).matches()) {
-            return Reading.not(Status.REFUSED, "not a scope property Prism asks about: " + name + " " + property);
+            return Reading.not(Status.REFUSED, "not a scope property PRISM asks about: " + name + " " + property);
         }
         return inspect(bus -> stringProperty(
                 bus, objectPath(bus, ReadOnlyMethod.GET_UNIT, name, 0), "org.freedesktop.systemd1.Scope", property));
     }
 
-    /** The unit Prism's own process is in, if this manager has one for it. */
+    /** The unit PRISM's own process is in, if this manager has one for it. */
     Reading<UnitFacts> ownUnit() {
         long pid = ownPid.getAsLong();
         if (pid <= 0 || pid > CgroupV2.MOST_PID) {
-            return Reading.not(Status.REFUSED, "Prism's own PID cannot be named: " + pid);
+            return Reading.not(Status.REFUSED, "PRISM's own PID cannot be named: " + pid);
         }
         return inspect(bus -> unitFacts(bus, objectPath(bus, ReadOnlyMethod.GET_UNIT_BY_PID, null, (int) pid)));
     }
@@ -456,7 +456,7 @@ final class SystemdUserBus {
         return read.value().get();
     }
 
-    /** A negative sd-bus return code as an errno name where Prism knows it. */
+    /** A negative sd-bus return code as an errno name where PRISM knows it. */
     static String errno(int code) {
         return switch (-code) {
             case 0 -> "no value";

@@ -257,7 +257,7 @@ class LimitServiceNativeTest {
     @Test
     void aRefusedAssignmentOffersTheEmulatedLimitWithItsCostAndStartsNothing() {
         limiter.apply =
-                FakeResourceLimiter.notAssigned(OperationResult.UNSUPPORTED, "in a job Prism does not hold", true);
+                FakeResourceLimiter.notAssigned(OperationResult.UNSUPPORTED, "in a job PRISM does not hold", true);
         managed();
         LimitResult set = limit(20);
         scheduler.advance(Duration.ofSeconds(5));
@@ -312,7 +312,7 @@ class LimitServiceNativeTest {
     }
 
     private static final String PENDING =
-            "1 native-limit ledger(s) of earlier Prism sessions are not settled yet (1-1)";
+            "1 native-limit ledger(s) of earlier PRISM sessions are not settled yet (1-1)";
 
     /**
      * The reproduced gap: today's probe finds no native CPU limit, but an earlier session's ledger is
@@ -402,7 +402,7 @@ class LimitServiceNativeTest {
         scheduler.advance(Duration.ofSeconds(5));
 
         assertThat(set.outcome().result()).isEqualTo(OperationResult.UNSUPPORTED);
-        assertThat(set.text()).contains("earlier Prism session");
+        assertThat(set.text()).contains("earlier PRISM session");
         assertThat(service.limiting(DEMO)).isFalse();
         assertThat(suspends()).isZero();
     }
@@ -459,14 +459,14 @@ class LimitServiceNativeTest {
     }
 
     /**
-     * T-D27 (plan Rev 2.2 section 4.5 b): a process inside a scope a Prism session created gets no emulated limit, whatever
+     * T-D27 (plan Rev 2.2 section 4.5 b): a process inside a scope a PRISM session created gets no emulated limit, whatever
      * recovery knows: the scope-membership rule stands apart from any record.
      */
     @Test
     void aProcessInsideAPrismScopeGetsNoEmulatedLimitWhateverTheRecordsSay() {
         noNativeLimiterToday();
         limiter.scopeBarrier = identity -> identity.equals(DEMO)
-                ? Optional.of("it runs in prism-srm-limit-4242-1.scope, a scope a Prism session created")
+                ? Optional.of("it runs in prism-srm-limit-4242-1.scope, a scope a PRISM session created")
                 : Optional.empty();
         managed();
 
@@ -477,7 +477,7 @@ class LimitServiceNativeTest {
         assertThat(set.text()).contains("prism-srm-limit-4242-1.scope");
         assertThat(set.text())
                 .as("said as the scope rule, not as an unsettled ledger")
-                .contains("Prism changes nothing in that scope")
+                .contains("PRISM changes nothing in that scope")
                 .doesNotContain("ledger");
         assertThat(service.limiting(DEMO)).isFalse();
         assertThat(suspends()).as("no emulated controller").isZero();
@@ -485,7 +485,7 @@ class LimitServiceNativeTest {
 
         limiter.scopeBarrier = identity -> Optional.empty();
         assertThat(limit(20).outcome().succeeded())
-                .as("outside any Prism scope it runs")
+                .as("outside any PRISM scope it runs")
                 .isTrue();
     }
 
@@ -533,7 +533,7 @@ class LimitServiceNativeTest {
     /** Before the earlier ledger is read, nothing emulated is offered, accepted or started. */
     @Test
     void whileAnEarlierLedgerIsUnsettledNoEmulatedLimitIsOfferedAcceptedOrStarted() {
-        unsettled = Optional.of("1 native-limit ledger(s) of earlier Prism sessions are not settled yet (1-1)");
+        unsettled = Optional.of("1 native-limit ledger(s) of earlier PRISM sessions are not settled yet (1-1)");
         limiter.apply = FakeResourceLimiter.notAssigned(OperationResult.ACCESS_DENIED, "refused", true);
         managed();
 
@@ -572,7 +572,7 @@ class LimitServiceNativeTest {
         limiter.apply = FakeResourceLimiter.notAssigned(OperationResult.ACCESS_DENIED, "refused", true);
         managed();
         assertThat(limit(20).fallback()).as("offered: nothing is unsettled yet").isPresent();
-        unsettled = Optional.of("1 native-limit ledger(s) of earlier Prism sessions are not settled yet (1-1)");
+        unsettled = Optional.of("1 native-limit ledger(s) of earlier PRISM sessions are not settled yet (1-1)");
 
         LimitResult accept = ask(LimitAction.ACCEPT_EMULATED_CPU);
         scheduler.advance(Duration.ofSeconds(5));
@@ -819,7 +819,7 @@ class LimitServiceNativeTest {
         LimitResult set = limit(30);
         assertThat(set.outcome().result()).isEqualTo(OperationResult.UNSUPPORTED);
         assertThat(set.fallback()).isEmpty();
-        assertThat(set.text()).contains("earlier Prism session");
+        assertThat(set.text()).contains("earlier PRISM session");
         assertThat(applies()).isZero();
         assertThat(memory(256).outcome().succeeded()).isFalse();
         assertThat(service.snapshot().notices())
@@ -956,7 +956,7 @@ class LimitServiceNativeTest {
     @Test
     void aMemoryLimitThatCannotBeAppliedHasNoFallback() {
         limiter.apply =
-                FakeResourceLimiter.notAssigned(OperationResult.UNSUPPORTED, "in a job Prism does not hold", true);
+                FakeResourceLimiter.notAssigned(OperationResult.UNSUPPORTED, "in a job PRISM does not hold", true);
         managed();
         LimitResult set = memory(256);
         assertThat(set.outcome().succeeded()).isFalse();

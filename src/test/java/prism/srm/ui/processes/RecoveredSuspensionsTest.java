@@ -56,7 +56,7 @@ class RecoveredSuspensionsTest {
         model.accept(new RecoveryResult(
                 new RecoveryRequest(RecoveryRequest.Action.RESUME, demo, "demo"),
                 ControlOutcome.of(OperationResult.INVALID_ARGUMENT, "x"),
-                "Prism did not resume demo.",
+                "PRISM did not resume demo.",
                 ""));
 
         assertThat(model.line().wholeProperty().get()).isEmpty();
@@ -104,16 +104,16 @@ class RecoveredSuspensionsTest {
         model.showCheck(RecoveryCheck.EXHAUSTED);
 
         assertThat(model.summaryShownProperty().get()).isTrue();
-        assertThat(RecoveredSuspensions.summary(0, RecoveryCheck.EXHAUSTED)).contains("restart Prism");
+        assertThat(RecoveredSuspensions.summary(0, RecoveryCheck.EXHAUSTED)).contains("restart PRISM");
         assertThat(RecoveredSuspensions.summaryInFull(0, RecoveryCheck.EXHAUSTED))
                 .contains("could not be read")
                 .contains("may be incomplete")
-                .contains("restarting Prism checks it again");
+                .contains("restarting PRISM checks it again");
         // Short enough for the smallest window; the tooltip says what the entries are.
         assertThat(RecoveredSuspensions.summary(2, RecoveryCheck.EXHAUSTED)).isEqualTo("2 listed; list incomplete");
         assertThat(RecoveredSuspensions.summary(2, RecoveryCheck.PENDING)).isEqualTo("2 listed; checking more…");
         assertThat(RecoveredSuspensions.summaryInFull(2, RecoveryCheck.EXHAUSTED))
-                .contains("2 process(es) an earlier session of Prism may have left suspended")
+                .contains("2 process(es) an earlier session of PRISM may have left suspended")
                 .contains("may be incomplete");
     }
 
@@ -128,7 +128,7 @@ class RecoveredSuspensionsTest {
     @Test
     void theConfirmationSaysTheStopMayNotBePrismsAndOnWindowsWhyACountProvesNothing() {
         assertThat(RecoveredSuspensions.confirmConsequence(Optional.of(ControlMechanism.STOP_SIGNAL)))
-                .contains("the stop may not be Prism's")
+                .contains("the stop may not be PRISM's")
                 .doesNotContain("suspension another program added");
         assertThat(RecoveredSuspensions.confirmConsequence(Optional.of(ControlMechanism.PER_THREAD_SUSPENSION)))
                 .contains("remove a suspension another program added");

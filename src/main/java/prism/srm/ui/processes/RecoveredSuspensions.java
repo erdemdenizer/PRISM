@@ -22,10 +22,10 @@ import prism.srm.domain.SuspensionReason;
 import prism.srm.ui.control.ResultLineState;
 
 /**
- * The processes an earlier session of Prism may have left suspended, as the start-up found them
- * (ADR-0011), with Resume and Dismiss, and what the last of those requests came to. Prism resumes
+ * The processes an earlier session of PRISM may have left suspended, as the start-up found them
+ * (ADR-0011), with Resume and Dismiss, and what the last of those requests came to. PRISM resumes
  * none of them by itself: Resume is the user's, after a confirmation that says the stop may not be
- * Prism's; Dismiss closes the entry and leaves the process as it is.
+ * PRISM's; Dismiss closes the entry and leaves the process as it is.
  *
  * <p>While a journal of an earlier session is unread, the list may be incomplete, and the summary
  * says so even when nothing is listed: an empty list is never shown as a whole one.
@@ -37,7 +37,7 @@ import prism.srm.ui.control.ResultLineState;
 final class RecoveredSuspensions {
 
     static final String CAPTION =
-            "Possibly left suspended by an earlier session. Prism resumes none of them by itself.";
+            "Possibly left suspended by an earlier session. PRISM resumes none of them by itself.";
 
     private final Consumer<RecoveryRequest> requests;
     private final ObservableList<RecoveredSuspension> rows = FXCollections.observableArrayList();
@@ -143,7 +143,7 @@ final class RecoveredSuspensions {
             case COMPLETE -> count + " possibly left suspended";
             case PENDING -> count == 0 ? "Checking an earlier session…" : count + " listed; checking more…";
             case EXHAUSTED ->
-                count == 0 ? "Earlier session not checked; restart Prism" : count + " listed; list incomplete";
+                count == 0 ? "Earlier session not checked; restart PRISM" : count + " listed; list incomplete";
         };
     }
 
@@ -152,12 +152,12 @@ final class RecoveredSuspensions {
         return switch (check) {
             case COMPLETE -> "";
             case PENDING ->
-                "A journal of an earlier session of Prism cannot be read yet: that session has ended, but the"
-                        + " system still holds its lock. Until Prism has read it, this list may be incomplete."
-                        + " Prism keeps trying for about two minutes.";
+                "A journal of an earlier session of PRISM cannot be read yet: that session has ended, but the"
+                        + " system still holds its lock. Until PRISM has read it, this list may be incomplete."
+                        + " PRISM keeps trying for about two minutes.";
             case EXHAUSTED ->
                 "A journal of an earlier session could not be read, so this list may be incomplete. Its file"
-                        + " is kept: restarting Prism checks it again.";
+                        + " is kept: restarting PRISM checks it again.";
         };
     }
 
@@ -165,7 +165,7 @@ final class RecoveredSuspensions {
     static String summaryInFull(int count, RecoveryCheck check) {
         String listed = count == 0
                 ? ""
-                : count + " process(es) an earlier session of Prism may have left suspended. Prism resumes none of"
+                : count + " process(es) an earlier session of PRISM may have left suspended. PRISM resumes none of"
                         + " them by itself.";
         String why = incompleteness(check);
         return listed.isEmpty() ? why : why.isEmpty() ? listed : listed + " " + why;
@@ -205,13 +205,13 @@ final class RecoveredSuspensions {
     }
 
     /**
-     * What the confirmation of Resume says first: the stop it ends may not be Prism's. On Windows a
+     * What the confirmation of Resume says first: the stop it ends may not be PRISM's. On Windows a
      * suspension is a count without an owner, so another program may have added one.
      */
     static String confirmConsequence(Optional<ControlMechanism> resume) {
         boolean threads =
                 resume.filter(ControlMechanism.PER_THREAD_SUSPENSION::equals).isPresent();
-        return "Prism checks it first, but the stop may not be Prism's. Resuming may end a stop another program"
-                + " made after Prism closed" + (threads ? ", or remove a suspension another program added." : ".");
+        return "PRISM checks it first, but the stop may not be PRISM's. Resuming may end a stop another program"
+                + " made after PRISM closed" + (threads ? ", or remove a suspension another program added." : ".");
     }
 }

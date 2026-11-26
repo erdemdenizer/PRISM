@@ -5,7 +5,7 @@ import java.util.OptionalInt;
 import java.util.OptionalLong;
 
 /**
- * The native limits Prism means a process to have: a CPU limit as a whole percentage of the whole
+ * The native limits PRISM means a process to have: a CPU limit as a whole percentage of the whole
  * machine (LIM-2) and a memory limit in bytes of the given boundary; either may be absent, and {@link #NONE}
  * asks for no limit at all.
  *

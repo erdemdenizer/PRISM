@@ -25,7 +25,7 @@ import prism.srm.domain.ActivitySeverity;
  * nothing has been logged, or that nothing matches the filter. The log keeps a bounded number of
  * entries; once it holds that many, the page says the earlier ones are only in the log file. A
  * request to open the log folder that did not succeed is said under the filter until the next one.
- * The log itself cannot be unavailable: it is kept in memory by Prism.
+ * The log itself cannot be unavailable: it is kept in memory by PRISM.
  */
 final class LogsViewModel {
 

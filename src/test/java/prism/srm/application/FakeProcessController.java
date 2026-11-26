@@ -160,7 +160,7 @@ public final class FakeProcessController implements ProcessController {
         return limitations;
     }
 
-    /** The table of the Windows listing, so that the levels a test shows are the ones Prism shows. */
+    /** The table of the Windows listing, so that the levels a test shows are the ones PRISM shows. */
     public volatile Map<Integer, PriorityLevel> listedPriorities = windowsPriorities();
 
     public static Map<Integer, PriorityLevel> windowsPriorities() {

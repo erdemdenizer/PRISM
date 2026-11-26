@@ -96,7 +96,7 @@ final class LimitRun {
         FAILED,
         /** The journal failed: released what the limiter held; the entry stays as evidence. */
         JOURNAL,
-        /** Prism shuts down: nothing released here; the shutdown sequence releases every limit. */
+        /** PRISM shuts down: nothing released here; the shutdown sequence releases every limit. */
         SHUTDOWN
     }
 
@@ -219,7 +219,7 @@ final class LimitRun {
             case PAUSED ->
                 new State(
                         LimitStatus.PAUSED_EXTERNAL_STOP,
-                        Optional.of("stopped by another program: Prism waits and does not continue it"),
+                        Optional.of("stopped by another program: PRISM waits and does not continue it"),
                         LimitNote.NONE,
                         OptionalDouble.empty(),
                         OptionalDouble.empty());
@@ -251,7 +251,7 @@ final class LimitRun {
     }
 
     /**
-     * Prism shuts down: the next step ends the limit without touching the process, and a pending
+     * PRISM shuts down: the next step ends the limit without touching the process, and a pending
      * step is called off. Any thread; the shutdown sequence releases what is held.
      */
     void stopForShutdown() {

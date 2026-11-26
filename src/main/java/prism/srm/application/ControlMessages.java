@@ -18,7 +18,7 @@ import prism.srm.domain.SuspensionReason;
 /**
  * What the user reads for each result (CTL-2): a sentence that says what came of the request, and
  * where it helps, a second one with what the user may want to know beside it. Together they say
- * what Prism did, never what it has not seen: a close request is "sent", a termination
+ * what PRISM did, never what it has not seen: a close request is "sent", a termination
  * "requested"; whether the process then exited is what the process table shows. Native codes
  * never appear here; they go to the log. The one source of these words: the page shows the two
  * sentences apart, the activity log writes them as one ({@link ProcessControlResult#text()}).
@@ -116,11 +116,11 @@ public final class ControlMessages {
     }
 
     static Wording shuttingDown(ControlRequest request) {
-        return new Wording(nothingDone(request), "Prism is closing.");
+        return new Wording(nothingDone(request), "PRISM is closing.");
     }
 
     static Wording notMonitoring(ControlRequest request) {
-        return new Wording(nothingDone(request), "Prism is not monitoring processes.");
+        return new Wording(nothingDone(request), "PRISM is not monitoring processes.");
     }
 
     static Wording tooManyPending(ControlRequest request) {
@@ -132,9 +132,9 @@ public final class ControlMessages {
     }
 
     static Wording refused(ControlRequest request, ProtectionRules.Refusal refusal) {
-        String headline = "Prism does not act on " + target(request) + ".";
+        String headline = "PRISM does not act on " + target(request) + ".";
         return switch (refusal) {
-            case OWN_PROCESS -> new Wording(headline, "It is Prism's own process.");
+            case OWN_PROCESS -> new Wording(headline, "It is PRISM's own process.");
             case SYSTEM_PROCESS, SYSTEM_EXECUTABLE -> new Wording(headline, "It is a system process.");
             case CRITICAL_PROCESS -> new Wording(headline, "The system marks it as critical.");
         };
@@ -151,7 +151,7 @@ public final class ControlMessages {
             return wording;
         }
         // The journal failed: the suspension stands, but a crash would leave no record of it.
-        String note = "It is not recorded for the next start of Prism: the suspension journal cannot be written.";
+        String note = "It is not recorded for the next start of PRISM: the suspension journal cannot be written.";
         return new Wording(
                 wording.headline(), wording.explanation().isEmpty() ? note : wording.explanation() + " " + note);
     }
@@ -166,15 +166,15 @@ public final class ControlMessages {
                                 && outcome.remaining().size() > 1
                         ? new Wording(
                                 target + " stays suspended, now for you as well.",
-                                "Prism held it already " + reasons(withoutUser(outcome.remaining()))
+                                "PRISM held it already " + reasons(withoutUser(outcome.remaining()))
                                         + "; Resume lets your part go.")
-                        : Wording.of(target + " is already suspended by Prism.");
+                        : Wording.of(target + " is already suspended by PRISM.");
             case STOPPED_ELSEWHERE ->
                 new Wording(
                         target + " is already stopped.",
-                        "Another program stopped it; Prism does not take over that stop.");
+                        "Another program stopped it; PRISM does not take over that stop.");
             case RESUMED -> Wording.of(target + " was resumed.");
-            case EXITED -> new Wording(target + " has exited.", "Prism no longer holds it suspended.");
+            case EXITED -> new Wording(target + " has exited.", "PRISM no longer holds it suspended.");
             case STILL_HELD ->
                 outcome.remaining().equals(Set.of(SuspensionReason.CPU_LIMITER))
                         ? new Wording(
@@ -182,15 +182,15 @@ public final class ControlMessages {
                                 "The CPU limiter still stops it a moment at a time, to hold it under its limit.")
                         : new Wording(
                                 target + " stays suspended.",
-                                "Prism still holds it " + reasons(outcome.remaining()) + ".");
-            case NOT_HELD -> Wording.of("Prism does not hold " + target + " suspended for you.");
+                                "PRISM still holds it " + reasons(outcome.remaining()) + ".");
+            case NOT_HELD -> Wording.of("PRISM does not hold " + target + " suspended for you.");
             case INCOMPLETE ->
                 new Wording(
                         (request.action() == ControlAction.SUSPEND ? "Suspending " : "Resuming ") + target
                                 + " was not completed.",
                         means.is(ControlMechanism.STOP_SIGNAL)
-                                ? "Prism could not let it run again; Resume tries again."
-                                : outcome.outstanding() + " thread(s) Prism suspended could not be released; Resume"
+                                ? "PRISM could not let it run again; Resume tries again."
+                                : outcome.outstanding() + " thread(s) PRISM suspended could not be released; Resume"
                                         + " tries again.");
             case REFUSED -> shuttingDown(request);
             case FAILED -> of(request, outcome.outcome(), means);
@@ -232,9 +232,9 @@ public final class ControlMessages {
                 new Wording(
                         "Access denied: " + target + ".",
                         request.action() == ControlAction.CHANGE_PRIORITY && means.is(ControlMechanism.NICE_VALUE)
-                                ? "Raising a priority, or changing another user's process, needs privileges Prism"
+                                ? "Raising a priority, or changing another user's process, needs privileges PRISM"
                                         + " does not have."
-                                : "The system does not let Prism act on this process.");
+                                : "The system does not let PRISM act on this process.");
             case PROCESS_NOT_FOUND -> Wording.of(target + " is no longer running.");
             case UNSUPPORTED ->
                 request.action() == ControlAction.END_TASK && !means.is(ControlMechanism.TERMINATION_SIGNAL)
@@ -244,8 +244,8 @@ public final class ControlMessages {
                 request.action() == ControlAction.SUSPEND && means.is(ControlMechanism.STOP_SIGNAL)
                         ? new Wording(
                                 target + " is already stopped.",
-                                "Another program stopped it; Prism does not take over that stop.")
-                        : Wording.of("Prism could not do that to " + target + ".");
+                                "Another program stopped it; PRISM does not take over that stop.")
+                        : Wording.of("PRISM could not do that to " + target + ".");
             case NATIVE_ERROR ->
                 new Wording(
                         "The system did not " + verb(request.action(), means) + " " + target + ".",

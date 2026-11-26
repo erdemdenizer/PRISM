@@ -26,7 +26,7 @@ import prism.srm.domain.ProcessIdentity;
 import prism.srm.domain.RecoveredLimit;
 
 /**
- * Crash recovery of native limits on the real system (MILESTONES section 10, plan §11.3 E2): a Prism
+ * Crash recovery of native limits on the real system (MILESTONES section 10, plan §11.3 E2): a PRISM
  * stand-in limits the demo workload natively and is killed as Task Manager would kill it; the limit
  * is measured to stay in force, the job's name is gone with its last handle, and the next start reads
  * the ledger and says what it found, without changing anything it cannot prove is its own.
@@ -227,9 +227,9 @@ class NativeLimitRecoveryIntegrationTest {
     }
 
     /**
-     * Audit of the recovery trust boundary, C, on the real system: a Prism stand-in that still runs
-     * holds a 20 % cap; its ledger lies in the folder, named as a Prism session is named, with no
-     * journal beside it. Recovery leaves it alone because its Prism process runs; and even asked
+     * Audit of the recovery trust boundary, C, on the real system: a PRISM stand-in that still runs
+     * holds a 20 % cap; its ledger lies in the folder, named as a PRISM session is named, with no
+     * journal beside it. Recovery leaves it alone because its PRISM process runs; and even asked
      * directly to look at the record, the limiter reads the job and changes nothing. The cap is
      * measured to stay.
      */
@@ -237,7 +237,7 @@ class NativeLimitRecoveryIntegrationTest {
     void recoveryNeverChangesTheJobOfAPrismSessionThatStillRuns() throws Exception {
         DemoTarget demo = own(DemoTarget.start("--cpu", "60", "--duration", "200s"));
         NativeValidation.requireOutsideAnyJob(demo.identity().pid());
-        // The stand-in's ledger is named after the stand-in itself, as a Prism session's is.
+        // The stand-in's ledger is named after the stand-in itself, as a PRISM session's is.
         TestJvm live = own(TestJvm.start(
                 NativeLimitingChild.class,
                 folder.toString(),
@@ -260,7 +260,7 @@ class NativeLimitRecoveryIntegrationTest {
                 SuspensionJournal.onDisk(),
                 new ActivityLog(100, Instant::now));
         assertThat(recovery.lookAtOrphans())
-                .as("its Prism process runs: not an orphan")
+                .as("its PRISM process runs: not an orphan")
                 .isEmpty();
         assertThat(NativeLimitLedger.readDead(folder, instance, SuspensionJournal.onDisk()))
                 .as("its ledger is not touched")

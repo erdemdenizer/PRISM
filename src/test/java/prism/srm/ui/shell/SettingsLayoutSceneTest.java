@@ -63,7 +63,7 @@ class SettingsLayoutSceneTest {
     @ParameterizedTest(name = "{0}")
     @MethodSource("cases")
     void theSummaryUsesTheWidthOfALowWindowAndIsNeverCut(Case size) {
-        String home = "C:\\Users\\alice\\AppData\\Local\\Prism\\SystemResourceManager-UILab";
+        String home = "C:\\Users\\alice\\AppData\\Local\\Prism\\SystemResourceManager";
         Measured seen = ScaledScenes.inspect(
                 Theme.DARK,
                 size.width(),

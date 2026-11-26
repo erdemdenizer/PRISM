@@ -837,7 +837,7 @@ public final class OomGuard {
                 boolean wasIncomplete = entry.physical == OomHold.Physical.RELEASE_INCOMPLETE;
                 letGo(entry);
                 if (!outcome.remaining().isEmpty()) {
-                    entry.failed = Optional.of("the incomplete hold is the user's; resume it to let Prism finish");
+                    entry.failed = Optional.of("the incomplete hold is the user's; resume it to let PRISM finish");
                 } else if (wasIncomplete) {
                     entry.failed = Optional.empty();
                 }
@@ -957,7 +957,7 @@ public final class OomGuard {
             activity.record(
                     ActivitySeverity.WARNING,
                     "OOM Guard no longer manages " + entry.label() + ", but part of its suspension could not be"
-                            + " undone. It stays shown as suspended by Prism; Resume on the Processes page releases"
+                            + " undone. It stays shown as suspended by PRISM; Resume on the Processes page releases"
                             + " the rest, and so does the shutdown.");
         }
         // A hold whose release is incomplete stays with the coordinator, which tries again at the user's
@@ -1209,7 +1209,7 @@ public final class OomGuard {
      */
     private Optional<String> otherIncomplete(Entry entry) {
         return entry.physical == OomHold.Physical.NONE && coordinator.incomplete(entry.identity())
-                ? notNow("an incomplete suspension of it waits; resume it on the Processes page to let Prism finish")
+                ? notNow("an incomplete suspension of it waits; resume it on the Processes page to let PRISM finish")
                 : Optional.empty();
     }
 
@@ -1453,7 +1453,7 @@ public final class OomGuard {
     private void lower(Entry entry, Claim claim) {
         Optional<PriorityLevel> previous = levelOf(entry.last);
         if (previous.isEmpty()) {
-            // Nothing to raise it back to: a guessed level would be a change Prism made and called a restore.
+            // Nothing to raise it back to: a guessed level would be a change PRISM made and called a restore.
             entry.notNow = notNow("its priority level is not known");
             return;
         }

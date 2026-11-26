@@ -48,7 +48,7 @@ K16 can be lifted later only after separate validation and with the product owne
   [acceptance matrix](m12-acceptance-matrix.md), the Linux runs in [m12-hyperv-validation.md](m12-hyperv-validation.md).
 - **The register's summary** that no BLOCKING risk is open, with F1 and F2 fixed: [m12-risk-register.md](m12-risk-register.md).
 
-It does not cover native limits for real user processes or applications, Prism's own window on a Linux desktop, or anything under
+It does not cover native limits for real user processes or applications, PRISM's own window on a Linux desktop, or anything under
 "Before K16 can be lifted".
 
 ## Three documented exceptions
@@ -99,7 +99,7 @@ checked independently. The enforcer stops a build on a wrong JDK, so at most the
   may remain.
 - **The macOS procedure** should require that `java -version` says Temurin 25 after `JAVA_HOME` is set.
 - **Packaging and the classpath** (milestone 13): the register's limit of the K16 claim depends on there being no `module-info`.
-- **The `CLAUDE.md` recovery sentence** reads as though Prism resumes something by itself, which LIFE-4 denies. It is a project rule
+- **The recovery sentence of the project rules** reads as though PRISM resumes something by itself, which LIFE-4 denies. It is a project rule
   outside M12, left to the owner.
 
 When this decision was recorded, no push, merge, tag or release had been made for it.

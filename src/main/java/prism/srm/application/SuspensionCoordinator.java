@@ -44,33 +44,33 @@ import prism.srm.platform.SuspendResult;
 import prism.srm.platform.Suspension;
 
 /**
- * The one owner of the suspensions Prism holds (CTL-9, ADR-0004, ADR-0011). It is the only caller of
+ * The one owner of the suspensions PRISM holds (CTL-9, ADR-0004, ADR-0011). It is the only caller of
  * the controller's suspend, resume and adopt. Per process identity it records why the process is
  * suspended (by the user, by the CPU limiter, by OOM Guard) and resumes it only when no reason is
  * left, so that one owner never wakes a process another still holds.
  *
- * <p><b>What it never loses.</b> A suspension stays recorded as long as Prism may still hold any
+ * <p><b>What it never loses.</b> A suspension stays recorded as long as PRISM may still hold any
  * part of it on a live process. A resume that leaves part of it in place, or a suspend whose
- * rollback did, is kept as <em>incomplete</em>: it still shows as suspended by Prism, and the next
+ * rollback did, is kept as <em>incomplete</em>: it still shows as suspended by PRISM, and the next
  * Resume tries the rest.
  *
- * <p><b>The journal</b> (ADR-0011). What Prism holds, or may hold, is written to the suspension
- * journal before Prism suspends for it, so that a session that ends without a controlled shutdown
+ * <p><b>The journal</b> (ADR-0011). What PRISM holds, or may hold, is written to the suspension
+ * journal before PRISM suspends for it, so that a session that ends without a controlled shutdown
  * leaves a record: the user's suspension before it is made, with the units it holds once they are
  * known; a CPU limit when it starts ({@link #declare}), not on every cycle of its duty cycle; a
  * suspension left incomplete. A suspension for an automatic reason (the limiter, OOM Guard) is
- * refused unless that reason is recorded and the journal is healthy: Prism suspends nothing of its
+ * refused unless that reason is recorded and the journal is healthy: PRISM suspends nothing of its
  * own that the next session could not find. The user's suspension goes ahead when the journal fails,
  * and says that it was not recorded.
  *
- * <p><b>What is shown.</b> The processes the user is shown as suspended by Prism, and offered to
+ * <p><b>What is shown.</b> The processes the user is shown as suspended by PRISM, and offered to
  * resume when monitoring has stopped, are those held for the user or OOM Guard, or incomplete. A
  * process the CPU limiter alone holds, which it does for a fraction of a second at a time, is shown
  * by its limit instead.
  *
  * <p><b>After a crash</b> ({@link #recover}). The journals of sessions that ended without a
  * controlled shutdown are read at start-up. An entry is a claim, not proof that a stop is still
- * Prism's: nothing is resumed by itself. A process that has exited or runs is closed; every other
+ * PRISM's: nothing is resumed by itself. A process that has exited or runs is closed; every other
  * entry is listed for the user, who may ask to resume it ({@link #resumeRecovered}), which checks
  * again through the controller and resumes it only if the check holds, or dismiss it.
  *
@@ -93,21 +93,21 @@ public final class SuspensionCoordinator {
 
     /** What a suspend or a release changed. */
     public enum Change {
-        /** Prism suspended the process now. */
+        /** PRISM suspended the process now. */
         SUSPENDED,
-        /** Prism already held it; the reason was added. Nothing was done to the process. */
+        /** PRISM already held it; the reason was added. Nothing was done to the process. */
         ALREADY_HELD,
         /** The last reason went and the process was resumed. */
         RESUMED,
         /** The reason went, but another keeps the process suspended. */
         STILL_HELD,
-        /** Prism holds no suspension of the process for that reason. */
+        /** PRISM holds no suspension of the process for that reason. */
         NOT_HELD,
-        /** Part of a suspension Prism made could not be undone and is still held. */
+        /** Part of a suspension PRISM made could not be undone and is still held. */
         INCOMPLETE,
-        /** The process had exited when the last reason went: nothing was left to resume, and Prism let go of it. */
+        /** The process had exited when the last reason went: nothing was left to resume, and PRISM let go of it. */
         EXITED,
-        /** Prism is shutting down and suspends nothing new. */
+        /** PRISM is shutting down and suspends nothing new. */
         REFUSED,
         /** The suspend failed and nothing is held. */
         FAILED,
@@ -116,12 +116,12 @@ public final class SuspensionCoordinator {
     }
 
     /**
-     * @param remaining the reasons Prism still holds the process for
-     * @param outstanding the threads Prism still holds suspended in an incomplete suspension
+     * @param remaining the reasons PRISM still holds the process for
+     * @param outstanding the threads PRISM still holds suspended in an incomplete suspension
      * @param recorded whether the journal holds what this did; false when the journal failed and the
      *     user's suspension went ahead without it
      * @param retryable a failed suspend that the platform classified as transient and rolled back
-     *     completely, after which Prism holds nothing of the process: the same request may be made
+     *     completely, after which PRISM holds nothing of the process: the same request may be made
      *     again. Never for a refusal, a journal failure, a process stopped elsewhere, an identity that
      *     no longer matches, or anything left held.
      */
@@ -173,7 +173,7 @@ public final class SuspensionCoordinator {
 
     private static final Logger LOG = LoggerFactory.getLogger(SuspensionCoordinator.class);
 
-    /** One suspension Prism holds. */
+    /** One suspension PRISM holds. */
     private static final class Held {
         final Suspension token;
         final String name;
@@ -294,7 +294,7 @@ public final class SuspensionCoordinator {
     static final Duration JOURNAL_WAIT = Duration.ofSeconds(2);
 
     /**
-     * Sets who is told the processes the user is to see as suspended by Prism, with their names,
+     * Sets who is told the processes the user is to see as suspended by PRISM, with their names,
      * each time that changes, and at once. Called on the thread that made the change, while the
      * coordinator is locked: it must return quickly and must not call back. A {@code
      * RuntimeException} it throws is logged and changes nothing here.
@@ -339,7 +339,7 @@ public final class SuspensionCoordinator {
     }
 
     /**
-     * Holds the process suspended for the reason, suspending it if Prism does not already. The
+     * Holds the process suspended for the reason, suspending it if PRISM does not already. The
      * user's suspension is written to the journal before the process is touched, and waited for
      * outside the lock, within {@link #JOURNAL_WAIT}.
      */
@@ -349,7 +349,7 @@ public final class SuspensionCoordinator {
         if (reason == SuspensionReason.USER && journal.isPresent()) {
             lock.lock();
             try {
-                // Whatever Prism holds now: by the time the suspension runs, under a second hold of
+                // Whatever PRISM holds now: by the time the suspension runs, under a second hold of
                 // the lock, another thread may have released the process (milestone 9 review). The
                 // entry is written before the process is touched, so a crash right after the
                 // suspension still leaves the record; held already, it costs one write.
@@ -450,7 +450,7 @@ public final class SuspensionCoordinator {
             keep(identity, new Held(remainder, name, EnumSet.noneOf(SuspensionReason.class), true));
             outcome = new Outcome(result.outcome(), Change.INCOMPLETE, Set.of(), remainder.outstanding());
         } else {
-            // Retryable only when the platform says so and Prism holds nothing of the process now.
+            // Retryable only when the platform says so and PRISM holds nothing of the process now.
             boolean retryable = result.transientFailure() && !held.containsKey(identity);
             outcome = new Outcome(result.outcome(), Change.FAILED, Set.of(), 0, true, retryable);
         }
@@ -474,7 +474,7 @@ public final class SuspensionCoordinator {
         Held current = held.get(identity);
         if (current == null) {
             return new Outcome(
-                    ControlOutcome.of(OperationResult.INVALID_ARGUMENT, "Prism holds no suspension of this process"),
+                    ControlOutcome.of(OperationResult.INVALID_ARGUMENT, "PRISM holds no suspension of this process"),
                     Change.NOT_HELD,
                     Set.of(),
                     0);
@@ -532,7 +532,7 @@ public final class SuspensionCoordinator {
     // ----- The journal -----
 
     /**
-     * Records, ahead, that Prism may hold the process for an automatic reason: a CPU limit that
+     * Records, ahead, that PRISM may hold the process for an automatic reason: a CPU limit that
      * starts. Returns whether the journal holds it durably; only then may that reason suspend the
      * process (ADR-0011). Without a journal it never does.
      */
@@ -870,7 +870,7 @@ public final class SuspensionCoordinator {
         String problem = journalProblem().orElse("unknown");
         activity.record(
                 ActivitySeverity.ERROR,
-                "The suspension journal cannot be written (" + problem + "). Prism suspends nothing by itself"
+                "The suspension journal cannot be written (" + problem + "). PRISM suspends nothing by itself"
                         + " until it can, and any CPU limit at work is stopped.");
         try {
             journalListener.accept(problem);
@@ -881,13 +881,13 @@ public final class SuspensionCoordinator {
 
     // ----- What is held, for the user -----
 
-    /** The processes the user is shown as suspended by Prism, incomplete ones included. Any thread; never blocks. */
+    /** The processes the user is shown as suspended by PRISM, incomplete ones included. Any thread; never blocks. */
     public Set<ProcessIdentity> held() {
         return heldView;
     }
 
     /**
-     * Whether Prism keeps an incomplete suspension of the process: threads it could not resume,
+     * Whether PRISM keeps an incomplete suspension of the process: threads it could not resume,
      * retried on the user's Resume and at shutdown (milestone 7). Read only; the barrier of
      * milestone 10 starts no native CPU cap over it (plan D15).
      */
@@ -910,7 +910,7 @@ public final class SuspensionCoordinator {
         this.deadSession = Objects.requireNonNull(listener, "listener");
     }
 
-    /** Why Prism holds the process now, the limiter's momentary hold included; empty when it holds none. */
+    /** Why PRISM holds the process now, the limiter's momentary hold included; empty when it holds none. */
     public Set<SuspensionReason> heldFor(ProcessIdentity identity) {
         lock.lock();
         try {
@@ -923,7 +923,7 @@ public final class SuspensionCoordinator {
 
     /**
      * Takes a new listing on the monitoring thread and returns it as the user is to see it: a
-     * process Prism holds for the user or OOM Guard is marked {@code SUSPENDED_BY_PRISM}, and a held
+     * process PRISM holds for the user or OOM Guard is marked {@code SUSPENDED_BY_PRISM}, and a held
      * process the listing misses gets a check ({@link #listed}). Asks the system nothing.
      */
     public List<ProcessSnapshot> observe(List<ProcessSnapshot> listing) {
@@ -983,16 +983,16 @@ public final class SuspensionCoordinator {
                 sync(identity);
                 activity.record(
                         ActivitySeverity.INFO,
-                        current.name + " (PID " + identity.pid() + ") exited while Prism held it suspended.");
+                        current.name + " (PID " + identity.pid() + ") exited while PRISM held it suspended.");
             } else if (liveness.succeeded()) {
                 current.undecidedChecks = 0;
             } else if (++current.undecidedChecks == UNDECIDED_CHECKS_REPORTED) {
                 activity.record(
                         ActivitySeverity.WARNING,
-                        "Whether " + current.name + " (PID " + identity.pid() + "), suspended by Prism, still runs"
+                        "Whether " + current.name + " (PID " + identity.pid() + "), suspended by PRISM, still runs"
                                 + " could not be checked: "
                                 + liveness.detail().orElse(liveness.result().name())
-                                + ". Prism keeps its suspension.");
+                                + ". PRISM keeps its suspension.");
             }
         } catch (RuntimeException e) {
             LOG.warn("Checking a suspended process failed; its suspension is kept", e);
@@ -1032,11 +1032,11 @@ public final class SuspensionCoordinator {
                 try {
                     classified = classify(entry);
                 } catch (RuntimeException unchecked) {
-                    // One entry that cannot be checked must not keep Prism from starting, nor the others from being
+                    // One entry that cannot be checked must not keep PRISM from starting, nor the others from being
                     // listed.
                     LOG.warn("An entry of an earlier session could not be checked: {}", entry.describe(), unchecked);
                     classified = Optional.of(
-                            manual(entry, "It could not be checked (" + unchecked + "). Prism changes nothing."));
+                            manual(entry, "It could not be checked (" + unchecked + "). PRISM changes nothing."));
                 }
                 if (classified.isPresent()) {
                     newlyListed++;
@@ -1066,8 +1066,8 @@ public final class SuspensionCoordinator {
             if (newlyListed > 0) {
                 activity.record(
                         ActivitySeverity.WARNING,
-                        newlyListed + " process(es) may have been left suspended by an earlier session of Prism."
-                                + " The Processes page lists them; Prism resumes none of them by itself.");
+                        newlyListed + " process(es) may have been left suspended by an earlier session of PRISM."
+                                + " The Processes page lists them; PRISM resumes none of them by itself.");
             }
             needed = version.get();
             publishRecovered();
@@ -1146,7 +1146,7 @@ public final class SuspensionCoordinator {
         if (alive.result() == OperationResult.PROCESS_NOT_FOUND) {
             activity.record(
                     ActivitySeverity.INFO,
-                    "An earlier session of Prism recorded " + entry.name() + " (PID " + identity.pid()
+                    "An earlier session of PRISM recorded " + entry.name() + " (PID " + identity.pid()
                             + ") as suspended; it has exited. Nothing was done.");
             return Optional.empty();
         }
@@ -1155,35 +1155,35 @@ public final class SuspensionCoordinator {
                     entry,
                     "Whether it still runs could not be checked: "
                             + alive.detail().orElse(alive.result().name())
-                            + ". Prism changes nothing; resume it outside Prism if it is stuck."));
+                            + ". PRISM changes nothing; resume it outside PRISM if it is stuck."));
         }
         StopState state = controller.stopState(identity);
         if (state == StopState.RUNNING) {
             activity.record(
                     ActivitySeverity.INFO,
-                    "An earlier session of Prism recorded " + entry.name() + " (PID " + identity.pid()
+                    "An earlier session of PRISM recorded " + entry.name() + " (PID " + identity.pid()
                             + ") as suspended; it runs. Nothing was done.");
             return Optional.empty();
         }
         if (state == StopState.TRACED) {
             return Optional.of(manual(
-                    entry, "It is stopped under a debugger, which is never Prism's to resume. Prism changes nothing."));
+                    entry, "It is stopped under a debugger, which is never PRISM's to resume. PRISM changes nothing."));
         }
         Capability resume = controller.capabilities().getOrDefault(ControlAction.RESUME, Capability.UNAVAILABLE);
         if (!resume.available()) {
             return Optional.of(manual(
-                    entry, "Resume is not available on this system. Prism changes nothing; resume it outside Prism."));
+                    entry, "Resume is not available on this system. PRISM changes nothing; resume it outside PRISM."));
         }
         boolean threadsAreUnits = resume.mechanism().orElseThrow() == ControlMechanism.PER_THREAD_SUSPENSION;
         if (threadsAreUnits && entry.memento().isEmpty()) {
             return Optional.of(manual(
                     entry,
-                    "Prism did not record which threads it suspended, and a suspension count does not show whose"
-                            + " it is. Prism changes nothing. If the process is stuck, resume it outside Prism,"
+                    "PRISM did not record which threads it suspended, and a suspension count does not show whose"
+                            + " it is. PRISM changes nothing. If the process is stuck, resume it outside PRISM,"
                             + " for example in Resource Monitor."));
         }
         String explanation = state == StopState.STOPPED
-                ? "It is stopped. That does not prove the stop is Prism's: another program may have stopped it."
+                ? "It is stopped. That does not prove the stop is PRISM's: another program may have stopped it."
                 : "Whether it is still suspended is checked when you ask to resume it.";
         return Optional.of(new RecoveredSuspension(
                 identity,
@@ -1233,13 +1233,13 @@ public final class SuspensionCoordinator {
                 return new RecoveryOutcome(
                         ControlOutcome.of(
                                 OperationResult.INVALID_ARGUMENT,
-                                "Prism holds it in this session; Resume in the table releases that"),
+                                "PRISM holds it in this session; Resume in the table releases that"),
                         Optional.empty(),
                         false);
             }
             if (!entry.resumable()) {
                 return new RecoveryOutcome(
-                        ControlOutcome.of(OperationResult.UNSUPPORTED, "Prism does not resume this entry"),
+                        ControlOutcome.of(OperationResult.UNSUPPORTED, "PRISM does not resume this entry"),
                         Optional.empty(),
                         false);
             }
@@ -1261,7 +1261,7 @@ public final class SuspensionCoordinator {
                     closeRecovered(identity);
                     sync(identity);
                     LOG.info(
-                            "On the user's request Prism took over and released {}: {}",
+                            "On the user's request PRISM took over and released {}: {}",
                             entry.evidence(),
                             resumed.change());
                     return new RecoveryOutcome(resumed.outcome(), Optional.of(AdoptResult.Verdict.ADOPTED), true);
@@ -1274,7 +1274,7 @@ public final class SuspensionCoordinator {
                 }
                 case REFUSED -> {
                     if (adopted.suspension().isPresent()) {
-                        // A check of Prism's own that could not be undone: kept, so it is not forgotten.
+                        // A check of PRISM's own that could not be undone: kept, so it is not forgotten.
                         keep(
                                 identity,
                                 new Held(
@@ -1287,7 +1287,7 @@ public final class SuspensionCoordinator {
                             identity,
                             entry.withExplanation(
                                     "Not resumed: " + adopted.outcome().detail().orElse("the check did not hold")
-                                            + ". Prism changed nothing.",
+                                            + ". PRISM changed nothing.",
                                     true));
                     publishRecovered();
                     sync(identity);
@@ -1336,7 +1336,7 @@ public final class SuspensionCoordinator {
     }
 
     /**
-     * Releases every reason that is Prism's own (the limiter's and OOM Guard's), resuming a process
+     * Releases every reason that is PRISM's own (the limiter's and OOM Guard's), resuming a process
      * that has no reason left, and takes the automatic reasons out of the journal. A suspension the
      * user asked for stays. Returns false if the lock could not be had within the time given;
      * nothing was done then.
@@ -1376,10 +1376,10 @@ public final class SuspensionCoordinator {
                 String target = current.name + " (PID " + identity.pid() + ") ";
                 switch (outcome.change()) {
                     case RESUMED ->
-                        activity.record(ActivitySeverity.INFO, target + "was resumed: Prism no longer holds it.");
+                        activity.record(ActivitySeverity.INFO, target + "was resumed: PRISM no longer holds it.");
                     case EXITED ->
                         activity.record(
-                                ActivitySeverity.INFO, target + "has exited; Prism no longer holds it suspended.");
+                                ActivitySeverity.INFO, target + "has exited; PRISM no longer holds it suspended.");
                     default ->
                         activity.record(
                                 ActivitySeverity.ERROR,
@@ -1506,12 +1506,12 @@ public final class SuspensionCoordinator {
                 activity.record(
                         ActivitySeverity.WARNING,
                         "Left suspended, as the user asked: " + String.join(", ", leftForTheUser)
-                                + ". They stay suspended after Prism closes.");
+                                + ". They stay suspended after PRISM closes.");
             }
             if (!stillHeld.isEmpty()) {
                 activity.record(
                         ActivitySeverity.ERROR,
-                        "Threads Prism suspended could not all be released: " + String.join(", ", stillHeld) + ".");
+                        "Threads PRISM suspended could not all be released: " + String.join(", ", stillHeld) + ".");
             }
             return true;
         } finally {
@@ -1543,7 +1543,7 @@ public final class SuspensionCoordinator {
         publish();
     }
 
-    /** A hold the user is to see: the user's, OOM Guard's, or one Prism could not finish undoing. */
+    /** A hold the user is to see: the user's, OOM Guard's, or one PRISM could not finish undoing. */
     private static boolean shown(Held current) {
         return current.incomplete
                 || current.reasons.contains(SuspensionReason.USER)
@@ -1570,7 +1570,7 @@ public final class SuspensionCoordinator {
         try {
             heldListener.accept(now);
         } catch (RuntimeException e) {
-            LOG.warn("The processes Prism holds suspended could not be handed over", e);
+            LOG.warn("The processes PRISM holds suspended could not be handed over", e);
         }
     }
 
@@ -1582,7 +1582,7 @@ public final class SuspensionCoordinator {
         }
     }
 
-    /** For tests: the reasons Prism holds the identity for. */
+    /** For tests: the reasons PRISM holds the identity for. */
     Collection<SuspensionReason> reasons(ProcessIdentity identity) {
         return heldFor(identity);
     }

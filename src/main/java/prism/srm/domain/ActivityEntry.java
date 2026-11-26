@@ -4,7 +4,7 @@ import java.time.Instant;
 import java.util.Objects;
 
 /**
- * One event of the activity log: what Prism did or noticed, in words meant for the user.
+ * One event of the activity log: what PRISM did or noticed, in words meant for the user.
  *
  * @param time when the event was recorded
  * @param message one plain sentence; never blank

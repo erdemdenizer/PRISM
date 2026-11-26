@@ -17,7 +17,7 @@ Both themes are rendered wherever a state is rendered.
 | Performance, four sections | RENDERED | RENDERED (`disk-no-file-system`, `network-no-interface`, `memory-no-swap`) | RENDERED (`cpu-error`, `network-system-stopped`) | RENDERED | RENDERED | RENDERED | RENDERED 1920x1080 | NOT TESTED |
 | Limits | RENDERED (`reading`) | RENDERED | RENDERED (`result`) | RENDERED | RENDERED | RENDERED | RENDERED 1600x1000 | NOT TESTED |
 | OOM Guard | RENDERED (`reading`) | RENDERED | RENDERED (`journal-failed`, `not-monitoring`) | RENDERED | RENDERED | RENDERED | RENDERED 1600x1000 | NOT TESTED |
-| Logs | RENDERED (`logs-reading`) at `ff9a160` | RENDERED, and `logs-full` | RENDERED (`logs-folder-failed`) at `ff9a160` | n/a, the activity log is Prism's own | RENDERED 720x480 and 704x441 at `ff9a160` | RENDERED | RENDERED 1600x1000 at `ff9a160` | NOT TESTED |
+| Logs | RENDERED (`logs-reading`) at `ff9a160` | RENDERED, and `logs-full` | RENDERED (`logs-folder-failed`) at `ff9a160` | n/a, the activity log is PRISM's own | RENDERED 720x480 and 704x441 at `ff9a160` | RENDERED | RENDERED 1600x1000 at `ff9a160` | NOT TESTED |
 | Settings | RENDERED (`reading`) at `65be4d3` | n/a | RENDERED (`startup-failed`, `file-damaged`) | RENDERED | RENDERED | RENDERED | RENDERED 1600x1000 | NOT TESTED |
 
 The Logs page had no reading, full-log or folder-failure state in the product; they were added in `dd10e8c`. The whole snapshot profile at `ff9a160`: 965 tests, 0 failures, 801 images, none reviewed.
@@ -81,7 +81,7 @@ Criteria from milestone 13, on the shipped code. Feasibility experiments do not 
 | LIFE-1 limits and holds released at close | On the image, both environments: emulated hold released, native CPU and memory limits cleared | PASS |
 | LIFE-2 a user's suspension stays | On the demo workload, on the image | PASS |
 | LIFE-3 a failed step is logged and the rest run | Failure injected at each step; a defect found and fixed (`ec6f4f0`) | PASS |
-| LIFE-4 a killed Prism resumes nothing | Hard kill and restart, on the packaged image, native and emulated | PASS |
+| LIFE-4 a killed PRISM resumes nothing | Hard kill and restart, on the packaged image, native and emulated | PASS |
 | LIFE-5 exit hook | Ctrl+C and console close through a console test launcher, on the image | PASS; the console close needed the fix of `2f2dc97`. Log-off NOT TESTED |
 | LIFE-6 journal after a crash | Listing, resuming by request, manual intervention only without recorded threads | PASS |
 | LIFE-7 one instance | Second launch while running and while closing, on the packaged launcher | PASS |
