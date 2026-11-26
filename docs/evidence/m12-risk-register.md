@@ -82,3 +82,29 @@ packaged classpath does not exist yet (M13).
 1. D1, D2, D6, D8, D11 and D14 closed; D3, D4, D5, D7, D10 and D13 fixed or accepted again.
 2. The manual verification listed under milestone 12 in [MILESTONES.md](../MILESTONES.md), on a real Linux desktop.
 3. A separate, explicit product-owner decision.
+
+## Progress, 2026-11-27
+
+Fixed, each with its own commit and tests; K16 stays in force:
+
+| # | Status | How |
+|---|---|---|
+| D1 | CLOSED | No method is sent until the connection is up: it is driven with `sd_bus_process` and `sd_bus_wait` until `sd_bus_is_ready`, within the same 2 s call bound, so the SASL authentication and the `Hello()` reply are bounded together (public calls since v237). `sd_bus_open_user` itself is unchanged |
+| D2 | CLOSED | The cgroup rule runs again after the pidfd is open and the identity proved on it; a process moved out of the user's manager is not adopted |
+| D8 | PARTLY CLOSED | Code: a set-group-ID program (four group IDs not equal) is refused; a zombie ('Z' in `/proc/<pid>/stat`) counts as exited although signal 0 reaches it. Open: the wording (memory charged before adoption stays with the old cgroup; the cpu controller does not limit real-time processes; `LimitMessages` and `NativeRecovery` texts written for Windows or for the K16 product) |
+| D11 | CLOSED | A record proves ownership only when its unit is the name PRISM gives the identity and the live invocation has exactly the recorded cgroup, which is also where a clearing reads back |
+| D12 | CLOSED | The user-facing reason no longer names K16 |
+| D14 | CLOSED | `LimitService` asks for the memory boundary the limiter offers: `NATIVE_SOFT` (Linux `memory.high`) throttles, anything else is hard |
+
+Still open before K16 can be lifted:
+
+- **D6, must be solved.** Adoption runs on `srm-limiter` and holds it for seconds. The fix needs the native operations
+  on a thread of their own, with their results handed back to `srm-limiter`, and `LimitService` taking one native
+  operation per process at a time. That changes `LimitService`'s state handling and is a stage of its own.
+- **D8's wording**, above.
+- **D3, D4, D5, D7, D10, D13** to be fixed or accepted again, each with a written reason.
+- **What the product does not have yet:** an eligibility policy for desktop processes (today only `none()` and the
+  test harness's), and a consent in the window for the one-way move into a scope (`NativeConsent` is `none()` in the
+  product, which refuses every adoption).
+- The manual verification of milestone 12 on a real Linux desktop (a Hyper-V Ubuntu 24.04.5 desktop is available for
+  it since 2026-11-26), and the product owner's decision.
