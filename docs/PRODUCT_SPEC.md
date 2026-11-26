@@ -181,7 +181,7 @@ process is determined when the mechanism is applied and is shown to the user.
 | Suspend / Resume | `NATIVE_SOFT` (per thread, not atomic) | `NATIVE_HARD` | `NATIVE_HARD` |
 | Change Priority | `NATIVE_SOFT` | `NATIVE_SOFT` (lowering only) | `NATIVE_SOFT` (lowering only) |
 | CPU limit | `NATIVE_HARD` (Job Object), else `EMULATED` | `EMULATED`. `NATIVE_HARD` (systemd scope, `cpu.max`) exists but is not enabled (LIM-6, K16) | `EMULATED` |
-| Memory limit | `NATIVE_HARD` (Job Object commit limit), else `EMULATED` policy | `EMULATED` policy once the memory signals are validated (ADR-0015 §7), `UNAVAILABLE` until then. `NATIVE_HARD` (`memory.max`) and `NATIVE_SOFT` (`memory.high`) through a systemd scope exist but are not enabled (LIM-6, K16) | `EMULATED` policy once the memory signals are validated, `UNAVAILABLE` until then |
+| Memory limit | `NATIVE_HARD` (Job Object commit limit), else `EMULATED` policy | `EMULATED` policy (the memory signals are validated, ADR-0015 §7). `NATIVE_HARD` (`memory.max`) and `NATIVE_SOFT` (`memory.high`) through a systemd scope exist but are not enabled (LIM-6, K16) | `EMULATED` policy once the memory signals are validated, `UNAVAILABLE` until then |
 
 The `EMULATED` CPU limit suspends and resumes its target (LIM-8), so it needs Suspend and
 Resume; where they are `UNAVAILABLE` (Linux without pidfd signalling) the emulated CPU
@@ -251,8 +251,8 @@ limit is `UNAVAILABLE` too, with the same reason.
     have been validated on a real desktop Linux and the product owner has approved it, the
     product reports native limits as `UNAVAILABLE` for every process ("not validated for
     desktop applications"). A Linux user gets the emulated CPU limit (LIM-8). The memory
-    limit falls to the monitored policy (LIM-9), which is itself `UNAVAILABLE` until the
-    memory signals on Linux are validated (ADR-0015 §7). No setting, property or environment
+    limit falls to the monitored policy (LIM-9), which the validated memory signals on Linux
+    make available (ADR-0015 §7). No setting, property or environment
     variable changes this. The product's limiter opens no bus connection, creates no scope and looks for no
     limits of earlier sessions. The mechanism below runs only on disposable processes that
     the test harness starts and names to the limiter.

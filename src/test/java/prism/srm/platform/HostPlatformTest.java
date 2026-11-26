@@ -161,7 +161,7 @@ class HostPlatformTest {
 
     /** ADR-0015 §3 and §7: fixed tables, read from nothing; a change needs evidence and an ADR note. */
     @Test
-    void noOtherSystemRestoresAPriorityAndOnlyWindowsHasValidatedMemorySignals() {
+    void noOtherSystemRestoresAPriorityAndOnlyWindowsAndLinuxHaveValidatedMemorySignals() {
         for (HostSystem system : new HostSystem[] {HostSystem.LINUX, HostSystem.MACOS, HostSystem.OTHER}) {
             assertThat(HostPlatform.controllerFor(system, () -> 0).priorityRestorability())
                     .as("%s", system)
@@ -170,8 +170,8 @@ class HostPlatformTest {
         assertThat(HostPlatform.oomSignalStatus(HostSystem.WINDOWS))
                 .isEqualTo(prism.srm.domain.OomSignalStatus.VALIDATED);
         assertThat(HostPlatform.oomSignalStatus(HostSystem.LINUX))
-                .as("fails closed until the Linux evidence of ADR-0015 section 7 is reviewed")
-                .isEqualTo(prism.srm.domain.OomSignalStatus.UNVALIDATED);
+                .as("validated on the reviewed evidence of ADR-0015 section 7")
+                .isEqualTo(prism.srm.domain.OomSignalStatus.VALIDATED);
         assertThat(HostPlatform.oomSignalStatus(HostSystem.MACOS))
                 .isEqualTo(prism.srm.domain.OomSignalStatus.UNVALIDATED);
         assertThat(HostPlatform.oomSignalStatus(HostSystem.OTHER))

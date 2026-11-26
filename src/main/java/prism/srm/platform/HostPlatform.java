@@ -124,10 +124,11 @@ public final class HostPlatform {
      *   <li>Windows: "available" is the standby, free and zero page lists (PERFORMANCE_INFORMATION),
      *       and the resident memory is the working set. Both are checked: the working set in milestone
      *       5, and both signals by the tests of milestone 11, run on Windows 11.
-     *   <li>Linux: not validated. {@code MemAvailable} (proc(5)) and the RSS are documented. The
-     *       milestone 11 tests that check how they respond have passed in CI on Linux (from commit
-     *       3d6e4eb on, docs/evidence/m11-ci-cross-platform-3d6e4eb.md). That evidence is not yet
-     *       accepted (ADR-0015 §7 items 3 and 4), so the table does not change.
+     *   <li>Linux: {@code MemAvailable} (proc_meminfo(5)) and the resident set of a process. Both
+     *       are checked by the milestone 11 tests in CI on Linux, outside any memory-limited cgroup;
+     *       the evidence was reviewed and accepted in 2026-11 (ADR-0015 §7,
+     *       docs/evidence/m11-linux-oom-signal-7f5ab11.md). A container's own memory limit is not
+     *       seen (a known limit of the gate).
      *   <li>macOS: OSHI reads free plus inactive pages, which Apple does not define as available
      *       memory. In CI that reading fell by only about a quarter of the memory a process took.
      *   <li>Another system: not validated.
@@ -138,8 +139,8 @@ public final class HostPlatform {
      */
     static OomSignalStatus oomSignalStatus(HostSystem system) {
         return switch (system) {
-            case WINDOWS -> OomSignalStatus.VALIDATED;
-            case LINUX, MACOS, OTHER -> OomSignalStatus.UNVALIDATED;
+            case WINDOWS, LINUX -> OomSignalStatus.VALIDATED;
+            case MACOS, OTHER -> OomSignalStatus.UNVALIDATED;
         };
     }
 

@@ -1,7 +1,7 @@
 # 0015. OOM Guard interventions
 
-- Status: Accepted with milestone 11 (2026-10-13; see docs/evidence/m11-acceptance-decision.md). The
-  platform table of §7 is unchanged: Linux and macOS stay not validated.
+- Status: Accepted with milestone 11 (2026-10-13; see docs/evidence/m11-acceptance-decision.md).
+  The platform table of §7 was changed on 2026-11-27: Linux is validated; macOS stays not validated.
 - Date: 2026-10-12
 - Amends: [0004](0004-emulated-limiting-and-suspension-recovery.md) §3 ("the limiter runs on a
   scheduled executor dedicated to limiting"): `srm-limiter` also runs OOM Guard's interventions.
@@ -168,11 +168,11 @@ Lowering and termination are not affected.
 things are documented and checked: the system's available-memory signal, and the per-process
 resident memory. The table fails closed.
 - **Windows** is validated.
-- **Linux** is not validated (external review, 2026-10-12). `MemAvailable` (proc(5)) and the
-  RSS are documented.
+- **Linux** is validated since 2026-11-27. `MemAvailable` (proc_meminfo(5)) and the RSS are
+  documented, and the four items below are met (the note after them).
   - *Historical (until 2026-10-12):* their behavior had not been checked on Linux.
-  - *Since 2026-10-13:* the two validation tests have passed in CI on Linux; see the CI evidence
-    below. Items 3 and 4 of the list below are still open, so the table is unchanged.
+  - *2026-10-12 to 2026-11-26:* not validated (external review, 2026-10-12). From 2026-10-13 the two
+    validation tests passed in CI on Linux, while items 3 and 4 were open.
 - **macOS** is not validated: OSHI reads `free + inactive` pages, which Apple does not define as
   available.
 - **Any other system** is not validated.
@@ -219,17 +219,34 @@ of `HostPlatform.oomSignalStatus` and its test:
 Until then the Linux tests remain in the build. They are evidence once they pass, never a
 switch.
 
-**Evidence for items 1 to 3 (2026-11-26, commit `7f5ab11`, run 45878821813; the table is
-unchanged).** Both tests ran in `verify (ubuntu-latest)` and met their thresholds: the signal fell
-by 1.02 M and recovered by 1.06 M; the resident memory was 311 MiB in two listings for 256 MiB held.
-The raw reports are kept with their hashes. The runner's cgroup and every group above it had no
-`memory.max`, so the container case stays the known limit below. Item 4 is open:
-[m11-linux-oom-signal-7f5ab11.md](../evidence/m11-linux-oom-signal-7f5ab11.md).
+**Evidence for items 1 to 3 (2026-11-26, commit `7f5ab11`, run 45878821813).** Both tests ran in
+`verify (ubuntu-latest)` and met their thresholds: the signal fell by 1.02 M while M was held and,
+after the exit, recovered past M / 2 (the test stops at the first reading beyond it); the resident
+memory was 311 MiB in two listings for 256 MiB held. The raw reports are kept with their hashes. The
+runner's cgroup and every group above it had no `memory.max`, so the container case stays the
+known limit below: [m11-linux-oom-signal-7f5ab11.md](../evidence/m11-linux-oom-signal-7f5ab11.md).
+
+**Item 4 and the change of the table (2026-11-27).** An independent read-only review of the
+evidence, the tests and OSHI 7.7.0's Linux reading accepted it with conditions, and the product
+owner accepted it. The conditions: item 1 again on the commit that changes the table, on top of the
+code it lands on (the platform code had changed since `7f5ab11`); the code, tests and documents
+changed together; the known limit of the kernel's and systemd-oomd's kills below; the wording of the
+recovery above. The run on the changing commit is recorded in the same evidence file. With the
+default settings nothing changes on Linux: every automatic switch is off (OOM-5), so the change makes
+suspension, termination and the watched memory limit available, not active. Lowering a priority
+stays unavailable on Linux, because a lowered nice value cannot be raised back without privilege.
 
 Known limits of the gate:
 - **Linux in a container.** `MemAvailable` is host-wide. A cgroup v2 `memory.max` of PRISM's
-  own group is not read, so OOM Guard does not see a container's limit. This is one reason
-  Linux stays not validated (item 3 above).
+  own group is not read, so OOM Guard does not see a container's limit. The evidence ran outside
+  any memory-limited group (item 3); inside one, OOM Guard may act late or not at all, while the
+  container's own OOM handling acts first.
+- **Linux kills PRISM itself under pressure.** The kernel's OOM killer, and on Ubuntu desktops
+  systemd-oomd, end processes with SIGKILL when memory runs out, and PRISM can be among them. SIGKILL
+  skips the shutdown hook, so a process OOM Guard had suspended stays suspended; the next start lists
+  it (LIFE-6) and the user resumes it. The same holds after any crash, but on Linux it is most likely
+  exactly when automatic suspension has acted. PRISM cannot protect itself without privilege
+  (`oom_score_adj` below zero needs `CAP_SYS_RESOURCE`).
 - **A reading of zero.** An available reading of exactly zero is taken as a failed read on
   every system: OSHI's macOS fallback gives zero on failure. At true exhaustion that holds the
   state, which is safe, and starts no new action.
