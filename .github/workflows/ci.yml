@@ -42,6 +42,21 @@ jobs:
           echo "runner: $RUNNER_OS $RUNNER_ARCH, $(nproc 2>/dev/null || sysctl -n hw.ncpu) processors"
           uname -a
           java -version
+      # ADR-0015 §7 item 3: the evidence of the Linux memory signals counts only from a group without a
+      # memory limit, because MemAvailable is host-wide. Reads the cgroup v2 files; writes nothing.
+      - name: Memory cgroup of the runner (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          group="$(sed -n 's/^0:://p' /proc/self/cgroup)"
+          echo "cgroup: ${group:-unknown}"
+          dir="/sys/fs/cgroup${group}"
+          while :; do
+            if [ -r "$dir/memory.max" ]; then echo "memory.max ${dir#/sys/fs/cgroup}: $(cat "$dir/memory.max")"; fi
+            if [ "$dir" = "/sys/fs/cgroup" ] || [ "$dir" = "/" ]; then break; fi
+            dir="$(dirname "$dir")"
+          done
+          grep -E '^(MemTotal|MemAvailable|SwapTotal):' /proc/meminfo
       - name: Full gate
         shell: bash
         run: ./mvnw -B verify
