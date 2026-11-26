@@ -11,6 +11,7 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BiFunction;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,6 +34,7 @@ import prism.srm.domain.LimitStatus;
 import prism.srm.domain.LimitsNotice;
 import prism.srm.domain.LimitsSnapshot;
 import prism.srm.domain.ManagedProcessView;
+import prism.srm.domain.MemoryBoundary;
 import prism.srm.domain.OperationResult;
 import prism.srm.domain.ProcessIdentity;
 import prism.srm.domain.RecoveredLimit;
@@ -951,6 +953,40 @@ class LimitServiceNativeTest {
         assertThat(view().memory().requestedBytes()).hasValue(256 * MIB);
         limit(20);
         assertThat(limiter.calls).contains("change 4242 CPU 20 %, memory 256 MiB");
+    }
+
+    /** Risk D14: the boundary asked for follows what the system's native memory limit is. */
+    @Test
+    void whereTheNativeMemoryLimitIsSoftTheRequestThrottlesAndWhereItIsHardItIsHard() {
+        List<LimitSpec> asked = new CopyOnWriteArrayList<>();
+        BiFunction<ProcessIdentity, LimitSpec, ApplyResult> enforce = limiter.apply;
+        limiter.apply = (target, spec) -> {
+            asked.add(spec);
+            return enforce.apply(target, spec);
+        };
+        LimitCapability soft = LimitCapability.of(CapabilityLevel.NATIVE_SOFT, ControlMechanism.SYSTEMD_SCOPE);
+        limiter.system = Map.of(LimitKind.CPU, FakeResourceLimiter.NATIVE, LimitKind.MEMORY, soft);
+        managed();
+
+        assertThat(memory(256).outcome().succeeded()).isTrue();
+        assertThat(asked).last().satisfies(spec -> {
+            assertThat(spec.memoryBytes()).hasValue(256 * MIB);
+            assertThat(spec.memoryBoundary()).isEqualTo(MemoryBoundary.THROTTLE);
+        });
+    }
+
+    @Test
+    void aJobObjectsMemoryLimitStaysTheHardBoundary() {
+        List<LimitSpec> asked = new CopyOnWriteArrayList<>();
+        BiFunction<ProcessIdentity, LimitSpec, ApplyResult> enforce = limiter.apply;
+        limiter.apply = (target, spec) -> {
+            asked.add(spec);
+            return enforce.apply(target, spec);
+        };
+        managed();
+
+        assertThat(memory(256).outcome().succeeded()).isTrue();
+        assertThat(asked).last().extracting(LimitSpec::memoryBoundary).isEqualTo(MemoryBoundary.HARD);
     }
 
     @Test

@@ -47,6 +47,7 @@ import prism.srm.domain.LimitsSnapshot;
 import prism.srm.domain.ManagedProcess;
 import prism.srm.domain.ManagedProcessView;
 import prism.srm.domain.ManagedSettings;
+import prism.srm.domain.MemoryBoundary;
 import prism.srm.domain.OomManagement;
 import prism.srm.domain.OomSignalStatus;
 import prism.srm.domain.OperationResult;
@@ -1497,7 +1498,19 @@ public final class LimitService {
             // The emulated limit holds the CPU: the job's spec leaves it alone.
             cpu = OptionalInt.empty();
         }
-        return new LimitSpec(cpu, memory);
+        return new LimitSpec(cpu, memory, memoryBoundary());
+    }
+
+    /**
+     * The memory boundary the system's native memory limit is (risk D14): a soft one, Linux's {@code memory.high}
+     * through a systemd scope (ADR-0016 decision 4, the default there), asks to throttle; a hard one, a Job Object's
+     * commit limit, asks for the hard boundary, the only one Windows has. {@code memory.max} on Linux needs a
+     * separate consent and is never asked for here.
+     */
+    private MemoryBoundary memoryBoundary() {
+        return nativeMemoryCapability().level() == CapabilityLevel.NATIVE_SOFT
+                ? MemoryBoundary.THROTTLE
+                : MemoryBoundary.HARD;
     }
 
     /** A first assignment or a change of the job PRISM holds, whichever applies (plan S0a). */
