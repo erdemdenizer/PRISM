@@ -219,6 +219,13 @@ of `HostPlatform.oomSignalStatus` and its test:
 Until then the Linux tests remain in the build. They are evidence once they pass, never a
 switch.
 
+**Evidence for items 1 to 3 (2026-11-26, commit `7f5ab11`, run 45878821813; the table is
+unchanged).** Both tests ran in `verify (ubuntu-latest)` and met their thresholds: the signal fell
+by 1.02 M and recovered by 1.06 M; the resident memory was 311 MiB in two listings for 256 MiB held.
+The raw reports are kept with their hashes. The runner's cgroup and every group above it had no
+`memory.max`, so the container case stays the known limit below. Item 4 is open:
+[m11-linux-oom-signal-7f5ab11.md](../evidence/m11-linux-oom-signal-7f5ab11.md).
+
 Known limits of the gate:
 - **Linux in a container.** `MemAvailable` is host-wide. A cgroup v2 `memory.max` of PRISM's
   own group is not read, so OOM Guard does not see a container's limit. This is one reason
