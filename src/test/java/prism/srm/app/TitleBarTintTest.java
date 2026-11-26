@@ -16,7 +16,7 @@ import prism.srm.domain.ThemeMode;
 import prism.srm.platform.ChromeColors;
 import prism.srm.platform.WindowChrome.Result;
 
-/** UI lab v2: which colors the title bar gets and how often a window is looked for. No window is shown. */
+/** UI redesign: which colors the title bar gets and how often a window is looked for. No window is shown. */
 class TitleBarTintTest {
 
     /** A high-contrast theme is read from the JavaFX platform preference; absent means off. */

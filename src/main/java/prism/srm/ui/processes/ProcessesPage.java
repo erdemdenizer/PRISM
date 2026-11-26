@@ -63,7 +63,7 @@ import prism.srm.ui.metric.PageNotice;
  * Suspend, Resume, Priority). The actions are also in the context menu of the table, which is how
  * the keyboard reaches them from there. End task and Force kill ask for confirmation first (CTL-8).
  *
- * <p>UI lab v2: the title line holds the number of processes and the filter too (Ctrl+F goes to
+ * <p>UI redesign: the title line holds the number of processes and the filter too (Ctrl+F goes to
  * it). The inspector is placed by the size of the window, by the rule the Limits page follows as
  * well ({@link Breakpoints#inspectorFor}): beside the table, under it with its sections in columns,
  * or in a sheet over the page ({@link SheetOverlay}), where Enter, a double click or Details opens it

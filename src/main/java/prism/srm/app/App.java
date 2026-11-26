@@ -285,7 +285,7 @@ public final class App extends Application {
         theme = new ThemeController(stage.getScene());
         // The appearance of the settings file, chosen on the Settings page (UI-7).
         theme.modeProperty().set(settings.appearance());
-        // UI lab v2: the system's caption and border in the colors of the theme, where the system allows it.
+        // UI redesign: the system's caption and border in the colors of the theme, where the system allows it.
         titleBar = new TitleBarTint(HostPlatform.windowChrome(), theme.modeProperty(), log);
         // The content in the colors of a Windows high-contrast theme while one is on.
         highContrast = new HighContrast();

@@ -31,7 +31,7 @@ import prism.srm.ui.format.Quantity;
  */
 final class DeviceTable<R> extends TableView<R> {
 
-    // The table metrics as table.css sets them (UI lab v2: 30 px rows, 32 px header).
+    // The table metrics as table.css sets them (UI redesign: 30 px rows, 32 px header).
     static final double ROW_HEIGHT = 30;
     static final double HEADER_HEIGHT = 32;
     private static final double FRAME = 2;

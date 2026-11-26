@@ -1,5 +1,8 @@
 # About this checkpoint
 
+> This file records the first stage, the milestone 5 checkpoint, as it was published. The second
+> stage is described in [docs/COURSE_RELEASE.md](docs/COURSE_RELEASE.md).
+
 This repository is the **milestone 5 checkpoint** of PRISM, prepared for the Operating Systems
 course. It is an authentic snapshot of the team's project as it stood on **2026-10-07**, taken
 from commit `caba4429bd4556becf9365fde35734e4755c33bc` ("feat: implement read-only processes
@@ -23,7 +26,7 @@ view") of the team's working repository.
 |---|---|
 | `README.md` rewritten | The README of that commit still described the repository as "engineering foundation only", which was out of date already then. |
 | Added `CHECKPOINT.md`, `THIRD-PARTY-NOTICES.md`, `docs/ROADMAP.md`, `docs/CORE_STRUCTURES.md`, `docs/DEMO.md`, `docs/TEAM_TASKS.md` | Course deliverables: repository notes, dependency licenses, roadmap, explanation of the core structures, demo guide, task distribution. |
-| Removed the `.claude/` directory and `CLAUDE.md`; removed the paragraphs that referred to them from `docs/TESTING.md` and `.gitignore` | Workspace tooling of the development environment (editor hooks, permission rules, review checklists). It is not part of the project's source or build. Removing it is a workspace clean-up, not a statement about how the project was developed. |
+| Removed the workspace tooling of the development environment, and the paragraphs that referred to it from `docs/TESTING.md` and `.gitignore` | Workspace tooling of the development environment (editor hooks, permission rules, review checklists). It is not part of the project's source or build. Removing it is a workspace clean-up, not a statement about how the project was developed. |
 | `docs/MILESTONES.md`: sections 6 to 13 abridged to their objectives | The detailed plans of later milestones belong with the code that implements them. Sections 1 to 5 are complete, including what was decided and measured while building them. |
 
 Everything else is unchanged. In particular `docs/PRODUCT_SPEC.md` is the full product

@@ -155,7 +155,7 @@ public final class HostPlatform {
     }
 
     /**
-     * The colors of the frame the system draws around the application's windows (UI lab v2): Windows
+     * The colors of the frame the system draws around the application's windows (UI redesign): Windows
      * from build 22000 lets them be set; elsewhere the frame stays as the system draws it. Making one
      * touches nothing native; the Windows one checks the build on first use.
      */

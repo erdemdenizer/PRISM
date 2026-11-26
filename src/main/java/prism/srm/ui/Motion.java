@@ -26,10 +26,10 @@ public final class Motion {
     /** The inspector showing a process after it showed none. */
     public static final int REVEAL_MS = 140;
 
-    /** A panel sliding in (UI lab v2: 160-240 ms). */
+    /** A panel sliding in (UI redesign: 160-240 ms). */
     public static final int PANEL_MS = 200;
 
-    /** A panel or a sheet going away (UI lab v2: exits take 120 ms, easing in). */
+    /** A panel or a sheet going away (UI redesign: exits take 120 ms, easing in). */
     public static final int EXIT_MS = 120;
 
     /** One state giving way to another, as "Reading…" to a value. */

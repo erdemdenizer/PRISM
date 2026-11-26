@@ -167,7 +167,7 @@ public final class OverviewPage extends VBox {
     }
 
     /**
-     * The four metrics in the arrangement that keeps each graph wider than it is tall (UI lab v2,
+     * The four metrics in the arrangement that keeps each graph wider than it is tall (UI redesign,
      * spec section 6): one row where the page is wide and low, two by two in the usual window, one
      * column where the page is narrow or taller than it is wide. The panels are built once; a change
      * of the size only moves them between the arrangements.
@@ -265,7 +265,7 @@ public final class OverviewPage extends VBox {
      * where the width is below {@link #ONE_COLUMN_BELOW} or the page is taller than wide (then a
      * quarter of the height is at least 160 px), two otherwise.
      *
-     * <p>The lab spec has four in a row from 1100 px at any height. That stretches every graph to
+     * <p>The design spec has four in a row from 1100 px at any height. That stretches every graph to
      * more than twice as tall as it is wide in the usual window, or leaves the page empty under the
      * row (docs/PRODUCT_SPEC.md, section 11: no wasted space, no decorative charts): four in a row
      * stays where the graphs keep their shape.
@@ -314,8 +314,8 @@ public final class OverviewPage extends VBox {
     }
 
     /**
-     * The lower row: the facts of the system, and beside them, as wide, what Prism does on it (UI lab
-     * v2, spec section 6: a balanced lower row). The same facts as before, in two panels.
+     * The lower row: the facts of the system, and beside them, as wide, what PRISM does on it (UI
+     * redesign, spec section 6: a balanced lower row). The same facts as before, in two panels.
      *
      * <p>Its edges are those of the metrics above in every arrangement, whatever the facts need
      * (OP-05; before, two panels of equal share but unequal minimum stood 18 px off the columns).

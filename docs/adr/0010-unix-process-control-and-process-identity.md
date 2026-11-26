@@ -103,7 +103,7 @@ man pages, the Linux and xnu sources, the JDK sources and the OSHI 7.7.0 jar:
 
 The record was Proposed until the decision had run on Linux and macOS. It has, in the CI
 workflow (`.github/workflows/ci.yml`): run
-[37802133378](https://github.com/erdemdenizer/PRISM-internal/actions/runs/37802133378) on commit
+`37802133378` on commit
 `c44f87a`, the full gate (`./mvnw -B verify`) passing on all three jobs. Which tests ran
 on which system was read from each job's surefire reports, not taken from the job's
 result.

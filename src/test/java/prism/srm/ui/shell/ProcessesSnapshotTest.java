@@ -429,7 +429,7 @@ class ProcessesSnapshotTest {
     }
 
     /**
-     * UI lab v2: the window sizes of the layout matrix (lab-docs/LAB_DESIGN_SPEC.md, section 7):
+     * UI redesign: the window sizes of the layout matrix (docs/design/DESIGN_SPEC.md, section 7):
      * the inspector beside the table from 1320 px, under it from 1100 px where the window is at least
      * 560 px high, and a sheet over the page elsewhere ({@link prism.srm.ui.Breakpoints}), rendered
      * closed and open.
@@ -554,7 +554,7 @@ class ProcessesSnapshotTest {
     }
 
     /**
-     * The line of the actions is under them, and the page keeps its usual 12 px. UI lab v2: the
+     * The line of the actions is under them, and the page keeps its usual 12 px. UI redesign: the
      * inspector is a sheet over the page in a narrow or low window and takes no height in it; under
      * the table its sections stand in columns and the line under them all. The compact state of the
      * page (8 px apart when the line under the actions cost a line of height) was reached by no window
@@ -747,7 +747,7 @@ class ProcessesSnapshotTest {
         }
 
         void filter(String text) {
-            // The filter is in the title line, which the shell shows in the page toolbar (UI lab v2).
+            // The filter is in the title line, which the shell shows in the page toolbar (UI redesign).
             ((TextField) shell.toolbar().lookup(".process-filter")).setText(text);
         }
 

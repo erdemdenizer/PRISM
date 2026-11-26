@@ -20,14 +20,14 @@ import prism.srm.platform.WindowChrome;
 
 /**
  * {@link WindowChrome} on Windows 11: the caption, caption text and border colors of a window through
- * the Desktop Window Manager (UI lab v2).
+ * the Desktop Window Manager (UI redesign).
  *
  * <p>The window is found among the windows of the calling thread ({@code EnumThreadWindows} with
  * {@code GetCurrentThreadId}): those whose class name begins with {@value #GLASS_STAGE_CLASS_PREFIX},
  * the class JavaFX (Glass) gives the native window of a stage, and whose text is exactly the title.
  * Exactly one such window is changed; none gives {@link Result#NOT_FOUND}, more than one {@link
  * Result#AMBIGUOUS}, and nothing is changed then. The class name is an implementation detail of JavaFX
- * 25 measured on Windows 11 build 26200 (lab-spikes/titlebar), not an API: should it change, the lookup
+ * 25 measured on Windows 11 build 26200 (measured with a spike), not an API: should it change, the lookup
  * finds nothing and the frame keeps the system's colors.
  *
  * <p>The attributes ({@code DWMWINDOWATTRIBUTE}), each a 4-byte value:

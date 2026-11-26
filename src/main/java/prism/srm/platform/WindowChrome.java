@@ -2,7 +2,7 @@ package prism.srm.platform;
 
 /**
  * The frame the operating system draws around a window of the application: its caption bar, the
- * caption text and the one-pixel border (UI lab v2). PRISM colors them only on Windows 11; everywhere
+ * caption text and the one-pixel border (UI redesign). PRISM colors them only on Windows 11; everywhere
  * else {@link #UNAVAILABLE} answers and the frame stays as the system draws it.
  *
  * <p>An implementation finds the native window by its exact title among the windows the calling thread

@@ -48,8 +48,8 @@ import prism.srm.ui.snapshot.SnapshotHarness;
 import prism.srm.ui.snapshot.SnapshotHarness.Theme;
 
 /**
- * UI lab v2: where the inspector of the selected process is for the size of the window, and how
- * the sheet over the page opens, keeps the keyboard and closes (lab-docs/LAB_DESIGN_SPEC.md,
+ * UI redesign: where the inspector of the selected process is for the size of the window, and how
+ * the sheet over the page opens, keeps the keyboard and closes (docs/design/DESIGN_SPEC.md,
  * sections 2 and 7). The rules of the inspector itself are those of {@link ProcessActionsSceneTest}.
  */
 @Tag("ui-snapshot")
@@ -257,7 +257,7 @@ class ProcessInspectorSceneTest {
     /**
      * Details opens the sheet; Tab visits every control of it in order and wraps, Shift+Tab visits them
      * in the opposite order (F8); × closes it and the focus goes back to Details, which opened it.
-     * UI lab v2 change: the focus used to go to the table; both pages now give it back to the opener.
+     * UI redesign change: the focus used to go to the table; both pages now give it back to the opener.
      */
     @Test
     void detailsOpensTheSheetTabGoesRoundItInOrderAndTheCloseButtonGivesTheFocusBack() {

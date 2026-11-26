@@ -1186,7 +1186,7 @@ milestone is recorded as implemented but unverified on those systems.
 
 **Status.** Done and accepted. Implemented, tested against fakes on every system, and run on the
 real system in CI: Windows x64, Ubuntu x86_64 and macOS arm64 (run
-[37802133378](https://github.com/erdemdenizer/PRISM-internal/actions/runs/37802133378), commit `c44f87a`,
+`37802133378`, commit `c44f87a`,
 full gate on all three). ADR-0010 is Accepted. What that run verified, and what it did not, is
 under **Cross-platform verification** below; in short, the native paths are verified by
 integration tests on those two Linux and macOS systems, and the running application has been used
@@ -1419,7 +1419,7 @@ frequency), `native-api-reviewer` (suspension safety).
 accepted plan revision 3 and ADR-0011, tested against fakes on every system, and run on the
 real system: on Windows 11 by hand (the running application, the demo workload, a hard kill
 and the recovery review) and in CI on Windows x64, Ubuntu x86_64 and macOS arm64 (run
-[37943563248](https://github.com/erdemdenizer/PRISM-internal/actions/runs/37943563248), the code of
+`37943563248`, the code of
 this milestone on a temporary validation branch, full gate on all three, no unexpected skip).
 `CpuLimitIntegrationTest` held the demo workload near its limit on all three systems and
 covered a hard kill in a stop phase checked from outside: listed and resumed only on request

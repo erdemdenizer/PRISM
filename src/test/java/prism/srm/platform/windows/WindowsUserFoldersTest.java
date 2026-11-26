@@ -16,6 +16,8 @@ import org.junit.jupiter.params.provider.ValueSource;
  */
 class WindowsUserFoldersTest {
 
+    private static final String BACKSLASH = String.valueOf((char) 92);
+
     private static final Path HOME = Path.of("home", "alice");
     private static final Path DEFAULT_LOGS = HOME.resolve("AppData")
             .resolve("Local")
@@ -32,6 +34,19 @@ class WindowsUserFoldersTest {
                         .resolve("Prism")
                         .resolve("SystemResourceManager")
                         .resolve("logs"));
+    }
+
+    @Test
+    void theStateIsBesideTheLogsInTheSameLocalFolder() {
+        Map<String, String> environment = Map.of("LOCALAPPDATA", "C:" + BACKSLASH + "Users" + BACKSLASH + "alice");
+        Map<String, String> none = Map.of();
+
+        assertThat(new WindowsUserFolders(environment::get, HOME).state())
+                .isEqualTo(Path.of(environment.get("LOCALAPPDATA"))
+                        .resolve("Prism")
+                        .resolve("SystemResourceManager")
+                        .resolve("state"));
+        assertThat(new WindowsUserFolders(none::get, HOME).state()).isEqualTo(DEFAULT_LOGS.resolveSibling("state"));
     }
 
     @Test
@@ -96,5 +111,19 @@ class WindowsUserFoldersTest {
 
     private static Path logsWith(Map<String, String> environment) {
         return new WindowsUserFolders(environment::get, HOME).logs();
+    }
+
+    @Test
+    void theSettingsAreBesideTheLogsInTheSameLocalFolder() {
+        Map<String, String> environment = Map.of("LOCALAPPDATA", "C:" + BACKSLASH + "Users" + BACKSLASH + "alice");
+        Map<String, String> none = Map.of();
+
+        assertThat(new WindowsUserFolders(environment::get, HOME).settings())
+                .isEqualTo(Path.of(environment.get("LOCALAPPDATA"))
+                        .resolve("Prism")
+                        .resolve("SystemResourceManager")
+                        .resolve("settings"));
+        assertThat(new WindowsUserFolders(none::get, HOME).settings())
+                .isEqualTo(DEFAULT_LOGS.resolveSibling("settings"));
     }
 }

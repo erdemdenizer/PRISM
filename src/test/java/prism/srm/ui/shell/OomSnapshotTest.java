@@ -452,7 +452,7 @@ class OomSnapshotTest {
                 "oom-terminate-chosen-switch-off");
     }
 
-    /** UI lab v2: the safe-default chip of the state band says so only while no automatic action is on. */
+    /** UI redesign: the safe-default chip of the state band says so only while no automatic action is on. */
     @Test
     void theSafeDefaultChipShowsOnlyWhileEveryAutomaticActionIsOff() {
         List<Boolean> shown = new java.util.ArrayList<>();

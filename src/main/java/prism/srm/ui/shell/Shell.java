@@ -59,7 +59,7 @@ import prism.srm.ui.shell.StatusBar.Monitoring;
  * The content of the application window: the navigation on the left, the current page in the
  * middle, the status bar at the bottom.
  *
- * <p>UI lab v2 (lab-docs/LAB_DESIGN_SPEC.md, sections 2 and 7). The navigation takes the form the
+ * <p>UI redesign (docs/design/DESIGN_SPEC.md, sections 2 and 7). The navigation takes the form the
  * width gives it (K1, {@link Sidebar.Mode}): a sidebar with names from {@link
  * Breakpoints#LABELLED_NAV_FROM}, below it the rail of {@link Breakpoints#RAIL_WIDTH}, each icon with
  * its name under it. The navigation is at the left of every window and always names its destinations
@@ -361,7 +361,7 @@ public final class Shell extends BorderPane {
         heightProperty().addListener((observable, before, after) -> adapt());
     }
 
-    // ---- adaptive layout (UI lab v2) ----
+    // ---- adaptive layout (UI redesign) ----
 
     private static final PseudoClass NARROW = PseudoClass.getPseudoClass("narrow");
     private static final PseudoClass WIDE = PseudoClass.getPseudoClass("wide");

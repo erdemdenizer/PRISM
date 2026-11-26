@@ -32,7 +32,7 @@ import prism.srm.ui.icon.Icon;
 import prism.srm.ui.icon.IconView;
 
 /**
- * A sheet over a page, from its right, with a scrim behind it (UI lab v2, LAB_DESIGN_SPEC sections 2
+ * A sheet over a page, from its right, with a scrim behind it (UI redesign, DESIGN_SPEC sections 2
  * and 7): where a window has no room for an inspector beside or under its table, the inspector is
  * shown in one of these, opened by the user and closed by Esc, its close button, or a click anywhere
  * outside it. One design for every page that has one (Processes, Limits).
@@ -48,7 +48,7 @@ import prism.srm.ui.icon.IconView;
  * <p>Layout: the overlay takes no room. The page adds it as its last child, unmanaged, and gives it its
  * whole area in its own layout; it is invisible, and lets every event through, while it is closed. It
  * moves in over {@link Motion#PANEL_MS} and away over {@link Motion#EXIT_MS}; with reduced motion it is
- * there and gone at once. No shadow on it: what it shows changes every second (LAB_DESIGN_SPEC 0.4).
+ * there and gone at once. No shadow on it: what it shows changes every second (DESIGN_SPEC 0.4).
  */
 public final class SheetOverlay extends Region {
 

@@ -123,7 +123,7 @@ class SettingsSnapshotTest {
                 OomView.Availability.ALL));
     }
 
-    /** All of it at the scene sizes of real windows (K8), with the folders of the lab's real data. */
+    /** All of it at the scene sizes of real windows (K8), with the folders of real data. */
     private static Stream<Arguments> realStates() {
         Stream.Builder<Arguments> cases = Stream.builder();
         for (Theme theme : Theme.values()) {
@@ -141,7 +141,7 @@ class SettingsSnapshotTest {
     @ParameterizedTest(name = "{0} {1} {2}")
     @MethodSource("realStates")
     void rendersEverythingAtRealSizes(String name, Theme theme, int[] size) {
-        String home = "C:\\Users\\alice\\AppData\\Local\\Prism\\SystemResourceManager-UILab";
+        String home = "C:\\Users\\alice\\AppData\\Local\\Prism\\SystemResourceManager";
         Path png = SnapshotHarness.render(name, theme, size[0], size[1], () -> {
             Shell shell = shell(new SettingsPage.Hooks(
                     ThemeMode.DARK,

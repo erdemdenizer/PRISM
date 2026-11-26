@@ -51,7 +51,7 @@ public final class PerformancePage extends VBox {
         header.setTrailing(tabs);
         getChildren().setAll(header, new PageNotice(model.status()), section(selected));
         // The section on screen is replaced where it stands: the title line, which holds the selector at
-        // its right end, may be in the page toolbar of the shell instead of above it (UI lab v2).
+        // its right end, may be in the page toolbar of the shell instead of above it (UI redesign).
         model.selectedProperty()
                 .addListener((observable, before, after) ->
                         getChildren().set(getChildren().indexOf(section(before)), section(after)));

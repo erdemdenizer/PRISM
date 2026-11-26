@@ -144,7 +144,7 @@
 }
 
 /*
- * UI lab v2: the state band. The memory available is the figure of the page (22 px); the state word
+ * UI redesign: the state band. The memory available is the figure of the page (22 px); the state word
  * and the time beside it are 15 px, calm, the state in color only while it is Warning or worse. The
  * safe-default chip is neutral and follows the facts, 24 px after them (UI audit LO-24).
  *

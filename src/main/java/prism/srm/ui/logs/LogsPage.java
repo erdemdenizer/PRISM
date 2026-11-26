@@ -65,7 +65,7 @@ public final class LogsPage extends VBox {
     private static final PseudoClass ERROR = PseudoClass.getPseudoClass("error");
 
     /**
-     * The widest the message column gets in an ultrawide window (LAB_DESIGN_SPEC section 7): a line
+     * The widest the message column gets in an ultrawide window (DESIGN_SPEC section 7): a line
      * of text is read, not scanned across 2000 px. The whole message is in the detail pane.
      */
     static final double READABLE_MESSAGE_WIDTH = 960;
@@ -123,7 +123,7 @@ public final class LogsPage extends VBox {
         open.getStyleClass().add("logs-open");
         open.setTooltip(new Tooltip(logFolder));
         open.setOnAction(event -> openLogFolder.run());
-        // The page toolbar (UI lab v2): the filter, the count and the folder button on the title's row.
+        // The page toolbar (UI redesign): the filter, the count and the folder button on the title's row.
         HBox trailing = new HBox(toolbar(), count, open);
         trailing.getStyleClass().add("logs-trailing");
         header.setTrailing(trailing);

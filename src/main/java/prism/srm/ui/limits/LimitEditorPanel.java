@@ -21,7 +21,7 @@ import javafx.scene.layout.VBox;
 import prism.srm.ui.control.InspectorFrame;
 
 /**
- * The panel about the selected managed process on the Limits page (UI lab v2): who it is, the actions on
+ * The panel about the selected managed process on the Limits page (UI redesign): who it is, the actions on
  * it in their three groups, CPU limit, memory limit and the process (docs/UI_GUIDE.md, Limits page), the
  * line about the last action, and what its CPU limit does now, how it is applied, and its memory limit.
  * Every action is always there; one that cannot be used now is disabled, and why is said right under the

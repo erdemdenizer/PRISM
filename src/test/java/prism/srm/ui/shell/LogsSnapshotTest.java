@@ -67,7 +67,7 @@ class LogsSnapshotTest {
      * the actions on a managed process.
      */
     static List<ActivityEntry> realSession() {
-        String home = "C:\\Users\\alice\\AppData\\Local\\Prism\\SystemResourceManager-UILab";
+        String home = "C:\\Users\\alice\\AppData\\Local\\Prism\\SystemResourceManager";
         List<ActivityEntry> entries = new ArrayList<>();
         entries.add(new ActivityEntry(
                 T,
@@ -113,7 +113,7 @@ class LogsSnapshotTest {
             + " termination off.";
 
     /**
-     * The sizes of the real Windows windows the lab is checked at, as their scenes (K8): at 100 %
+     * The sizes of the real Windows windows the redesign is checked at, as their scenes (K8): at 100 %
      * scale a window's scene is 14 px narrower and 45 px shorter than its outer frame. 720 x 480,
      * 760 x 560, 1100 x 700, 1177 x 784, 1366 x 768, 1440 x 900, 1600 x 500 and 1920 x 1032 windows.
      */

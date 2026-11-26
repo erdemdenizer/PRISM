@@ -200,7 +200,7 @@
 }
 
 /*
- * UI lab v2 (one inspector rule): in the sheet the panel takes the sheet's surface; under the table its
+ * UI redesign (one inspector rule): in the sheet the panel takes the sheet's surface; under the table its
  * facts and its three groups stand in columns; the reasons of the disabled actions under them (CAP-2).
  */
 .sheet .limit-editor {

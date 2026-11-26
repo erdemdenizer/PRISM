@@ -1,5 +1,5 @@
 /*
- * Tables, UI lab v2: rows 30 px (28 in a low window, shell.css), header 32 px, 10 px horizontal cell
+ * Tables, UI redesign: rows 30 px (28 in a low window, shell.css), header 32 px, 10 px horizontal cell
  * padding, a radius-10 frame, no zebra striping. Colors are tokens from app.css only. No transition
  * in a table: its cells change state while they are reused for other rows.
  */

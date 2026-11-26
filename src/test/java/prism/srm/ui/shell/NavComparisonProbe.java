@@ -35,8 +35,8 @@ import prism.srm.ui.snapshot.SnapshotHarness;
 import prism.srm.ui.snapshot.SnapshotHarness.Theme;
 
 /**
- * UI lab, Phase C: the 60 px icon rail of the shell against a top navigation bar, at 720 x 480, 1100 x
- * 700 and 1600 x 500 (lab-docs/NAV_COMPARISON.md). The top bar exists only here: it is built around the
+ * UI redesign, Phase C: the 60 px icon rail of the shell against a top navigation bar, at 720 x 480, 1100 x
+ * 700 and 1600 x 500 (docs/design/NAV_COMPARISON.md). The top bar exists only here: it is built around the
  * real shell, whose rail is taken away, so both variants show the same page with the same stylesheet.
  *
  * <p>Besides the PNGs it writes {@code nav-measure.txt}: the width of each destination's name in Plex

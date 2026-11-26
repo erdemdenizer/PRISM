@@ -26,7 +26,7 @@ import javafx.stage.Window;
 import prism.srm.ui.icon.IconView;
 
 /**
- * The primary navigation, UI lab v2 (owner decision K1): one list of the seven destinations in two
+ * The primary navigation, UI redesign (owner decision K1): one list of the seven destinations in two
  * forms, chosen by the shell for the width of the window ({@link Mode}). A wide window has the
  * {@linkplain Mode#SIDEBAR sidebar}: icon and name side by side. Every other window has the {@linkplain
  * Mode#RAIL rail}: each icon with its name under it. Every form names its destinations (owner decision

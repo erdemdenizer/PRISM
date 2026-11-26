@@ -8,7 +8,7 @@ import prism.srm.ui.Breakpoints;
 import prism.srm.ui.control.InspectorFrame;
 
 /**
- * A list with a panel about its selected entry, docked (UI lab v2, LAB_DESIGN_SPEC sections 2 and 7):
+ * A list with a panel about its selected entry, docked (UI redesign, DESIGN_SPEC sections 2 and 7):
  * beside the list at the right, or under it as wide as it is, as the page has room for
  * ({@link Breakpoints#inspectorFor}). Where it has room for neither, the page shows the panel in a
  * sheet over the page instead, and here the list is alone.
@@ -23,7 +23,7 @@ final class InspectorLayout extends Region {
 
     /**
      * The width of the panel beside the list. Fix round H (LO-06): 400, within the 320 to 440 px of an
-     * inspector (LAB_DESIGN_SPEC section 2), so that each group of the compact panel of a low window holds
+     * inspector (DESIGN_SPEC section 2), so that each group of the compact panel of a low window holds
      * its buttons on one line beside its title; the table still keeps its columns from Breakpoints.SIDE_FROM
      * (1260 - 48 - 400 - 12 = 800 px of table for its 752).
      */

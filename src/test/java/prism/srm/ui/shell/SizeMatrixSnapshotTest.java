@@ -30,7 +30,7 @@ import prism.srm.ui.snapshot.SnapshotHarness;
 import prism.srm.ui.snapshot.SnapshotHarness.Theme;
 
 /**
- * UI lab: every page in both themes at the sizes of the lab's review matrix, from 720 x 480 (narrow,
+ * UI redesign: every page in both themes at the sizes of the review matrix, from 720 x 480 (narrow,
  * low) through 1100 x 700 (default), 1366 x 768, 1440 x 900, 1600 x 500 (wide and low), 1920 x 1080
  * (docked) and 900 x 1200 (tall) to 2560 x 1440 and 3440 x 1440 (ultrawide), with the same live data,
  * a short session in the activity log and a Windows-like control profile. For the eye; each render

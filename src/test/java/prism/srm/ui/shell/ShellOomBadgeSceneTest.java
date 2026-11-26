@@ -18,7 +18,7 @@ import prism.srm.ui.snapshot.SnapshotHarness;
 import prism.srm.ui.snapshot.SnapshotHarness.Theme;
 
 /**
- * UI lab v2: the badge of OOM Guard in the navigation (lab-docs/LAB_DESIGN_SPEC.md, section 2). It marks
+ * UI redesign: the badge of OOM Guard in the navigation (docs/design/DESIGN_SPEC.md, section 2). It marks
  * a real state only: memory pressure from Warning up. The views reach the shell as the application hands
  * them over ({@link Shell#showOom}); the dot, the pseudo-class and the accessible name of the entry are
  * read from the scene.

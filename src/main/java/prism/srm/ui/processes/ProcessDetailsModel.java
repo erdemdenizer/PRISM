@@ -58,7 +58,7 @@ final class ProcessDetailsModel {
     private final DetailValue ioRead = new DetailValue();
     private final DetailValue ioWrite = new DetailValue();
     private final DetailValue user = new DetailValue();
-    // UI lab v2: the values of the row again, for the inspector beside the table (its "Now" group).
+    // UI redesign: the values of the row again, for the inspector beside the table (its "Now" group).
     private final DetailValue cpu = new DetailValue();
     private final DetailValue memory = new DetailValue();
     private final DetailValue io = new DetailValue();

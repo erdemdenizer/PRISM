@@ -17,7 +17,7 @@ import prism.srm.ui.snapshot.SnapshotHarness;
 import prism.srm.ui.snapshot.SnapshotHarness.Theme;
 
 /**
- * UI lab v2: the title line of a page stands in the page toolbar, out of the page. The rules of the
+ * UI redesign: the title line of a page stands in the page toolbar, out of the page. The rules of the
  * page still reach it (the gaps and the alignment of the Processes tools), centred on the band of the
  * header, in a narrow window too.
  */

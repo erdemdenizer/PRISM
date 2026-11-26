@@ -22,7 +22,7 @@ import prism.srm.ui.icon.Icon;
 import prism.srm.ui.icon.IconView;
 
 /**
- * UI lab v2: "Limits & protection" in the narrow inspector: what Prism does to the selected process
+ * UI redesign: "Limits & protection" in the narrow inspector: what PRISM does to the selected process
  * (its managed mark, or that it is not managed), and the choices the context menu of the table has
  * for it (Manage, Set CPU limit…, Add to and Remove from OOM management, Unmanage), as buttons.
  *

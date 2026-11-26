@@ -345,7 +345,7 @@ class ProcessesPageSceneTest {
 
     @Test
     void theArrowKeysHomeAndEndMoveTheSelectionThroughTheRows() {
-        // UI lab v2: 900 px high, so that a page of rows is more than five: at 1100 x 700 the inspector
+        // UI redesign: 900 px high, so that a page of rows is more than five: at 1100 x 700 the inspector
         // under the table, its sections in columns, leaves the page alone about five rows.
         List<Integer> seen = inPage(1100, 900, scene -> {
             scene.page().show(ProcessListings.windows(394, 0));

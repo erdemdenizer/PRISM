@@ -127,7 +127,7 @@ class LogsPageSceneTest {
             + " termination off.";
 
     private static final String SETTINGS_PATH =
-            "Settings read from C:\\Users\\alice\\AppData\\Local\\Prism\\SystemResourceManager-UILab\\settings"
+            "Settings read from C:\\Users\\alice\\AppData\\Local\\Prism\\SystemResourceManager\\settings"
                     + "\\prism.settings";
 
     /** Real-like entries: the OOM Guard settings line and a path, both longer than a 720 px window. */

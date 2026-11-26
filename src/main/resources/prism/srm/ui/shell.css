@@ -1,5 +1,5 @@
 /*
- * Shell, UI lab v2: the navigation (rail or sidebar), the page area and the status line.
+ * Shell, UI redesign: the navigation (rail or sidebar), the page area and the status line.
  * The navigation and the status line are on the chrome surface, the color the Windows caption takes
  * (platform title bar code), so caption, rail and status line frame the canvas as one piece.
  */
@@ -73,7 +73,7 @@
  * 11 px in the muted text color, SemiBold in the text color when selected. The selected entry: the
  * selection surface of the navigation, the icon in the accent color, and a 3 px accent bar at the list's
  * left edge, drawn as a background layer outside the entry so nothing moves; the bar is what tells the
- * selection at 3:1 (WCAG 1.4.11, lab-docs/CONTRAST.md). Focus: the 2 px ring 1 px outside the entry, its
+ * selection at 3:1 (WCAG 1.4.11, docs/design/CONTRAST.md). Focus: the 2 px ring 1 px outside the entry, its
  * radius the entry's and 3 more.
  */
 .nav-item {
@@ -202,7 +202,7 @@
 }
 
 /*
- * The page toolbar (UI lab v2): the page header is drawn as a full-bleed band of chrome with a
+ * The page toolbar (UI redesign): the page header is drawn as a full-bleed band of chrome with a
  * hairline at its foot, so the native caption (DWM-colored to -srm-chrome), the rail and the toolbar
  * read as one frame around the canvas. The band is a background with negative side insets that reach
  * the edges of the page area (the side padding of each width: 12, 16, 24) and changes no layout. The
@@ -361,12 +361,6 @@
   -fx-text-fill: -srm-warning;
 }
 
-/* The lab mark: neutral, at the right end. */
-.status-lab {
-  -fx-padding: 0 0 0 16;
-  -fx-text-fill: -srm-text-subtle;
-}
-
 /* The surface and the icon color of an entry change with a short transition, never the text. */
 @media (prefers-reduced-motion: no-preference) {
   .nav-item {
@@ -416,7 +410,7 @@
 }
 
 /*
- * The page toolbar (UI lab v2, H3): the title line of the page on screen stands above the area that
+ * The page toolbar (UI redesign, H3): the title line of the page on screen stands above the area that
  * scrolls, so the title and the page tools stay in view while the page scrolls. The header draws the
  * band itself (above); the toolbar gives it the side margins of the page, which its band reaches over.
  */

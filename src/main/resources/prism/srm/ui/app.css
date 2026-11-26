@@ -1,5 +1,5 @@
 /*
- * Application stylesheet of the Prism System Resource Manager, UI lab v2 (lab-docs/LAB_DESIGN_SPEC.md):
+ * Application stylesheet of PRISM, UI redesign (docs/design/DESIGN_SPEC.md):
  * the design tokens, the type roles, and the base look of the stock controls and of the shared
  * surfaces (panels, segmented selector, filter field, icons). It goes on the scene; component
  * stylesheets use the tokens only.
@@ -8,7 +8,7 @@
  * (javafx.scene.Scene.Preferences, docs/adr/0009). Popups carry the "root" style class, so the
  * tokens reach them too. Every token is opaque: several components stack a token over another as
  * background layers (a selection bar over the selection), and a translucent token would mix them.
- * Contrast ratios are recorded in lab-docs/CONTRAST.md.
+ * Contrast ratios are recorded in docs/design/CONTRAST.md.
  *
  * Depth comes from tone steps, hairlines and a 1 px top highlight drawn as a background layer. The
  * one shadow is on popups, menus and tooltips only, never on a container of live values.
@@ -70,7 +70,7 @@
 
   /*
    * Data: one hue per resource (spec section 4), each at least 3:1 on the panel, the canvas and the
-   * chrome (lab-docs/CONTRAST.md): CPU violet (the accent), memory teal, disk rose, network blue, so
+   * chrome (docs/design/CONTRAST.md): CPU violet (the accent), memory teal, disk rose, network blue, so
    * disk is not read as CPU. The second series of a pair is also drawn dashed, so it is never told
    * by color alone.
    */
@@ -88,7 +88,7 @@
   -srm-control-edge: #7f8898;
   /*
    * The softer edge of a button, a menu button, a toggle and a segmented track: a button is told by
-   * its words, so its outline is not held to 3:1 (lab-docs/CONTRAST.md).
+   * its words, so its outline is not held to 3:1 (docs/design/CONTRAST.md).
    */
   -srm-control-border: #c9ced6;
 
@@ -206,7 +206,7 @@
  * Plex digits are tabular in every weight (every figure is 0.6 em wide; measured from the bundled
  * files), so live numbers do not move; JavaFX has no font-feature-settings and needs none here.
  *
- * Fix round H (SH-09): the type scale, six sizes, each with one job (lab-docs/DESIGN_DECISIONS_TR.md):
+ * Fix round H (SH-09): the type scale, six sizes, each with one job (docs/design/DESIGN_DECISIONS_TR.md):
  *   12  caption and small: captions, column headers (Medium), counts, tooltips, chips
  *   13  body: all text, cells, controls (Medium); inspector section captions (SemiBold)
  *   15  section: panel and section titles, the name of a selected process (SemiBold)
@@ -475,7 +475,7 @@
 /*
  * Disabled: the control surface under a hairline, without the highlight, so a disabled button keeps
  * its place and shape on a raised surface instead of reading as a hole; its words in the disabled
- * color (at least 3:1 on the control surface, lab-docs/CONTRAST.md), its reason shown beside it.
+ * color (at least 3:1 on the control surface, docs/design/CONTRAST.md), its reason shown beside it.
  */
 .button:disabled,
 .menu-button:disabled,

@@ -10,7 +10,7 @@ import prism.srm.platform.ChromeColors;
 import prism.srm.platform.WindowChrome.Result;
 import prism.srm.platform.windows.WindowsWindowChrome.ThreadWindow;
 
-/** UI lab v2: the decisions of the title bar colors. No native call is made. */
+/** UI redesign: the decisions of the title bar colors. No native call is made. */
 class WindowsWindowChromeTest {
 
     private static final String STAGE = "GlassWndClass-GlassWindowClass-2";

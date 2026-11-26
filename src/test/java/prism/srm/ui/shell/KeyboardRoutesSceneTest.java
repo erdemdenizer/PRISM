@@ -96,7 +96,7 @@ class KeyboardRoutesSceneTest {
                         "Processes",
                         "Suspend",
                         "Priority, current: Normal",
-                        // UI lab v2: at 1100 x 700 the inspector is under the table, with Limits &
+                        // UI redesign: at 1100 x 700 the inspector is under the table, with Limits &
                         // protection between Control and End process, as beside the table and in the sheet.
                         "Manage",
                         "Set CPU limit\u2026",
@@ -191,7 +191,7 @@ class KeyboardRoutesSceneTest {
             // The page area is a stop of its own where the page is larger than the window: it scrolls.
             List<String> expected = new ArrayList<>(ROUTES.get(destination));
             if (destination == Destination.PROCESSES) {
-                // UI lab v2: here the inspector is a sheet over the page, opened by Details (or
+                // UI redesign: here the inspector is a sheet over the page, opened by Details (or
                 // Enter on a row); its actions are reached in it, not after the table.
                 expected = List.of(
                         "Processes",
@@ -200,7 +200,7 @@ class KeyboardRoutesSceneTest {
                         "Processes");
             }
             if (destination == Destination.LIMITS) {
-                // UI lab v2: the Limits panel is a sheet here too, opened by "Details and actions" (or Enter
+                // UI redesign: the Limits panel is a sheet here too, opened by "Details and actions" (or Enter
                 // on a row); its actions are reached inside it (LimitsPanelSceneTest walks that Tab trap).
                 expected = List.of("Limits", "Details and actions", "Managed processes and their limits");
             }
@@ -466,7 +466,7 @@ class KeyboardRoutesSceneTest {
         }
         shell.applyCss();
         shell.layout();
-        // UI lab v2: the route begins at the selected entry of the navigation, at every width.
+        // UI redesign: the route begins at the selected entry of the navigation, at every width.
         shell.navigationStart().requestFocus();
     }
 

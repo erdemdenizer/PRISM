@@ -40,7 +40,7 @@ import prism.srm.ui.snapshot.SnapshotHarness.Theme;
 /**
  * The Limits page (UI-4) in each of its states, both themes, at the default size, the smallest window
  * (720 x 480, and what is left of it inside the Windows 11 frame), wide sizes, and the sizes of the UI
- * lab matrix where its panel is a sheet (narrow or low) or docked.
+ * review matrix where its panel is a sheet (narrow or low) or docked.
  */
 @Tag("ui-snapshot")
 class LimitsSnapshotTest {
@@ -205,7 +205,7 @@ class LimitsSnapshotTest {
         table.requestFocus();
     }
 
-    /** A button of the page, or of its title line, which the shell shows in the page toolbar (UI lab v2). */
+    /** A button of the page, or of its title line, which the shell shows in the page toolbar (UI redesign). */
     private static void press(Shell shell, String text) {
         java.util.stream.Stream.concat(
                         page(shell).lookupAll(".button").stream(), shell.toolbar().lookupAll(".button").stream())
@@ -246,7 +246,7 @@ class LimitsSnapshotTest {
     private static Stream<Arguments> sheets() {
         Stream.Builder<Arguments> cases = Stream.builder();
         for (Theme theme : Theme.values()) {
-            // UI lab v2: a wide and low window (1600 x 500) docks the panel beside the table now
+            // UI redesign: a wide and low window (1600 x 500) docks the panel beside the table now
             // (Breakpoints): the low window with a sheet is one too narrow for the side, 1100 x 540.
             for (int[] size : new int[][] {{720, 480}, {704, 441}, {800, 600}, {1100, 540}}) {
                 cases.add(Arguments.of(theme, size));

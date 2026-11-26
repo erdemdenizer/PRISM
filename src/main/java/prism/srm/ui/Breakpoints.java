@@ -1,7 +1,7 @@
 package prism.srm.ui;
 
 /**
- * The window sizes at which the layout of the user interface takes a turn (lab-docs/LAB_DESIGN_SPEC.md,
+ * The window sizes at which the layout of the user interface takes a turn (docs/design/DESIGN_SPEC.md,
  * section 7), in one place: the shell, the Processes page and the Limits page decide by these numbers
  * and by nothing else, so that every page takes the same turn at the same size.
  *
@@ -82,7 +82,7 @@ public final class Breakpoints {
     public static final double BOTTOM_LEAST_HEIGHT = 500;
 
     /**
-     * A tall narrow page (fix round G, PR-07, LO-23; LAB_DESIGN_SPEC section 7, "tall: bottom"): from this
+     * A tall narrow page (fix round G, PR-07, LO-23; DESIGN_SPEC section 7, "tall: bottom"): from this
      * width and {@link #TALL_FROM} high, the inspector stands under its table with its groups under one
      * another, as beside it, instead of in a sheet over an empty table.
      */

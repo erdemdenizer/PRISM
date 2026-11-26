@@ -99,7 +99,7 @@ checked independently. The enforcer stops a build on a wrong JDK, so at most the
   may remain.
 - **The macOS procedure** should require that `java -version` says Temurin 25 after `JAVA_HOME` is set.
 - **Packaging and the classpath** (milestone 13): the register's limit of the K16 claim depends on there being no `module-info`.
-- **The `CLAUDE.md` recovery sentence** reads as though Prism resumes something by itself, which LIFE-4 denies. It is a project rule
+- **The recovery sentence of the project rules** reads as though PRISM resumes something by itself, which LIFE-4 denies. It is a project rule
   outside M12, left to the owner.
 
 When this decision was recorded, no push, merge, tag or release had been made for it.

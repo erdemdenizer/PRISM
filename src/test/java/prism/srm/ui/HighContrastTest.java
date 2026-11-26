@@ -95,7 +95,7 @@ class HighContrastTest {
         }
     }
 
-    /** Every token app.css defines is mapped, so no lab color is left in a high-contrast theme. */
+    /** Every token app.css defines is mapped, so no color of the normal themes is left in a high-contrast theme. */
     @Test
     void hcCssMapsEveryTokenOfTheApplicationToASystemColor() throws IOException {
         Set<String> defined = tokens(read(Stylesheets.app()));

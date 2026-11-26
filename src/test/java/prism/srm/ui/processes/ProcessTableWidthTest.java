@@ -27,11 +27,11 @@ import prism.srm.ui.snapshot.SnapshotHarness.Theme;
 
 /**
  * How the columns share the width of the table, read from real scenes of the whole shell at the window
- * sizes of docs/UI_GUIDE.md and lab-docs/LAB_DESIGN_SPEC.md (section 7): the name column takes the room
- * that is left (UI lab v2: with no ceiling), the user column follows the names on screen between a floor
+ * sizes of docs/UI_GUIDE.md and docs/design/DESIGN_SPEC.md (section 7): the name column takes the room
+ * that is left (UI redesign: with no ceiling), the user column follows the names on screen between a floor
  * and a ceiling, and the rest keep the widths the font gives them.
  *
- * <p>UI lab v2: the page is measured in the real shell, not alone at a computed width. The rail
+ * <p>UI redesign: the page is measured in the real shell, not alone at a computed width. The rail
  * (Breakpoints.RAIL_WIDTH, its hairline included) stands at the left of every window below the wide one,
  * the sidebar from Breakpoints.LABELLED_NAV_FROM; the page
  * padding is 12, 16 or 24 px a side by the width; and where the inspector stands (beside the table from
@@ -64,7 +64,7 @@ class ProcessTableWidthTest {
     }
 
     /**
-     * UI lab v2: in a wide window, with the inspector beside the table, the name column takes the
+     * UI redesign: in a wide window, with the inspector beside the table, the name column takes the
      * room left up to its ceiling and State takes the rest, so no empty band stays after the last
      * column and the numbers stay near the names (the name took all the room before; critique M5).
      */
@@ -106,7 +106,7 @@ class ProcessTableWidthTest {
     /**
      * 1280 x 800. The table keeps the width its columns need (866 px) and the inspector its least (320
      * px), so beside each other, with the 12 px divider and 2 x 24 px padding, the page would need 1246
-     * px of the 1220 the page area has. UI lab v2: the inspector stands beside the table only from 1320
+     * px of the 1220 the page area has. UI redesign: the inspector stands beside the table only from 1320
      * px (Breakpoints, measured from this), so at 1280 it is under the table, and every column fits
      * without scrolling sideways.
      */
@@ -153,6 +153,39 @@ class ProcessTableWidthTest {
         });
 
         assertThat(seen).containsExactly(true, true, true, false);
+    }
+
+    /**
+     * Course release, finding L-1 of the redesign's Linux test: with the long user names of a Linux desktop the
+     * user column is at its ceiling. Beside the inspector the page must still be able to become narrower than
+     * Breakpoints.SIDE_FROM, so that a narrower window takes the inspector from beside the table, and the area
+     * of the page never scrolls sideways (L-2): the table scrolls itself where its columns do not fit.
+     */
+    @Test
+    void withLongUserNamesThePageBesideTheInspectorCanStillBecomeNarrowerThanTheSideWidth() {
+        List<ProcessSnapshot> listing = new java.util.ArrayList<>();
+        String[] users = {"cups-browsed", "systemd-timesync", "NT AUTHORITY\\NETWORK SERVICE", "messagebus", "prism"};
+        for (int index = 0; index < 120; index++) {
+            listing.add(ProcessListings.process(4L * (index + 1), "process-" + index)
+                    .user(users[index % users.length])
+                    .build());
+        }
+        for (int[] size : new int[][] {{1366, 768}, {1600, 900}}) {
+            List<Object> seen = inWindow(
+                    size[0],
+                    size[1],
+                    listing,
+                    (table, page) -> List.of(
+                            page.mode(),
+                            width(table, "User") == ColumnWidths.USER_MAX,
+                            page.minWidth(-1) < Breakpoints.SIDE_FROM,
+                            inspectorWidth(page) >= ProcessesPage.INSPECTOR_MIN,
+                            pageScrollsSideways(page)));
+
+            assertThat(seen)
+                    .as("window %d x %d", size[0], size[1])
+                    .containsExactly(Breakpoints.Inspector.SIDE, true, true, true, false);
+        }
     }
 
     private static void assertEveryColumnFitsBesideTheInspector(int windowWidth, int windowHeight) {
@@ -360,7 +393,7 @@ class ProcessTableWidthTest {
                 },
                 root -> {
                     Shell shell = (Shell) root;
-                    // UI lab v2: the page area is under the page toolbar in the centre of the shell.
+                    // UI redesign: the page area is under the page toolbar in the centre of the shell.
                     ProcessesPage page =
                             (ProcessesPage) ((ScrollPane) shell.getCenter().lookup(".page-area")).getContent();
                     TableView<ProcessRow> table = (TableView<ProcessRow>) page.lookup(".process-table");
