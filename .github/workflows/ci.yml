@@ -55,26 +55,27 @@ jobs:
           if-no-files-found: warn
 
   # Milestone 10 (docs/TESTING.md, plan D24): a check of its own, apart from the gate above. It reads
-  # the Windows test reports and passes only if every native-limit suite ran and none of its tests
-  # was skipped, failed or ended in error. A skip (for example a runner whose processes are in a Job
-  # Object) is "not validated", never a pass; it leaves the gate above as it is.
+  # the Windows test reports: a suite validates only if it ran and none of its tests was skipped,
+  # failed or ended in error. The hosted runner's processes are in a Job Object, so the native
+  # suites skip here: --skips-allowed lets skips alone through, with the verdict "NOT done" in the
+  # summary, and still fails on a failure, an error or a missing report. A skip is never a pass;
+  # validation itself is native-validation.yml on the self-hosted runner, without the flag.
   native-validation:
     name: native-validation
     needs: verify
     if: ${{ !cancelled() }}
-    continue-on-error: true
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
+      - name: Tests of the validation scripts
+        run: node --test .github/scripts/*.test.mjs
       - uses: actions/download-artifact@v4
         with:
           name: test-reports-windows-latest
           path: windows-reports
-      - name: Native suites ran and passed
-        run: >-
-          node .github/scripts/native-validation.mjs windows-reports ||
-          echo "Hosted windows-latest runner executes inside a Job Object; skipped native Job Object suites are expected here."
+      - name: Native suites did not fail (hosted runner, skips allowed)
+        run: node .github/scripts/native-validation.mjs --skips-allowed windows-reports
 
   # Milestone 12 (plan Rev 2.2 §8.2, S6): the Linux native suites on a real systemd user manager, on disposable
   # processes the test harness starts under it (systemd-run --user --scope, test infrastructure only). The suites skip

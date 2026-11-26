@@ -467,13 +467,15 @@ a window of the tester's own making, never an application someone uses.
   developer's own PRISM closed first, or another user profile.
 - **The `native-validation` check.** `.github/scripts/native-validation.mjs` reads the Windows
   surefire reports and passes only if every native suite ran and none of its tests was skipped,
-  failed or ended in error; a skip is never a pass. It runs as a job of its own in `ci.yml`
-  after the gate, which it does not change, and by hand:
+  failed or ended in error; a skip is never a pass. With `--skips-allowed` it still says
+  "NOT done" when suites were skipped, but exits 0 unless a suite failed, ended in error or has
+  no report; `ci.yml` runs it that way as a job of its own after the gate, which it does not
+  change, because the hosted runner cannot run the suites (below). By hand, without the flag:
 
   ```
   ./mvnw -q test -Dprism.native.required=true -Dtest=WindowsJobIntegrationTest,NativeLimitRecoveryIntegrationTest,ParentExitsChildSurvivesTest,JnaWin32Test
   node .github/scripts/native-validation.mjs target/surefire-reports
-  node --test .github/scripts/native-validation.test.mjs
+  node --test .github/scripts/*.test.mjs
   ```
 
   `native-validation.yml` runs the same on a self-hosted runner labelled `windows-native`,
@@ -484,8 +486,10 @@ a window of the tester's own making, never an application someone uses.
   The code changed after it, so the evidence for `a6f12b6`,
   [docs/evidence/m10-native-validation-a6f12b6.md](evidence/m10-native-validation-a6f12b6.md),
   replaces it for the current code; it was accepted on 2026-10-12.
-  On GitHub-hosted Windows runners the tests run inside a Job Object, so the hosted check stays
-  red there by design. Evidence of this kind holds only for the code of the commit it names:
+  On GitHub-hosted Windows runners the tests run inside a Job Object, so the native suites skip
+  there: the hosted check is never validation. Until 2026-11 it stayed red by design; it now
+  passes on skips alone with the verdict "NOT done" in the job summary, and fails on a failure,
+  an error or a missing report. Evidence of this kind holds only for the code of the commit it names:
   - The raw reports are copied with machine-local paths removed, including the
     doubled-backslash paths in Maven's `argLine`.
   - The hashes of the originals and of the copies are listed.
