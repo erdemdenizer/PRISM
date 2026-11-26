@@ -34,6 +34,7 @@ import prism.srm.domain.SwapUsage;
 import prism.srm.domain.SystemActivity;
 import prism.srm.platform.DiskLayerSource;
 import prism.srm.platform.HostSystem;
+import prism.srm.platform.NetworkLayerSource;
 import prism.srm.platform.SystemMetricsSource;
 import prism.srm.platform.oshi.DeviceList.Held;
 
@@ -59,6 +60,9 @@ final class OshiSystemMetricsSource implements SystemMetricsSource {
     private final OperatingSystem os;
     private final HostSystem system;
     private final DiskLayerCache diskLayers;
+    /** The same cache, asked for interfaces: a layer source has the same shape for both. */
+    private final DiskLayerCache networkLayers;
+
     private final DeviceList<OSFileStore> fileStores;
     private final DeviceList<HWDiskStore> disks;
     private final DeviceList<NetworkIF> interfaces;
@@ -73,11 +77,13 @@ final class OshiSystemMetricsSource implements SystemMetricsSource {
             OperatingSystem os,
             HostSystem system,
             DiskLayerSource diskLayerSource,
+            NetworkLayerSource networkLayerSource,
             LongSupplier nanoClock) {
         this.hardware = hardware;
         this.os = os;
         this.system = system;
         this.diskLayers = new DiskLayerCache(diskLayerSource);
+        this.networkLayers = new DiskLayerCache(networkLayerSource::networkLayers);
         fileStores = new DeviceList<>(
                 () -> os.getFileSystem().getFileStores(true),
                 OSFileStore::updateAttributes,
@@ -176,13 +182,25 @@ final class OshiSystemMetricsSource implements SystemMetricsSource {
 
     @Override
     public List<NetworkCounters> networkCounters() {
+        List<Held<NetworkIF>> polled = interfaces.poll();
+        Map<String, DeviceLayer> layers = Map.of();
+        // Windows has the connector flag; elsewhere the system's source is asked, once per set of interfaces.
+        if (system != HostSystem.WINDOWS && !polled.isEmpty()) {
+            Set<String> heldKeys = new HashSet<>();
+            for (Held<NetworkIF> held : polled) {
+                heldKeys.add(held.device().getName() + '#' + held.epoch());
+            }
+            layers = networkLayers.layersFor(heldKeys);
+        }
         List<NetworkCounters> counters = new ArrayList<>();
-        for (Held<NetworkIF> held : interfaces.poll()) {
+        for (Held<NetworkIF> held : polled) {
             NetworkIF networkInterface = held.device();
             counters.add(new NetworkCounters(
                     networkInterface.getName(),
                     networkInterface.getDisplayName(),
-                    networkLayer(system, networkInterface.isConnectorPresent()),
+                    system == HostSystem.WINDOWS
+                            ? networkLayer(system, networkInterface.isConnectorPresent())
+                            : layers.getOrDefault(networkInterface.getName(), DeviceLayer.UNKNOWN),
                     held.epoch(),
                     networkInterface.getBytesRecv(),
                     networkInterface.getBytesSent()));
@@ -237,8 +255,9 @@ final class OshiSystemMetricsSource implements SystemMetricsSource {
      * tethered over Bluetooth is not in the total.
      *
      * <p>On Linux OSHI fills the flag from the link state ({@code carrier}), which says nothing
-     * about hardware, and on macOS OSHI does not provide it. On those systems the layer is
-     * unknown until a source that knows it is added.
+     * about hardware, and on macOS OSHI does not provide it. On those systems the flag gives
+     * {@link DeviceLayer#UNKNOWN}, and the layer comes from the system's {@link
+     * NetworkLayerSource} instead (Linux: sysfs; macOS: none yet).
      */
     static DeviceLayer networkLayer(HostSystem system, boolean connectorPresent) {
         if (system != HostSystem.WINDOWS) {

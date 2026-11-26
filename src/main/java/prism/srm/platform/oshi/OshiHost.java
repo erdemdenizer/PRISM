@@ -6,6 +6,7 @@ import oshi.hardware.HardwareAbstractionLayer;
 import oshi.software.os.OperatingSystem;
 import prism.srm.platform.DiskLayerSource;
 import prism.srm.platform.HostSystem;
+import prism.srm.platform.NetworkLayerSource;
 import prism.srm.platform.ProcessCpuTimeSource;
 import prism.srm.platform.ProcessSource;
 import prism.srm.platform.ProcessVirtualSizeSource;
@@ -27,6 +28,8 @@ public final class OshiHost {
      *
      * @param system the running system, for the choices that OSHI's behavior makes system-specific
      * @param diskLayers the system's knowledge of disk layers, which OSHI does not have
+     * @param networkLayers the system's knowledge of interface layers, where OSHI's connector flag
+     *     does not tell it; not asked on Windows
      * @param windowsVirtualSizes the virtual sizes of processes on Windows, which OSHI does not
      *     have there; not asked on any other system
      * @param cpuTimes the processor time of one process from the system, where OSHI's lookup of one
@@ -35,12 +38,14 @@ public final class OshiHost {
     public OshiHost(
             HostSystem system,
             DiskLayerSource diskLayers,
+            NetworkLayerSource networkLayers,
             ProcessVirtualSizeSource windowsVirtualSizes,
             Optional<ProcessCpuTimeSource> cpuTimes) {
         SystemInfo systemInfo = new SystemInfo();
         HardwareAbstractionLayer hardware = systemInfo.getHardware();
         os = systemInfo.getOperatingSystem();
-        systemMetricsSource = new OshiSystemMetricsSource(hardware, os, system, diskLayers, System::nanoTime);
+        systemMetricsSource =
+                new OshiSystemMetricsSource(hardware, os, system, diskLayers, networkLayers, System::nanoTime);
         processSource = new OshiProcessSource(os::getProcesses, os::getProcess, system, windowsVirtualSizes, cpuTimes);
     }
 
