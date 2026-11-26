@@ -35,6 +35,29 @@ class PackagingConfigTest {
         return verifier.substring(start, verifier.indexOf("\n)\n", start));
     }
 
+    /** ADR-0018: the Linux image has the runtime of the Windows image, jdk.localedata included. */
+    @Test
+    void theLinuxImageHasTheModulesOfTheWindowsImage() throws IOException {
+        List<String> linux = Files.readAllLines(Path.of("packaging", "linux", "modules.txt")).stream()
+                .filter(line -> !line.isBlank())
+                .toList();
+
+        assertThat(linux).containsExactlyElementsOf(modules());
+    }
+
+    /** ADR-0018: what was not proved refuses the Linux image as a failure does. */
+    @Test
+    void theLinuxVerdictRefusesWhatWasNotProved() throws IOException {
+        String verifier = Files.readString(Path.of("packaging", "linux", "verify-image.sh"));
+
+        assertThat(verifier)
+                .contains("if [ \"$fails\" = 0 ] && [ \"$untested\" = 0 ]; then echo \"verdict: ACCEPTED\"")
+                .contains("[ \"$fails\" = 0 ] && [ \"$untested\" = 0 ]\n");
+        assertThat(Files.readString(Path.of("packaging", "linux", "PackageImage.java")))
+                .contains("check(image, modules);")
+                .contains("The Linux image is built on Linux");
+    }
+
     /** Nothing fails without jdk.localedata: Turkish numbers silently format as 1,234,567. */
     @Test
     void theImageKeepsTheLocaleDataAndWhatTheApplicationNeeds() throws IOException {

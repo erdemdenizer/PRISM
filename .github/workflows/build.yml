@@ -89,3 +89,30 @@ jobs:
           name: PRISM-Windows-Portable-EXE
           path: target/package/*.zip
           retention-days: 30
+
+  # ADR-0018: the Linux application image, built on Linux (DEL-1). Kept as an artifact, not
+  # verified here: verify-image.sh needs a desktop session.
+  linux-app-image:
+    name: build-linux-app-image
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+      - name: Build the Linux application image and its tar.gz
+        shell: bash
+        run: ./mvnw -B -Ppackage-image-linux -DskipTests package
+      - name: Upload the Linux image and its verification kit
+        uses: actions/upload-artifact@v4
+        with:
+          name: PRISM-Linux-x64-image
+          path: |
+            target/package/*.tar.gz
+            target/package/*.tar.gz.sha256
+            target/package/BUILT_WITH.txt
+            target/package/verification/
+          retention-days: 30

@@ -418,6 +418,58 @@
       </build>
     </profile>
     <profile>
+      <!--
+        The Linux application image and its tar.gz, in target/package (ADR-0018). Not part of verify;
+        on Linux only: ./mvnw -Ppackage-image-linux -DskipTests package
+        An image counts only after packaging/linux/verify-image.sh has passed on it.
+      -->
+      <id>package-image-linux</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-dependency-plugin</artifactId>
+            <version>${maven-dependency-plugin.version}</version>
+            <executions>
+              <execution>
+                <id>image-dependencies</id>
+                <goals>
+                  <goal>copy-dependencies</goal>
+                </goals>
+                <phase>package</phase>
+                <configuration>
+                  <includeScope>runtime</includeScope>
+                  <outputDirectory>${project.build.directory}/package-dependencies</outputDirectory>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>exec-maven-plugin</artifactId>
+            <version>${exec-maven-plugin.version}</version>
+            <executions>
+              <execution>
+                <id>image</id>
+                <goals>
+                  <goal>exec</goal>
+                </goals>
+                <phase>package</phase>
+                <configuration>
+                  <executable>${java.home}/bin/java</executable>
+                  <workingDirectory>${project.basedir}</workingDirectory>
+                  <arguments>
+                    <argument>packaging/linux/PackageImage.java</argument>
+                    <argument>${project.version}</argument>
+                  </arguments>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
       <!-- Renders UI snapshot PNGs to target/ui-snapshots. Needs a display. See docs/TESTING.md. -->
       <id>ui-snapshots</id>
       <properties>

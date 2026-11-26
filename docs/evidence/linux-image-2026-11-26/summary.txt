@@ -1,0 +1,3 @@
+image: ~/run/prism/target/package/prism-0.1.0-linux-x64.tar.gz
+PASS 31, FAIL 0, NOT TESTED 0
+verdict: ACCEPTED
