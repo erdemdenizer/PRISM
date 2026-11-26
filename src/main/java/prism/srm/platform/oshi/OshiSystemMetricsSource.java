@@ -10,6 +10,8 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.function.LongSupplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import oshi.hardware.CentralProcessor;
 import oshi.hardware.CentralProcessor.TickType;
 import oshi.hardware.GlobalMemory;
@@ -48,6 +50,8 @@ import prism.srm.platform.oshi.DeviceList.Held;
  */
 final class OshiSystemMetricsSource implements SystemMetricsSource {
 
+    private static final Logger LOG = LoggerFactory.getLogger(OshiSystemMetricsSource.class);
+
     /*
      * Measured on Windows 11 with 3 disks, 3 volumes and 36 listed interfaces: enumerating takes
      * about 80 ms for disks, 27 ms for file stores and 22 ms for interfaces, while refreshing an
@@ -59,9 +63,10 @@ final class OshiSystemMetricsSource implements SystemMetricsSource {
     private final HardwareAbstractionLayer hardware;
     private final OperatingSystem os;
     private final HostSystem system;
-    private final DiskLayerCache diskLayers;
-    /** The same cache, asked for interfaces: a layer source has the same shape for both. */
-    private final DiskLayerCache networkLayers;
+    private final DeviceLayerCache diskLayers;
+    private final DeviceLayerCache networkLayers;
+    /** Whether a failed classification of interfaces has been logged; it is logged once. */
+    private boolean networkLayerFailureLogged;
 
     private final DeviceList<OSFileStore> fileStores;
     private final DeviceList<HWDiskStore> disks;
@@ -82,8 +87,8 @@ final class OshiSystemMetricsSource implements SystemMetricsSource {
         this.hardware = hardware;
         this.os = os;
         this.system = system;
-        this.diskLayers = new DiskLayerCache(diskLayerSource);
-        this.networkLayers = new DiskLayerCache(networkLayerSource::networkLayers);
+        this.diskLayers = new DeviceLayerCache(diskLayerSource::diskLayers);
+        this.networkLayers = new DeviceLayerCache(networkLayerSource::networkLayers);
         fileStores = new DeviceList<>(
                 () -> os.getFileSystem().getFileStores(true),
                 OSFileStore::updateAttributes,
@@ -190,7 +195,18 @@ final class OshiSystemMetricsSource implements SystemMetricsSource {
             for (Held<NetworkIF> held : polled) {
                 heldKeys.add(held.device().getName() + '#' + held.epoch());
             }
-            layers = networkLayers.layersFor(heldKeys);
+            try {
+                layers = networkLayers.layersFor(heldKeys);
+            } catch (RuntimeException failed) {
+                // Without layers every interface is unknown: the total is lost, the interfaces are not.
+                if (!networkLayerFailureLogged) {
+                    networkLayerFailureLogged = true;
+                    LOG.warn(
+                            "The layers of the network interfaces could not be read; the network total stays"
+                                    + " unknown while this lasts: {}",
+                            failed.toString());
+                }
+            }
         }
         List<NetworkCounters> counters = new ArrayList<>();
         for (Held<NetworkIF> held : polled) {

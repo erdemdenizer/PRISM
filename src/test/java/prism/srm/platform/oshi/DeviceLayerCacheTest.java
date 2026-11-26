@@ -9,13 +9,13 @@ import java.util.Set;
 import org.junit.jupiter.api.Test;
 import prism.srm.domain.DeviceLayer;
 
-class DiskLayerCacheTest {
+class DeviceLayerCacheTest {
 
     private final Map<String, DeviceLayer> systemAnswer = new HashMap<>(Map.of("disk0", DeviceLayer.PHYSICAL));
     private int queries;
     private boolean queryFails;
 
-    private final DiskLayerCache cache = new DiskLayerCache(() -> {
+    private final DeviceLayerCache cache = new DeviceLayerCache(() -> {
         if (queryFails) {
             throw new IllegalStateException("query failed");
         }

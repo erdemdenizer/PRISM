@@ -59,4 +59,17 @@
     <Method name="resourceLimiter"/>
     <Bug pattern="EI_EXPOSE_REP"/>
   </Match>
+  <!--
+    LinuxDeviceLayers() reads the running system's sysfs, whose place is fixed by the kernel: sysfs is
+    mounted at /sys (https://www.kernel.org/doc/html/latest/filesystems/sysfs.html: "sysfs is always
+    compiled in if CONFIG_SYSFS is defined. You can access it by doing: mount -t sysfs sysfs /sys",
+    and every path of the sysfs rules document starts there). It is an interface of the operating system, not a file the
+    user could keep elsewhere, so a hard-coded absolute name is what it has to be; the tests give the
+    other constructor a folder of their own. Limited to the one constructor.
+  -->
+  <Match>
+    <Class name="prism.srm.platform.linux.LinuxDeviceLayers"/>
+    <Method name="&lt;init&gt;" params=""/>
+    <Bug pattern="DMI_HARDCODED_ABSOLUTE_FILENAME"/>
+  </Match>
 </FindBugsFilter>
