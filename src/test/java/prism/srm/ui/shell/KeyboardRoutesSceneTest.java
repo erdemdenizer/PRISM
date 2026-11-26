@@ -130,6 +130,8 @@ class KeyboardRoutesSceneTest {
                 List.of(
                         "Settings",
                         "Appearance: System",
+                        // The size units beside the theme on the same row: one stop, at the selected choice.
+                        "Units: GiB / MiB",
                         // A folder is plain text that takes the keyboard for Ctrl+C (LS-03, LS-05), named
                         // with its path; this shell names no settings folder, so that row has no stop.
                         "Logs folder: " + LOG_FOLDER,
