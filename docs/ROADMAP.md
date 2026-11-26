@@ -42,7 +42,7 @@ The second stage contains everything the team has built so far: milestones 5.5 t
 redesigned user interface. It is about 80 % of the product: the work that remains is to bring
 Linux and macOS to the level Windows has reached, and to finish their tests.
 
-Left for the next stage:
+Left for the next stage, as the release stated it:
 
 - application images for Linux and macOS (the image is built for Windows only);
 - the Linux native limits, implemented in milestone 12 and switched off in the product (owner
@@ -51,6 +51,14 @@ Left for the next stage:
   memory limit can run there (today they monitor, warn and log);
 - the redesigned user interface tested on macOS, and its test round on Linux repeated;
 - a review of accessibility with a screen reader, and high-DPI checks beyond 125 %.
+
+Done since, on an Ubuntu 24.04.5 desktop and in CI:
+
+- the Linux application image ([ADR-0018](adr/0018-linux-application-image.md), accepted;
+  [evidence](evidence/linux-image-2026-11-26.md));
+- the Linux test round repeated: the full gate and the UI snapshot profile pass on the desktop,
+  and the Overview's Disk and Network totals, which were unavailable on every Linux machine, are
+  shown (the Linux source of device layers).
 
 Details and the provenance of the release: [COURSE_RELEASE.md](COURSE_RELEASE.md).
 
