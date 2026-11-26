@@ -21,7 +21,7 @@ An exception is not a pass. Each exception below is an accepted gap in the evide
   - one coherent settings snapshot per sample;
   - every suspension claim released when the journal fails, with ownership kept if the release
     is incomplete;
-  - protected processes and Prism's own process never acted on.
+  - protected processes and PRISM's own process never acted on.
 
 ## Exceptions accepted
 
@@ -46,7 +46,7 @@ An exception is not a pass. Each exception below is an accepted gap in the evide
 - **macOS:** the available-memory signal does not follow memory that a process takes (it fell by
   0.08–0.28 M in CI), so macOS stays UNVALIDATED.
 - **Linux:** the signal and resident tests passed in four CI runs, but ADR-0015 §7 item 3 is open.
-  `MemAvailable` is host-wide, and Prism's own cgroup v2 `memory.max` is not read. Linux stays
+  `MemAvailable` is host-wide, and PRISM's own cgroup v2 `memory.max` is not read. Linux stays
   UNVALIDATED until that item and the owner's acceptance of the evidence (item 4).
 - **Other limits:**
   - O14 was tested by fault injection only, not on a real full disk;

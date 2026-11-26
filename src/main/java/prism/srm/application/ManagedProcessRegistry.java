@@ -12,7 +12,7 @@ import prism.srm.domain.ProcessIdentity;
 
 /**
  * The processes the user chose to manage in this session (MGD-1, MGD-2), in the order they were
- * chosen, with their settings. A managed process is one that already runs: Prism starts none. It
+ * chosen, with their settings. A managed process is one that already runs: PRISM starts none. It
  * is managed by identity, so a PID that is reused is another process and not managed. Nothing here
  * outlives the session; saving settings comes in a later milestone.
  *

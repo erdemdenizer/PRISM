@@ -12,9 +12,9 @@ import prism.srm.domain.ProcessIdentity;
 import prism.srm.domain.SuspensionReason;
 
 /**
- * A first Prism for {@link InstanceLockTest}, in a JVM of its own: it asks for the ownership of the
+ * A first PRISM for {@link InstanceLockTest}, in a JVM of its own: it asks for the ownership of the
  * profile whose state folder it is given, and, when it gets it, opens its suspension journal there
- * with one entry, as a running Prism would. It says "held" or "refused" and then waits to be killed.
+ * with one entry, as a running PRISM would. It says "held" or "refused" and then waits to be killed.
  * It limits and suspends nothing.
  */
 public final class InstanceLockHolder {

@@ -38,7 +38,7 @@ class NativeRecoveryTest {
     @BeforeEach
     void setUp() {
         own = ledger("2-2");
-        // No Prism process of the test's instance names runs; the host's PID 1 plays no part.
+        // No PRISM process of the test's instance names runs; the host's PID 1 plays no part.
         recovery = new NativeRecovery(limiter, own, Optional.of(folder.path()), files, activity, instance -> false);
     }
 
@@ -73,7 +73,7 @@ class NativeRecoveryTest {
         assertThat(recovery.found()).hasSize(1);
         assertThat(activity.entries())
                 .anySatisfy(entry ->
-                        assertThat(entry.message()).contains("may still be limited by an earlier Prism session"));
+                        assertThat(entry.message()).contains("may still be limited by an earlier PRISM session"));
     }
 
     @Test
@@ -137,7 +137,7 @@ class NativeRecoveryTest {
 
     /**
      * A lock file alone is no sign of life (audit, C): a running session holds its lock. One that
-     * can be taken, of a Prism process that does not run, is proof the session ended; the ledger is
+     * can be taken, of a PRISM process that does not run, is proof the session ended; the ledger is
      * read, settled, and its leftover lock file goes with it.
      */
     @Test
@@ -154,7 +154,7 @@ class NativeRecoveryTest {
         assertThat(Files.exists(folder.path().resolve("suspensions-1-1.lock"))).isFalse();
     }
 
-    /** Neither is a free lock proof while the Prism process the name records still runs (audit, C). */
+    /** Neither is a free lock proof while the PRISM process the name records still runs (audit, C). */
     @Test
     void aSessionWhosePrismProcessStillRunsIsLeftAloneEvenWithItsLockFree() throws Exception {
         NativeRecovery running = new NativeRecovery(
@@ -482,7 +482,7 @@ class NativeRecoveryTest {
         assertThat(recovery.mayStillCap(DEMO)).isPresent();
     }
 
-    /** C in isolation: a journal whose state cannot be told is not "gone", with the lock free and no Prism process running. */
+    /** C in isolation: a journal whose state cannot be told is not "gone", with the lock free and no PRISM process running. */
     @Test
     void aJournalWhoseStateCannotBeToldKeepsTheSessionFromBeingTakenForEnded() throws Exception {
         earlierSession("1-1", applied("1-1"));
@@ -584,7 +584,7 @@ class NativeRecoveryTest {
                 .isEmpty();
     }
 
-    /** Where no Prism session can have set a native limit (no folder given), nothing is ever unsettled. */
+    /** Where no PRISM session can have set a native limit (no folder given), nothing is ever unsettled. */
     @Test
     void whereNoNativeLimitCanHaveBeenSetNothingIsUnsettledEvenWithAStrayLedger() {
         earlierSession("1-1", applied("1-1"));

@@ -51,7 +51,7 @@ class MonitoringRuntimeNativeLimitsTest {
     private static final String INSTANCE = "9-9";
 
     /**
-     * An earlier session's name whose PID no process can have, so that "is that Prism still running?"
+     * An earlier session's name whose PID no process can have, so that "is that PRISM still running?"
      * has the same answer on every host (PID 1 exists on Linux and macOS).
      */
     private static final String EARLIER = Long.MAX_VALUE + "-1";
@@ -375,7 +375,7 @@ class MonitoringRuntimeNativeLimitsTest {
 
         assertThat(after.outcome().result()).isEqualTo(OperationResult.UNSUPPORTED);
         assertThat(after.fallback()).as("the earlier cap is known now").isEmpty();
-        assertThat(after.text()).contains("earlier Prism session");
+        assertThat(after.text()).contains("earlier PRISM session");
         assertThat(controller.calls).noneMatch(call -> call.startsWith("suspend"));
         assertThat(controller.calls)
                 .as("the suspension the earlier session recorded for another process is not resumed")
@@ -383,7 +383,7 @@ class MonitoringRuntimeNativeLimitsTest {
     }
 
     /**
-     * Final audit, at the composition root: on a system where no Prism session can have set a native
+     * Final audit, at the composition root: on a system where no PRISM session can have set a native
      * limit (Linux, macOS in this version), a ledger file in the folder is not looked at, nothing is
      * unsettled, and the milestone 9 emulated limit runs as before.
      */

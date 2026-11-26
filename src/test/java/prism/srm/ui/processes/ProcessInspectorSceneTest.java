@@ -589,7 +589,7 @@ class ProcessInspectorSceneTest {
                 });
     }
 
-    /** F6: on Prism's own row every button of Limits & protection is disabled, with one line of reasons, each once. */
+    /** F6: on PRISM's own row every button of Limits & protection is disabled, with one line of reasons, each once. */
     @Test
     void onPrismsOwnRowTheLimitsButtonsAreDisabledWithTheirReasonsOnce() {
         for (int[] size : new int[][] {{1600, 900}, {720, 480}}) {
@@ -706,7 +706,7 @@ class ProcessInspectorSceneTest {
 
     /**
      * Fix round G (PR-15): with no process selected the line about its being managed says nothing about a
-     * process; selected, it says whether Prism manages it.
+     * process; selected, it says whether PRISM manages it.
      */
     @Test
     void withNoSelectionTheManagedLineSaysNothingAboutAProcess() {
@@ -718,7 +718,7 @@ class ProcessInspectorSceneTest {
             return List.of(none, state.getText());
         });
 
-        assertThat(seen).containsExactly("–", "Not managed by Prism.");
+        assertThat(seen).containsExactly("–", "Not managed by PRISM.");
     }
 
     /**

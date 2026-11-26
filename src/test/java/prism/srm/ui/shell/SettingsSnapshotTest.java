@@ -88,7 +88,7 @@ class SettingsSnapshotTest {
                         "settings-file-damaged",
                         theme,
                         size,
-                        Optional.of("The settings file was damaged, so Prism uses the defaults. It is kept as"
+                        Optional.of("The settings file was damaged, so PRISM uses the defaults. It is kept as"
                                 + " C:\\Users\\alice\\AppData\\Local\\Prism\\SystemResourceManager\\settings"
                                 + "\\prism.settings.corrupt-1762500000000"),
                         (Consumer<Shell>) SettingsSnapshotTest::all));
@@ -96,7 +96,7 @@ class SettingsSnapshotTest {
                         "settings-folder-failed", theme, size, Optional.empty(), (Consumer<Shell>) shell -> {
                             all(shell);
                             shell.showFolderOpened(Optional.of("This folder does not exist yet: " + SETTINGS
-                                    + ". Prism creates it when it first writes there."));
+                                    + ". PRISM creates it when it first writes there."));
                         }));
             }
         }

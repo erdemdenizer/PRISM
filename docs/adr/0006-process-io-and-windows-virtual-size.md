@@ -37,7 +37,7 @@ logical processor. The three sources return the same number: Microsoft documents
 `Win32_Process.VirtualSize` as "consistent with what you see in Perfmon.exe". In one
 comparison of 393 processes the counter and the WMI property were equal for 385; seven
 had changed by less than 5% between the two reads, and the comparison itself misread the
-idle process. Through Prism, seven of the eight oldest processes had the value of the
+idle process. Through PRISM, seven of the eight oldest processes had the value of the
 WMI property to the byte; the eighth changes from read to read.
 
 ## Decision
@@ -56,7 +56,7 @@ WMI property to the byte; the eighth changes from read to read.
    OSHI derives the start time from, so the two are equal to the millisecond. A process
    that the second read does not hold has no virtual size.
 4. **The read is optional.** If it fails with a `RuntimeException`, the listing is
-   delivered without virtual sizes and Prism logs the failure once per kind; OSHI's
+   delivered without virtual sizes and PRISM logs the failure once per kind; OSHI's
    reader may log on every failed read. An `Error` is not caught.
 5. **The Windows process state stays absent.** OSHI's value is a default, not a reading.
    `Win32_Process.ExecutionState` is not filled by Windows (empty for all 393 processes
@@ -95,7 +95,7 @@ WMI property to the byte; the eighth changes from read to read.
   listing has none.
 - `WindowsProcessVirtualSizes` uses OSHI's reader
   `oshi.driver.windows.registry.HkeyPerformanceDataUtilJNA`. The package is not exported
-  by OSHI's module descriptor: the class is reachable only while Prism runs on the class
+  by OSHI's module descriptor: the class is reachable only while PRISM runs on the class
   path, and an OSHI upgrade must re-check it. Reading `HKEY_PERFORMANCE_DATA` directly
   through `jna-platform` is the replacement if either changes.
 - On the module path the call would fail with a `LinkageError`. That is an `Error`, so
@@ -111,7 +111,7 @@ WMI property to the byte; the eighth changes from read to read.
 - Microsoft recommends PDH over the registry functions for general use. OSHI's own
   process listing already depends on the registry interface, so this adds no new kind of
   dependency; where performance counters are disabled, the virtual size is absent.
-- The identity match relies on OSHI and Prism cutting the same creation time to
+- The identity match relies on OSHI and PRISM cutting the same creation time to
   milliseconds the same way. If OSHI changed its conversion, no identity would match and
   every virtual size would be absent: wrong values cannot result. The probe fails when
   the probe's own process has no virtual size.

@@ -11,9 +11,9 @@ import javafx.scene.layout.VBox;
 import prism.srm.ui.Stylesheets;
 
 /**
- * Says why this Prism does not start: another runs for this user, or it cannot make sure that none
- * does (milestone 10, one Prism per user profile). One button, Close, the default: nothing else can
- * be done here, and nothing of the other Prism is touched.
+ * Says why this PRISM does not start: another runs for this user, or it cannot make sure that none
+ * does (milestone 10, one PRISM per user profile). One button, Close, the default: nothing else can
+ * be done here, and nothing of the other PRISM is touched.
  */
 public final class AlreadyRunningDialog {
 
@@ -22,12 +22,12 @@ public final class AlreadyRunningDialog {
     /** Builds the dialog without showing it; for the application and for tests. */
     public static Dialog<ButtonType> build(String reason) {
         Dialog<ButtonType> dialog = new Dialog<>();
-        dialog.setTitle("Prism");
+        dialog.setTitle("PRISM");
         DialogPane pane = dialog.getDialogPane();
         pane.getStylesheets().addAll(Stylesheets.app(), Stylesheets.control());
         pane.getStyleClass().addAll("cpu-limit-dialog", "already-running-dialog");
 
-        Label heading = new Label("Prism does not start");
+        Label heading = new Label("PRISM does not start");
         heading.getStyleClass().addAll("text-section-title", "cpu-limit-heading");
         Label body = new Label(reason);
         body.getStyleClass().addAll("text-small", "cpu-limit-means", "already-running-reason");

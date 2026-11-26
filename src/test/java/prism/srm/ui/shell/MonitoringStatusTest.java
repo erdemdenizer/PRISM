@@ -114,7 +114,7 @@ class MonitoringStatusTest {
         assertThat(Monitoring.RUNNING.text()).isEqualTo("Monitoring");
         assertThat(Monitoring.DEGRADED.text())
                 .isEqualTo(
-                        "Monitoring degraded: process monitoring stopped unexpectedly. Restart Prism to restore it.");
+                        "Monitoring degraded: process monitoring stopped unexpectedly. Restart PRISM to restore it.");
         assertThat(Monitoring.SYSTEM_STOPPED.text()).isEqualTo("System monitoring stopped unexpectedly");
         assertThat(Monitoring.STOPPED.text()).isEqualTo("Monitoring stopped unexpectedly");
         assertThat(Monitoring.COULD_NOT_START.text()).isEqualTo("Monitoring could not start");

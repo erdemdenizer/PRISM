@@ -132,7 +132,7 @@ These are the same as in the earlier record:
 On the GitHub-hosted `windows-latest` runner the test JVM and every child run inside a Job
 Object (`selfInJob=Optional[true] childInJob=Optional[true]`; for example run 38069100036).
 
-- **What follows:** Prism refuses such processes by design (plan D1), so the native suites are
+- **What follows:** PRISM refuses such processes by design (plan D1), so the native suites are
   skipped there. The separate `native-validation` check then fails, as it must.
 - **What was not done:** no threshold, skip rule or workflow was changed.
 - **What this record is:** an external-evidence exception for independent review, not a

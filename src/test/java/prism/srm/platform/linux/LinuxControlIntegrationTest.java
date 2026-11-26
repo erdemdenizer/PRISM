@@ -46,7 +46,7 @@ class LinuxControlIntegrationTest {
         pidfdsBefore = openPidfds();
     }
 
-    /** Every pidfd Prism opened is closed again: the test's own pidfds, counted by what they link to. */
+    /** Every pidfd PRISM opened is closed again: the test's own pidfds, counted by what they link to. */
     @AfterEach
     void stop() throws IOException {
         demo.close();
@@ -70,7 +70,7 @@ class LinuxControlIntegrationTest {
         assertThat(demo.cpu().minus(resumed)).as("CPU after resume").isGreaterThan(Duration.ofMillis(100));
     }
 
-    /** A process stopped already, here by the test's own stop through Prism, is not taken over twice. */
+    /** A process stopped already, here by the test's own stop through PRISM, is not taken over twice. */
     @Test
     void aStoppedProcessIsNotSuspendedAgain() {
         Suspension stop = controller.suspend(demo.identity()).suspension().orElseThrow();
@@ -130,14 +130,14 @@ class LinuxControlIntegrationTest {
 
     /**
      * The nice value the workload starts with: one value on every thread, and the value procps reads
-     * for the process. procps reads /proc too, so this ties Prism's parsing to procps's, not to
+     * for the process. procps reads /proc too, so this ties PRISM's parsing to procps's, not to
      * another kernel path.
      */
     private int baselineNice() throws Exception {
         List<Integer> nices = threadNices();
         assertThat(nices).as("one nice value on every thread at the start").containsOnly(nices.get(0));
         assertThat(SpecNice.byPs(demo.identity().pid()))
-                .as("procps agrees with Prism's reading of /proc")
+                .as("procps agrees with PRISM's reading of /proc")
                 .isEqualTo(nices.get(0));
         return nices.get(0);
     }

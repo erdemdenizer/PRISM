@@ -680,7 +680,7 @@ class WindowsJobLimiterTest {
         assertThat(limiter.releaseAll(Duration.ofSeconds(1)).cleared()).containsEntry(DEMO, true);
         assertThat(job().cpuFlags).isZero();
         assertThat(job().handles).isZero();
-        assertThat(limiter.apply(DEMO, cpu(20)).outcome().detail()).contains("Prism is closing");
+        assertThat(limiter.apply(DEMO, cpu(20)).outcome().detail()).contains("PRISM is closing");
         assertThat(win32.jobs.stream().filter(j -> j.name != null && j.handles > 0))
                 .isEmpty();
         assertThat(job().members).as("membership stays; only the limits go").containsExactly(PID);
@@ -744,7 +744,7 @@ class WindowsJobLimiterTest {
                         .outcome()
                         .detail())
                 .as("nothing is assigned after the shutdown began")
-                .contains("Prism is closing");
+                .contains("PRISM is closing");
         // The exit hook after a timed-out shutdown: the hold left behind can still be cleared.
         assertThat(limiter.releaseAll(Duration.ofSeconds(1)).cleared()).containsEntry(DEMO, true);
         assertThat(job().handles).isZero();

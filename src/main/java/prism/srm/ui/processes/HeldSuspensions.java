@@ -22,12 +22,12 @@ import prism.srm.ui.control.ResultLineState;
 import prism.srm.ui.control.ResultTone;
 
 /**
- * What the Processes page offers once process monitoring has stopped: the processes Prism still
+ * What the Processes page offers once process monitoring has stopped: the processes PRISM still
  * holds suspended, each with Resume, and what the last of those requests came to. Without it a
  * suspension the user made could not be released for the rest of the session, because the table
  * and its selection go with the monitoring.
  *
- * <p>The processes are the ones Prism's own record holds, handed over as they change; nothing is
+ * <p>The processes are the ones PRISM's own record holds, handed over as they change; nothing is
  * read from a listing. Resume is the only action here: the others need the process as it is now.
  * One request per process at a time; a second one while the first is on its way is ignored, so
  * the button can keep the keyboard focus. Every method is called on the JavaFX Application Thread;
@@ -94,7 +94,7 @@ final class HeldSuspensions {
         return line.resultsProperty();
     }
 
-    /** The processes Prism holds suspended now, from its own record. */
+    /** The processes PRISM holds suspended now, from its own record. */
     void show(List<SuspendedProcess> processes) {
         held = List.copyOf(processes);
         refresh();

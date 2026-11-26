@@ -179,7 +179,7 @@ final class CgroupV2 {
     }
 
     /**
-     * Whether a text is an absolute cgroup path Prism may join to a root: no empty, {@code .} or {@code ..} segment, no
+     * Whether a text is an absolute cgroup path PRISM may join to a root: no empty, {@code .} or {@code ..} segment, no
      * whitespace or control character.
      */
     static boolean validPath(String path) {

@@ -32,7 +32,7 @@ final class FakeLinux implements LinuxNative {
     Optional<String> unreachable = Optional.empty();
     /** The errno of every pidfd_open, when not zero. */
     int openErrno;
-    /** The errno of signal 0 sent to Prism's own process, the probe. */
+    /** The errno of signal 0 sent to PRISM's own process, the probe. */
     int probeSignalErrno;
     /** The errno of signals to a process, by its PID. */
     final Map<Integer, Integer> signalErrno = new HashMap<>();

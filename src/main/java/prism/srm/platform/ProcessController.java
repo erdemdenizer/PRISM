@@ -18,7 +18,7 @@ import prism.srm.domain.Restorability;
  * exceptions: a process can exit between any two calls, and the system may refuse (CTL-2, SAFE-4).
  *
  * <p>Which of these may be used on which process is not decided here. The platform supplies facts
- * ({@link #protectionFacts}); the rules that refuse Prism itself and protected processes are
+ * ({@link #protectionFacts}); the rules that refuse PRISM itself and protected processes are
  * applied above, before any of the actions is called (SAFE-2, SAFE-3).
  *
  * <p>Every method may query the operating system: none may be called on the JavaFX Application
@@ -46,7 +46,7 @@ public interface ProcessController {
     Map<Integer, PriorityLevel> listedPriorities();
 
     /**
-     * Whether Prism can put back a priority it lowered on this system, without privilege and knowing
+     * Whether PRISM can put back a priority it lowered on this system, without privilege and knowing
      * the level the process had (OOM-11, ADR-0015 §3). A fixed table: it reads nothing, and the same
      * answer on every call. No default: an implementation that does not say cannot claim it.
      */
@@ -71,17 +71,17 @@ public interface ProcessController {
     /**
      * Suspends the process. On success the result holds the suspension, which is all that is
      * needed to undo exactly what was done. If a failure could not be undone completely, the
-     * result is a failure and still holds the suspension of what remains, so that nothing Prism
+     * result is a failure and still holds the suspension of what remains, so that nothing PRISM
      * did is forgotten. Where a stop is a signal (Linux, macOS), a process that is stopped already
      * is not suspended: the result is {@code INVALID_ARGUMENT}, nothing was done and nothing is
-     * held, so that Prism never takes over, and later ends, a stop another program made.
+     * held, so that PRISM never takes over, and later ends, a stop another program made.
      */
     SuspendResult suspend(ProcessIdentity target);
 
     /**
      * Undoes what the suspension did. Where threads were suspended one by one (Windows), nothing
      * else: a suspension another program holds stays. Where a stop is a signal (Linux, macOS),
-     * one continue ends every stop, so a stop another program made after Prism's ends too; the
+     * one continue ends every stop, so a stop another program made after PRISM's ends too; the
      * system cannot tell them apart. On success the suspension is spent and closed. If the process had exited, the result is
      * {@code PROCESS_NOT_FOUND}: nothing was resumed, and the suspension is spent and closed all the
      * same. If part of it could not be undone, the result is a failure and the suspension still
@@ -102,12 +102,12 @@ public interface ProcessController {
     StopState stopState(ProcessIdentity target);
 
     /**
-     * Checks whether the process is still held the way an earlier session of Prism recorded in its
+     * Checks whether the process is still held the way an earlier session of PRISM recorded in its
      * journal, and if so returns a suspension that undoes that hold once (LIFE-6, ADR-0011). Called
      * by the suspension coordinator only, and only when the user asks to resume such a process.
      *
-     * <p>Nothing here proves that the hold is Prism's: another program may have stopped the
-     * process after Prism ended. The checks only narrow that down, and every refusal leaves the
+     * <p>Nothing here proves that the hold is PRISM's: another program may have stopped the
+     * process after PRISM ended. The checks only narrow that down, and every refusal leaves the
      * process exactly as it was:
      *
      * <ul>

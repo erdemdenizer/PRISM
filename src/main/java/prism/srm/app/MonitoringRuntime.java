@@ -77,7 +77,7 @@ import prism.srm.domain.VersionedSettings;
  *   <li>{@code srm-process-details}: reads the path and the command line of one process when the
  *       user interface asks for them (PROC-5). It exists from the first request on.
  *   <li>{@code srm-process-control}: carries out the actions on processes the user asks for, one at
- *       a time, and checks whether a process Prism holds suspended and a listing missed has
+ *       a time, and checks whether a process PRISM holds suspended and a listing missed has
  *       exited (CTL-7). It exists from the first request on.
  *   <li>{@code srm-limiter}: managed processes and their CPU limits: the requests of the user,
  *       the steps of every limit, and a look at the suspension journal about once a second while
@@ -201,7 +201,7 @@ final class MonitoringRuntime {
      *     the user
      * @param controlProfile how each action is provided and which priority level each listed priority
      *     stands for, once, when monitoring runs
-     * @param heldSuspensions the processes Prism holds suspended each time they change
+     * @param heldSuspensions the processes PRISM holds suspended each time they change
      * @param onFailure called once for each failure, on the thread it happened on, with all failures so
      *     far, so that only the newest call matters to whoever shows them. The calls are made one at a
      *     time and in the order the failures were noted; the receiver must return at once, must not
@@ -214,7 +214,7 @@ final class MonitoringRuntime {
      *     changes
      * @param recoveryCheck whether that list is whole: {@code PENDING} when a journal of an earlier
      *     session cannot be read yet at start-up, then {@code COMPLETE} once all are read or
-     *     {@code EXHAUSTED} when Prism stops looking; nothing while all were read at start-up
+     *     {@code EXHAUSTED} when PRISM stops looking; nothing while all were read at start-up
      * @param recoveryResults the result of every request about such a process; none may be dropped
      * @param oom what OOM Guard shows, each time it evaluates, on the limiter thread
      */
@@ -637,7 +637,7 @@ final class MonitoringRuntime {
                 activity.record(
                         ActivitySeverity.WARNING,
                         "An intervention of OOM Guard begun before the exit had not ended within "
-                                + ACTION_BOUND.toMillis() + " ms; Prism exits without waiting for it.");
+                                + ACTION_BOUND.toMillis() + " ms; PRISM exits without waiting for it.");
             }
         }
         if (limits != null) {
@@ -729,7 +729,7 @@ final class MonitoringRuntime {
                 sources.instance(),
                 SuspensionJournal.onDisk(),
                 journalExecutor);
-        // Only where a Prism session can have set native limits at all: elsewhere (Linux, macOS in this
+        // Only where a PRISM session can have set native limits at all: elsewhere (Linux, macOS in this
         // version) no ledger is looked for. The milestone 9 emulated path is unchanged there, except that on
         // Linux it refuses a process inside a prism-srm-limit-*.scope (milestone 12 scope-membership rule).
         NativeRecovery recovery = new NativeRecovery(
@@ -796,10 +796,10 @@ final class MonitoringRuntime {
         if (waiting > 0) {
             activity.record(
                     ActivitySeverity.WARNING,
-                    waiting + " suspension journal(s) of an earlier session of Prism cannot be read yet: that"
-                            + " session has ended, but the system still holds its lock. Until Prism has read it,"
+                    waiting + " suspension journal(s) of an earlier session of PRISM cannot be read yet: that"
+                            + " session has ended, but the system still holds its lock. Until PRISM has read it,"
                             + " the list of processes an earlier session may have left suspended may be"
-                            + " incomplete. Prism keeps trying for about two minutes.");
+                            + " incomplete. PRISM keeps trying for about two minutes.");
             listeners.recoveryCheck().accept(RecoveryCheck.PENDING);
             lookAgainForEarlierSessions(suspensions, 0);
         }
@@ -846,7 +846,7 @@ final class MonitoringRuntime {
         if (waiting == 0) {
             activity.record(
                     ActivitySeverity.INFO,
-                    "The suspension journals of earlier sessions of Prism have all been read now; what they"
+                    "The suspension journals of earlier sessions of PRISM have all been read now; what they"
                             + " recorded is listed.");
             listeners.recoveryCheck().accept(RecoveryCheck.COMPLETE);
         } else if (attempt + 1 < recoveryRetries.size()) {
@@ -854,7 +854,7 @@ final class MonitoringRuntime {
         } else {
             activity.record(
                     ActivitySeverity.WARNING,
-                    "A suspension journal of an earlier session of Prism could still not be read: its file stays"
+                    "A suspension journal of an earlier session of PRISM could still not be read: its file stays"
                             + " and is read at the next start. The list of processes an earlier session may have"
                             + " left suspended may be incomplete until then.");
             listeners.recoveryCheck().accept(RecoveryCheck.EXHAUSTED);
@@ -1022,7 +1022,7 @@ final class MonitoringRuntime {
         for (String limitation : sources.limiter().limitations()) {
             activity.record(ActivitySeverity.INFO, limitation);
         }
-        // Every listing shows which processes Prism holds suspended, from Prism's own record, and
+        // Every listing shows which processes PRISM holds suspended, from PRISM's own record, and
         // tells the coordinator which of them the listing missed; neither asks the system anything.
         // The limit service checks a managed process the listing missed, on its own thread.
         processes.addListener(listing -> {
@@ -1126,7 +1126,7 @@ final class MonitoringRuntime {
             }
             if (failure == MonitoringFailure.PROCESS_MONITORING_STOPPED && controlService != null) {
                 // No action that needs the process as it is now is taken any more; releasing a
-                // suspension Prism holds still is, so nothing it suspended is stranded. Before the
+                // suspension PRISM holds still is, so nothing it suspended is stranded. Before the
                 // failure is handed on, so whoever learns of it finds the actions narrowed already.
                 controlService.observationLost();
             }
@@ -1167,7 +1167,7 @@ final class MonitoringRuntime {
                     long bound = Math.min(deadline, nanoClock.getAsLong() + LIMITER_STOP_BOUND.toNanos());
                     awaitExecutor(recoveryExecutor, "A look at an earlier journal", RECOVERY_THREAD, bound);
                 })
-                // The limits first, so that nothing is suspended any more by the time Prism releases:
+                // The limits first, so that nothing is suspended any more by the time PRISM releases:
                 // no new suspension and no new limit, then every limit ends without touching its
                 // process, and its thread stops. What the limiter holds is released further down.
                 .step("refuse new suspensions and limits", () -> {
@@ -1199,7 +1199,7 @@ final class MonitoringRuntime {
                 .step("stop reading process details", detailsExecutor::shutdownNow)
                 // Process actions, in an order that stays right when the limiter and OOM Guard hold
                 // suspensions too: nothing new is taken; what was taken comes to rest; then what
-                // Prism holds by itself is released; what the user suspended stays (LIFE-1, LIFE-2).
+                // PRISM holds by itself is released; what the user suspended stays (LIFE-1, LIFE-2).
                 .step("refuse new process actions", () -> {
                     if (control != null) {
                         control.refuseFurtherRequests();

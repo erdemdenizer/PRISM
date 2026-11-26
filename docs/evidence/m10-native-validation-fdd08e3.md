@@ -94,14 +94,14 @@ whole-machine percentages, measured from outside over 10 s windows.
 |---|---|
 | `aTwentyPercentCapHoldsTheWorkloadNearItAndClearingItLetsTheWorkloadRunAgain` | A 20 % hard cap held the workload near 20 %, and clearing the cap freed it again. Measured: `baseline=57.4 capped=20.8 cleared=57.9`. |
 | `aCommitLimitRefusesAnAllocationBeyondItAndClearingItAllowsTheAllocation` | Under a 256 MiB commit limit, a 512 MiB allocation failed after 80 MiB (`allocated=80 failed=true`). After clearing (`APPLIED`), 512 MiB was allocated. |
-| `aProcessInAJobOfAnotherProgramIsRefusedAndNoJobIsMade` | A process in a job Prism does not hold was refused before assignment (`NOT_ASSIGNED`, fallback eligible), and no hold was kept. |
+| `aProcessInAJobOfAnotherProgramIsRefusedAndNoJobIsMade` | A process in a job PRISM does not hold was refused before assignment (`NOT_ASSIGNED`, fallback eligible), and no hold was kept. |
 | `aProcessThatHasExitedIsNotFoundAndNothingIsLeft` | Applying to an exited process returns `NOT_ASSIGNED` / `PROCESS_NOT_FOUND`, and no hold is kept. |
 | `anExitedProcessIsForgottenAndItsJobLetGo` | When the target exits, `forget` clears the limits and lets the job go. |
 | `bothNativeLimitsAreAvailableHere` | The system probe reports both kinds `NATIVE_HARD` on this machine. |
-| `afterAHardKillTheLimitStaysTheNameIsGoneAndTheNextStartListsIt` | Prism was hard-killed. The cap stayed in force (`limited=20.9 afterKill=20.1`), and the job name was gone (`OpenJobObjectW` error 2) while the target was still in a job. The next start listed the target as `UNREACHABLE` and changed nothing (`afterRecovery=20.5`). After the target exited, the verdict was `GONE_CHILDREN_UNKNOWN`. |
-| `recoveryNeverChangesTheJobOfAPrismSessionThatStillRuns` | The job of a Prism session that still runs is reported `HELD_ELSEWHERE` and left unchanged (`use=20.6`). |
+| `afterAHardKillTheLimitStaysTheNameIsGoneAndTheNextStartListsIt` | PRISM was hard-killed. The cap stayed in force (`limited=20.9 afterKill=20.1`), and the job name was gone (`OpenJobObjectW` error 2) while the target was still in a job. The next start listed the target as `UNREACHABLE` and changed nothing (`afterRecovery=20.5`). After the target exited, the verdict was `GONE_CHILDREN_UNKNOWN`. |
+| `recoveryNeverChangesTheJobOfAPrismSessionThatStillRuns` | The job of a PRISM session that still runs is reported `HELD_ELSEWHERE` and left unchanged (`use=20.6`). |
 | `aProcessTheTargetStartedStaysLimitedAndTheNextStartSaysItMayBe` | A child of a killed session's exited target stayed limited (`childUse=21.7`), and the next start warned `GONE_CHILDREN_UNKNOWN`. |
-| `aCrashInTheMiddleOfAChangeIsReadAsEitherValuePerKind` | Prism was killed after a CPU change from 20 % to 30 % (`afterKill=31.7`). Recovery accepted the value per kind and reported `UNREACHABLE`. |
+| `aCrashInTheMiddleOfAChangeIsReadAsEitherValuePerKind` | PRISM was killed after a CPU change from 20 % to 30 % (`afterKill=31.7`). Recovery accepted the value per kind and reported `UNREACHABLE`. |
 | `whenTheTargetExitsPrismClearsItsLimitsForTheChildAndLetsTheJobGo` | A child stayed limited after its parent target exited (`limited=20.9`). `forget` cleared the limits (`RELEASED`, `survivors=2`: the child and its console host), and the child ran free afterwards (`free=58.9`). |
 | `JnaWin32Test` (9 tests) | The JNA mappings and structure sizes read the real system. The System process refuses every action right with access denied. Error codes reach the caller with their system text. |
 
@@ -139,7 +139,7 @@ runs inside a Job Object, and so does every child:
 native-validation: selfInJob=Optional[true] childInJob=Optional[true]
 ```
 
-By design (plan D1), Prism refuses a process that is in a job it does not hold. In the main CI the
+By design (plan D1), PRISM refuses a process that is in a job it does not hold. In the main CI the
 native suites are therefore skipped, and the separate `native-validation` check (job
 114263827531) correctly failed:
 

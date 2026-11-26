@@ -46,7 +46,7 @@ import prism.srm.platform.ResourceLimiter;
  *
  * <p><b>Ownership.</b> The limiter holds the handle of every job it made for as long as the process
  * lives in this session, limits or none: a job's name lives only while a handle is open, so a
- * closed handle would leave the process in a job Prism can neither reach nor tell from another
+ * closed handle would leave the process in a job PRISM can neither reach nor tell from another
  * program's. A handle is let go only when the process has exited and the job is verified to enforce
  * nothing ({@link #forget}), at shutdown ({@link #releaseAll}), or when an assignment is proven not
  * to have happened. From the moment an assignment is attempted, no path closes the job's handle
@@ -76,7 +76,7 @@ public final class WindowsJobLimiter implements ResourceLimiter {
             JobNative.JOB_OBJECT_CPU_RATE_CONTROL_ENABLE | JobNative.JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP;
 
     static final String NOT_HELD_JOB =
-            "it is in a Job Object Prism does not hold (another program's, or one an earlier Prism limit left);"
+            "it is in a Job Object PRISM does not hold (another program's, or one an earlier PRISM limit left);"
                     + " a cap inside it would not be a share of the whole machine";
 
     private final Win32 win32;
@@ -246,17 +246,17 @@ public final class WindowsJobLimiter implements ResourceLimiter {
             ControlOutcome failure = opening.failure().get();
             return Optional.of(
                     switch (failure.result()) {
-                        case ACCESS_DENIED -> "the system refused: Prism may not set limits on this process";
+                        case ACCESS_DENIED -> "the system refused: PRISM may not set limits on this process";
                         case PROCESS_NOT_FOUND -> "the process has exited";
                         default ->
-                            "Prism could not open the process ("
+                            "PRISM could not open the process ("
                                     + failure.detail().orElse("") + ")";
                     });
         }
         try (PinnedProcess process = opening.process().orElseThrow()) {
             Optional<Boolean> inJob = win32.inJob(process.handle(), OptionalLong.empty());
             if (inJob.isEmpty()) {
-                return Optional.of("Prism could not tell whether it is in a Job Object ("
+                return Optional.of("PRISM could not tell whether it is in a Job Object ("
                         + win32.describe(win32.lastError()) + ")");
             }
             return inJob.get() ? Optional.of(NOT_HELD_JOB) : Optional.empty();
@@ -288,12 +288,12 @@ public final class WindowsJobLimiter implements ResourceLimiter {
 
     private ApplyResult applyLocked(ProcessIdentity target, LimitSpec spec) {
         if (closed) {
-            return ApplyResult.notAssigned(ControlOutcome.of(OperationResult.UNSUPPORTED, "Prism is closing"), false);
+            return ApplyResult.notAssigned(ControlOutcome.of(OperationResult.UNSUPPORTED, "PRISM is closing"), false);
         }
         if (holds.containsKey(target)) {
             // The caller changes a job it holds; an assignment would make a second one.
             return ApplyResult.notAssigned(
-                    ControlOutcome.of(OperationResult.INVALID_ARGUMENT, "Prism holds a job for this process already"),
+                    ControlOutcome.of(OperationResult.INVALID_ARGUMENT, "PRISM holds a job for this process already"),
                     false);
         }
         if (spec.none()) {
@@ -312,7 +312,7 @@ public final class WindowsJobLimiter implements ResourceLimiter {
             return ApplyResult.notAssigned(failure, failure.result() != OperationResult.PROCESS_NOT_FOUND);
         }
         try (PinnedProcess process = opening.process().orElseThrow()) {
-            // S2: a process in a job Prism does not hold is not assigned (plan D1).
+            // S2: a process in a job PRISM does not hold is not assigned (plan D1).
             Optional<Boolean> inJob = win32.inJob(process.handle(), OptionalLong.empty());
             if (inJob.isEmpty()) {
                 int error = win32.lastError();
@@ -339,7 +339,7 @@ public final class WindowsJobLimiter implements ResourceLimiter {
                         ControlOutcome.of(
                                 OperationResult.NATIVE_ERROR,
                                 WinError.ERROR_ALREADY_EXISTS,
-                                "a job with this name exists already (another Prism instance?)"),
+                                "a job with this name exists already (another PRISM instance?)"),
                         true);
             }
             return assign(target, spec, process, created.handle());
@@ -364,7 +364,7 @@ public final class WindowsJobLimiter implements ResourceLimiter {
             }
             Optional<EffectiveLimits> before = read(job);
             if (before.isEmpty() || !before.get().equals(spec.effective())) {
-                // S4b: only what Prism set, nothing that could end a process on assignment.
+                // S4b: only what PRISM set, nothing that could end a process on assignment.
                 return ApplyResult.notAssigned(
                         ControlOutcome.of(
                                 OperationResult.NATIVE_ERROR,
@@ -375,7 +375,7 @@ public final class WindowsJobLimiter implements ResourceLimiter {
             // S5
             if (closed) {
                 return ApplyResult.notAssigned(
-                        ControlOutcome.of(OperationResult.UNSUPPORTED, "Prism is closing"), false);
+                        ControlOutcome.of(OperationResult.UNSUPPORTED, "PRISM is closing"), false);
             }
             Hold hold = new Hold(job, NativeHold.State.UNCERTAIN, Optional.empty());
             holds.put(target, hold);
@@ -435,7 +435,7 @@ public final class WindowsJobLimiter implements ResourceLimiter {
                         ApplyResult.Phase.ASSIGNED_MISMATCH,
                         ControlOutcome.of(
                                 OperationResult.PROCESS_NOT_FOUND,
-                                "the process exited; its job still carries limits Prism could not clear"),
+                                "the process exited; its job still carries limits PRISM could not clear"),
                         left,
                         false);
             }
@@ -493,11 +493,11 @@ public final class WindowsJobLimiter implements ResourceLimiter {
         if (hold == null) {
             return new ChangeResult(
                     ChangeResult.Phase.NO_HOLD,
-                    ControlOutcome.of(OperationResult.INVALID_ARGUMENT, "Prism holds no job for this process"),
+                    ControlOutcome.of(OperationResult.INVALID_ARGUMENT, "PRISM holds no job for this process"),
                     Optional.empty());
         }
         if (closed) {
-            return notDone(OperationResult.UNSUPPORTED, "Prism is closing");
+            return notDone(OperationResult.UNSUPPORTED, "PRISM is closing");
         }
         Optional<String> unavailable = unavailableFor(spec);
         if (unavailable.isPresent()) {
@@ -668,7 +668,7 @@ public final class WindowsJobLimiter implements ResourceLimiter {
             release(target, hold);
             if (survivors != 0) {
                 LOG.info(
-                        "The job of exited PID {} held {} process(es); Prism cleared its limits",
+                        "The job of exited PID {} held {} process(es); PRISM cleared its limits",
                         target.pid(),
                         survivors);
             }
@@ -742,7 +742,7 @@ public final class WindowsJobLimiter implements ResourceLimiter {
                         : recovered(
                                 record,
                                 Verdict.GONE_CHILDREN_UNKNOWN,
-                                "the process exited; Prism cannot prove that its limit never took effect");
+                                "the process exited; PRISM cannot prove that its limit never took effect");
             }
             return record.state() == LedgerState.CLEARED
                     ? recovered(record, Verdict.NOTHING_TO_CLEAR, "its limits had been cleared")
@@ -773,7 +773,7 @@ public final class WindowsJobLimiter implements ResourceLimiter {
             return recovered(
                     record,
                     Verdict.VALUES_MISMATCH,
-                    "a job of Prism's name holds " + observed.get().describe());
+                    "a job of PRISM's name holds " + observed.get().describe());
         }
         WindowsProcessAccess.Opening opening = access.open(record.identity(), 0);
         if (opening.process().isPresent()) {
@@ -791,7 +791,7 @@ public final class WindowsJobLimiter implements ResourceLimiter {
                             ? recovered(
                                     record,
                                     Verdict.UNREACHABLE,
-                                    "the process is in another job, which Prism cannot reach")
+                                    "the process is in another job, which PRISM cannot reach")
                             : recovered(
                                     record,
                                     Verdict.NOT_IN_JOB,
@@ -813,12 +813,12 @@ public final class WindowsJobLimiter implements ResourceLimiter {
                             + observed.get().describe() + "), so the processes it started may be limited");
         }
         // The name lives only while a handle is open, so a running program holds this job: perhaps a
-        // Prism session that still runs. Recovery cannot prove it has ended and changes nothing, and
+        // PRISM session that still runs. Recovery cannot prove it has ended and changes nothing, and
         // the holder may set a limit at any moment, even when none is set now.
         return recovered(
                 record,
                 Verdict.HELD_ELSEWHERE,
-                "a running program holds this job (" + observed.get().describe() + "); Prism changes nothing");
+                "a running program holds this job (" + observed.get().describe() + "); PRISM changes nothing");
     }
 
     private static RecoveredLimit recovered(LimitRecord record, Verdict verdict, String detail) {
@@ -955,7 +955,7 @@ public final class WindowsJobLimiter implements ResourceLimiter {
     /**
      * What the job holds, kind by kind, in the terms of {@link EffectiveLimits}: a rate only for
      * exactly ENABLE | HARD_CAP, a memory limit only for exactly the process-memory flag; anything
-     * else is foreign and never Prism's.
+     * else is foreign and never PRISM's.
      */
     Optional<EffectiveLimits> read(long job) {
         Optional<Win32.CpuRate> rate = win32.cpuRate(job);

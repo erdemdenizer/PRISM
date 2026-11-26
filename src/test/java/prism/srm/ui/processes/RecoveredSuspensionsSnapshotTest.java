@@ -21,7 +21,7 @@ import prism.srm.ui.snapshot.SnapshotHarness.Theme;
 
 /**
  * The list of what an earlier session may have left suspended, as its dialog shows it (ADR-0011):
- * an entry Prism offers to resume, one only the user can handle outside Prism, and the line about
+ * an entry PRISM offers to resume, one only the user can handle outside PRISM, and the line about
  * a request. A dialog is not in the snapshots of the page, so the list is rendered on its own here.
  */
 @Tag("ui-snapshot")
@@ -40,8 +40,8 @@ class RecoveredSuspensionsSnapshotTest {
                         "a-build-tool-with-a-long-name-from-the-earlier-session.exe",
                         EnumSet.of(SuspensionReason.CPU_LIMITER),
                         false,
-                        "Prism did not record which threads it suspended, and a suspension count does not show whose"
-                                + " it is. Prism changes nothing. If the process is stuck, resume it outside Prism, for"
+                        "PRISM did not record which threads it suspended, and a suspension count does not show whose"
+                                + " it is. PRISM changes nothing. If the process is stuck, resume it outside PRISM, for"
                                 + " example in Resource Monitor."));
     }
 
@@ -60,8 +60,8 @@ class RecoveredSuspensionsSnapshotTest {
             model.accept(new RecoveryResult(
                     new RecoveryRequest(RecoveryRequest.Action.RESUME, first.identity(), first.name()),
                     ControlOutcome.of(prism.srm.domain.OperationResult.INVALID_ARGUMENT, "x"),
-                    "Prism did not resume java.exe (PID 30324).",
-                    "Another suspension also holds it. Prism changed nothing."));
+                    "PRISM did not resume java.exe (PID 30324).",
+                    "Another suspension also holds it. PRISM changed nothing."));
         }
         VBox root = new VBox(pane);
         root.getStylesheets().addAll(Stylesheets.control(), Stylesheets.processes());

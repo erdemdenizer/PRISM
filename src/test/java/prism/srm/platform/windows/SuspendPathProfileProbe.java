@@ -24,7 +24,7 @@ import prism.srm.platform.ThreadHolder;
  * Where the time of a Windows suspend goes (milestone 9 external review, item 1): the system-wide
  * Toolhelp snapshot, the walk over every thread of the system, and the share of the walk that is
  * JNA's (marshalling a {@code THREADENTRY32} Structure through an interface mapping) rather than
- * Windows' own {@code Thread32Next}. Then the suspend of the demo workload as Prism makes it (two
+ * Windows' own {@code Thread32Next}. Then the suspend of the demo workload as PRISM makes it (two
  * listings at least) against one made from a single listing, with the same documented calls. The
  * same again with thousands of extra threads in the system. Not part of the build; run by hand:
  *
@@ -154,7 +154,7 @@ class SuspendPathProfileProbe {
     }
 
     /**
-     * A suspend from one listing: the same documented calls as Prism's (OpenThread, the owner check,
+     * A suspend from one listing: the same documented calls as PRISM's (OpenThread, the owner check,
      * SuspendThread), without the second listing that finds threads created meanwhile; then each is
      * resumed and closed. Returns the time of the suspend part.
      */

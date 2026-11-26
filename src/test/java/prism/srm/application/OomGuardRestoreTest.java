@@ -19,7 +19,7 @@ import prism.srm.domain.Restorability;
 
 /**
  * Plan A15.9 M4 (OOM-11, O2, O7, O16): a lowered priority is restored to the level it had, only where
- * the system lets Prism raise it back; never over a level someone set meanwhile; a failure is an error;
+ * the system lets PRISM raise it back; never over a level someone set meanwhile; a failure is an error;
  * the shutdown restores within its bound and the exit hook does not.
  */
 class OomGuardRestoreTest {

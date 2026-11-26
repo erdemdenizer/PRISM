@@ -1,6 +1,6 @@
 # Product specification: PRISM — Process & Resource Interactive System Manager
 
-Prism is a desktop utility for an Operating Systems course. It monitors system
+PRISM is a desktop utility for an Operating Systems course. It monitors system
 resources in real time, monitors and controls processes, limits the resources of
 selected processes, and guards against running out of memory. It is meant to behave
 like a real lightweight system utility and to demonstrate operating-system concepts
@@ -17,7 +17,7 @@ The implementation order is in [MILESTONES.md](MILESTONES.md). Structure and rul
 macOS. As much code as reasonably possible is shared; native mechanisms are used where
 resource management genuinely differs. Feature parity is never faked.
 
-**Verification status.** The Prism application itself has been run by hand on Windows only.
+**Verification status.** The PRISM application itself has been run by hand on Windows only.
 Since milestone 8 the full test suite also runs in CI on Ubuntu x86_64 and macOS arm64,
 including tests that act on the real system there, and milestone 12 runs it on a local Ubuntu
 virtual machine as well. Code for Linux and macOS is written
@@ -29,8 +29,8 @@ milestone report states which systems the work was actually run on, and how.
 restrained, understandable, safe around system processes, honest about limitations.
 
 **Not in scope:** GPU, temperature or per-process network monitoring; services, startup
-items or remote machines; any feature that needs Prism to run elevated; limiting
-processes of other users; I/O limits; rules that manage processes across Prism restarts.
+items or remote machines; any feature that needs PRISM to run elevated; limiting
+processes of other users; I/O limits; rules that manage processes across PRISM restarts.
 
 ## 2. Terms
 
@@ -44,7 +44,7 @@ processes of other users; I/O limits; rules that manage processes across Prism r
   |---|---|
   | `NATIVE_HARD` | Enforced by the operating system; the target cannot ignore it. |
   | `NATIVE_SOFT` | Provided by a native operating-system mechanism, but without a strict, atomic, mandatory guarantee over the whole target. Covers requests the target may decline (graceful termination), preferences the scheduler weighs (priority), mechanisms that are not atomic (per-thread suspension on Windows), and throttling boundaries (`memory.high`). |
-  | `EMULATED` | Enforced by Prism itself, approximately, and only while Prism runs. |
+  | `EMULATED` | Enforced by PRISM itself, approximately, and only while PRISM runs. |
   | `UNAVAILABLE` | Not possible here. The UI disables it and says why. |
 
 - **Operation result**: every control or limit operation returns exactly one of
@@ -85,7 +85,7 @@ processes of other users; I/O limits; rules that manage processes across Prism r
 - **MON-11** A failing metric source does not stop monitoring. The metric is shown as
   unavailable and the failure is logged once per kind of failure, not per tick.
 - **MON-12** Initial budget, to be confirmed by measurement in milestone 3: with the
-  window visible and idle, Prism averages below 2% of total machine CPU capacity on the
+  window visible and idle, PRISM averages below 2% of total machine CPU capacity on the
   development machine, and its heap does not grow over a 10-minute run.
 
 ## 4. Processes
@@ -100,7 +100,7 @@ processes of other users; I/O limits; rules that manage processes across Prism r
 - **PROC-2** CPU % follows the Task Manager convention: 100% means every logical
   processor of the machine is saturated. It is computed between two consecutive samples
   of the same process identity. OSHI reports per-core load that can exceed 100% for a
-  multi-threaded process; Prism divides by the logical processor count. A process seen
+  multi-threaded process; PRISM divides by the logical processor count. A process seen
   for the first time shows no CPU value until a second sample exists.
 - **PROC-3** Processes are tracked by process identity (PID and start time).
 - **PROC-4** A process that exits, or whose permissions change, while a snapshot is
@@ -108,18 +108,18 @@ processes of other users; I/O limits; rules that manage processes across Prism r
   fields that could be read.
 - **PROC-5** Executable path and command line are read on demand for the selected
   process, not on every poll (they are expensive to query on Windows).
-- **PROC-6** State is shown as reported by the system, plus "Suspended by Prism" for
-  processes Prism suspended. On Windows a process suspended by another tool is not
+- **PROC-6** State is shown as reported by the system, plus "Suspended by PRISM" for
+  processes PRISM suspended. On Windows a process suspended by another tool is not
   detected, because detection is too expensive to run on every poll; this is a
   documented limitation. Windows keeps states for threads, not for a process, so on
   Windows the normal snapshot has no system-reported state: the State column shows it
   as unavailable, until a later requirement brings a reliable and affordable mechanism.
   On Linux and macOS a stop is a signal that any program allowed to signal the process may
-  end: if another program continues a process Prism stopped, Prism does not notice and
-  still shows it as suspended by Prism until Resume. Prism does not suspend a process that
+  end: if another program continues a process PRISM stopped, PRISM does not notice and
+  still shows it as suspended by PRISM until Resume. PRISM does not suspend a process that
   is stopped already, so it never takes over a stop that existed before it acted. A stop
-  another program adds while Prism holds the process ends with Prism's resume, and Prism
-  cannot see it. After a crash, Prism takes over a stop only at the user's request (LIFE-6).
+  another program adds while PRISM holds the process ends with PRISM's resume, and PRISM
+  cannot see it. After a crash, PRISM takes over a stop only at the user's request (LIFE-6).
 - **PROC-7** Snapshots of exited processes are not retained.
 
 ## 5. Process control
@@ -164,7 +164,7 @@ processes of other users; I/O limits; rules that manage processes across Prism r
 - **CTL-7** Control actions run off the JavaFX Application Thread; the outcome is shown
   to the user and written to the activity log.
 - **CTL-8** End Task and Force Kill ask for confirmation naming the process and its PID.
-- **CTL-9** Suspension has a single owner inside Prism, which records why each process
+- **CTL-9** Suspension has a single owner inside PRISM, which records why each process
   is suspended: by the user, by the CPU limiter, or by OOM Guard. A process is resumed
   only when no reason remains, so the limiter never resumes a process the user or OOM
   Guard suspended.
@@ -204,11 +204,11 @@ limit is `UNAVAILABLE` too, with the same reason.
   actions, automatic suspension, or emergency termination.
 - **MGD-2** A process becomes managed only by an explicit user action. It is identified
   by process identity for the current session. When it exits it leaves the managed list
-  and the event is logged. The managed list is not restored after Prism restarts.
+  and the event is logged. The managed list is not restored after PRISM restarts.
 - **MGD-3** Settings per Managed Process: CPU limit, memory limit, enabled/disabled,
   OOM management on/off, OOM priority (which candidates are acted on first), and
   emergency action: Notify only (default), Lower priority, Suspend, or Terminate.
-- **MGD-4** Prism itself and protected processes (section 10) cannot be managed.
+- **MGD-4** PRISM itself and protected processes (section 10) cannot be managed.
 
 ## 8. Resource limits
 
@@ -216,7 +216,7 @@ limit is `UNAVAILABLE` too, with the same reason.
   memory limit, and report capabilities.
 - **LIM-2** A CPU limit is a whole-number percentage (1-100) of total machine capacity,
   the same unit as PROC-2. A memory limit is a number of bytes.
-- **LIM-3** For each process Prism uses the native mechanism when it is valid for that
+- **LIM-3** For each process PRISM uses the native mechanism when it is valid for that
   process and otherwise the emulated fallback. The platform reports a native level or
   `UNAVAILABLE` for the process; the level in effect (native, or `EMULATED` after
   falling back) is shown per process.
@@ -228,21 +228,21 @@ limit is `UNAVAILABLE` too, with the same reason.
     it sees allocation failures and may crash; the UI states this before applying.
   - A process cannot be removed from a job. Removing a limit means clearing the limit.
   - Assignment can fail for a process that already belongs to a job, and for processes
-    Prism may not open. The failure is reported and the emulated fallback is offered.
+    PRISM may not open. The failure is reported and the emulated fallback is offered.
   - Limits are cleared on controlled shutdown. Jobs are never configured to kill their
-    processes when Prism closes (`JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` is never used).
-  - Every job Prism creates is named, and the name is derived deterministically from the
+    processes when PRISM closes (`JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` is never used).
+  - Every job PRISM creates is named, and the name is derived deterministically from the
     process identity (PID and start time) as a valid Windows object name.
-  - If Prism is killed, the job and its limits stay on the process: a job is destroyed
+  - If PRISM is killed, the job and its limits stay on the process: a job is destroyed
     only when its last handle is closed and all its processes have terminated. A job's
-    name goes with Prism's last handle, so after a crash the next start cannot reach it,
+    name goes with PRISM's last handle, so after a crash the next start cannot reach it,
     and a job still reachable by name has a running holder. Recovery is therefore
     read-only ([ADR-0012](adr/0012-windows-native-limits-ledger-and-recovery.md), accepted
-    2026-10-10, as measured in milestone 10): on restart Prism reads the ledger of the
+    2026-10-10, as measured in milestone 10): on restart PRISM reads the ledger of the
     earlier session, reports each process as possibly still limited, changes no job and
     takes no destructive action. Such a limit lasts until the process exits; no second
     limiter is offered for it meanwhile. The user may let it run or close and restart the
-    process, which Prism can then limit normally.
+    process, which PRISM can then limit normally.
 - **LIM-6** Linux native limits use transient scopes of the systemd user manager, whose
   cgroup v2 limits the kernel enforces ([ADR-0016](adr/0016-linux-native-limits-through-systemd-scopes.md),
   Accepted; it replaces the delegated-subtree design of
@@ -261,16 +261,16 @@ limit is `UNAVAILABLE` too, with the same reason.
     manager of systemd 255 or later (adoption by pidfd), and the needed controllers
     delegated to it. It never creates a unit and never hands over a pidfd. A process is
     eligible only if it runs inside the user's own `user@UID.service`, outside any scope with
-    Prism's name, and its real, effective, saved and file system user IDs are the user's.
+    PRISM's name, and its real, effective, saved and file system user IDs are the user's.
     Anything else is `UNAVAILABLE` or refused, with the reason.
-  - **Identity.** Prism opens a pidfd for the target and checks the identity (PID and start
+  - **Identity.** PRISM opens a pidfd for the target and checks the identity (PID and start
     time) and the user IDs after the open, then creates the scope with that descriptor
-    (`PIDFDs`). Prism's messages never name a process by PID number; a manager that does not
+    (`PIDFDs`). PRISM's messages never name a process by PID number; a manager that does not
     accept `PIDFDs` makes native limits unavailable, with no weaker fallback.
   - **Adoption is one-way.** The target moves into its own scope,
     `prism-srm-limit-<pid>-<startMillis>.scope` in `app.slice`, created without limits and with
     `OOMPolicy=continue`, `ManagedOOMPreference=omit` and `CollectMode=inactive-or-failed`. It
-    stays there until it exits: Prism never moves it back, and the unit it came from may
+    stays there until it exits: PRISM never moves it back, and the unit it came from may
     already be gone. Processes it starts afterwards share the scope. An external stop of the
     scope terminates its processes. Adoption needs explicit consent per process that states
     all of this, and that the desktop environment or service manager may see the process
@@ -278,10 +278,10 @@ limit is `UNAVAILABLE` too, with the same reason.
   - **Ownership.** Before any limit is set, the unit name, its invocation id and its cgroup
     path are recorded durably. Every limit write goes to the unit object addressed by that
     invocation id, never by name, so a unit that later takes the name is never changed. Before
-    a change, Prism proves the unit is the recorded invocation with the recorded cgroup, and
+    a change, PRISM proves the unit is the recorded invocation with the recorded cgroup, and
     that the target is alive, the same process, with the same user IDs, and in that cgroup.
     Before a clearing it proves the recorded invocation; comparing the cgroup there too is
-    required before K16 can be lifted. A scope that merely carries Prism's name is never
+    required before K16 can be lifted. A scope that merely carries PRISM's name is never
     changed. Any process inside such a scope gets no second limit, native or emulated,
     except the target this limiter holds.
   - **CPU limit.** `cpu.max`, set through `CPUQuotaPerSecUSec`. The whole-machine percentage P
@@ -293,7 +293,7 @@ limit is `UNAVAILABLE` too, with the same reason.
     the kernel may invoke its OOM killer inside that cgroup. Some allocations fail instead, and
     usage may exceed the limit temporarily in circumstances the kernel documents. With swap
     available the kernel may swap instead of killing, because `memory.swap.max` is not
-    touched. Prism does not claim that the target process itself will be killed. It needs a
+    touched. PRISM does not claim that the target process itself will be killed. It needs a
     separate, explicit consent that the kernel may terminate the process or one of its
     children, and the UI describes the risk in these terms before the limit is applied.
   - **`memory.high`** is a throttling boundary and the intended default: above it the
@@ -310,14 +310,14 @@ limit is `UNAVAILABLE` too, with the same reason.
   - **Removing a limit and cleanup.** Removing a limit sets its property to `infinity` and
     reads it back. The process stays in the now unlimited scope, the scope-membership rule
     keeps a second limiter from it, and systemd collects the scope when its last process has
-    exited. Prism writes no cgroup file and never stops, kills or abandons a scope, never moves
+    exited. PRISM writes no cgroup file and never stops, kills or abandons a scope, never moves
     a process out of one, and never writes `cgroup.kill` or `memory.oom.group`.
   - **After a crash.** Limits stay until the next start clears them or the processes exit.
     Recovery first classifies without changing anything. It then clears a scope only when
     the proof holds at that moment: the recorded unit and invocation id equal the live unit's,
     and the recorded process is a member, or has exited and others remain. A scope without
     that proof is listed and limits on its members are blocked; no user action overrides this.
-  - Prism is not run as root. If a precondition fails, the capability is reported honestly and
+  - PRISM is not run as root. If a precondition fails, the capability is reported honestly and
     the emulated fallback is used.
 - **LIM-7** macOS has no documented way to impose a hard CPU or memory cap on an
   arbitrary running process. CPU limiting is emulated; memory limits are monitored
@@ -389,7 +389,7 @@ and **automatic intervention** are separate things and the UI keeps them visibly
 - **OOM-9** Terminate is never enabled implicitly: it needs the global switch and an
   explicit per-process choice, each made by the user. Terminate means Force Kill, sent at
   most once per process identity per session.
-- **OOM-10** In `EMERGENCY` Prism acts on one candidate at a time, ordered by OOM
+- **OOM-10** In `EMERGENCY` PRISM acts on one candidate at a time, ordered by OOM
   priority and then by resident memory, and re-evaluates after a settle interval
   (default 5 s) before acting on another.
 - **OOM-11** Once the state is back to `NORMAL`, processes that OOM Guard suspended are
@@ -404,12 +404,12 @@ and **automatic intervention** are separate things and the UI keeps them visibly
 
 ## 10. Safety
 
-- **SAFE-1** Prism never elevates itself and never requires running as
+- **SAFE-1** PRISM never elevates itself and never requires running as
   Administrator/root.
-- **SAFE-2** Prism never acts destructively on itself: it cannot terminate, suspend,
+- **SAFE-2** PRISM never acts destructively on itself: it cannot terminate, suspend,
   limit or manage its own process.
 - **SAFE-3** Protected processes cannot be terminated, suspended, limited or managed
-  through Prism. They are identified by facts, not by name alone: the system idle and
+  through PRISM. They are identified by facts, not by name alone: the system idle and
   kernel processes (PID 0 and 4 on Windows), PID 1 on Linux and macOS, Linux kernel
   threads, and processes Windows itself marks as critical. A name list may add to this
   but is never the only protection.
@@ -455,7 +455,7 @@ Primary navigation: Overview, Processes, Performance, Limits, OOM Guard, Logs, S
 - **UI-6 Logs.** The activity log of the session, filterable, with a way to open the
   log folder.
 - **UI-7 Settings.** Application-wide settings: appearance (System, Light or Dark; System
-  follows the appearance of the operating system and reacts to a change of it while Prism
+  follows the appearance of the operating system and reacts to a change of it while PRISM
   runs, and is the default), the location of logs and settings, and a summary of detected
   capabilities. The theme architecture and the System default exist from milestone 5.5;
   the page that shows the choice and persists it belongs to milestone 13, as does the
@@ -486,17 +486,17 @@ Primary navigation: Overview, Processes, Performance, Limits, OOM Guard, Logs, S
 - **LIFE-1** A controlled shutdown, in order: stops monitoring, limiting and OOM Guard
   scheduling and waits for work in flight; releases every suspension held by the
   limiter or by OOM Guard, which resumes the process unless the user also suspended it
-  (LIFE-2); clears native limits Prism applied; releases native handles; stops executors;
+  (LIFE-2); clears native limits PRISM applied; releases native handles; stops executors;
   flushes logs. It runs off the JavaFX Application Thread and is bounded in time. On Linux,
-  clearing sets the scope's limit properties to `infinity`; Prism removes no scope and moves no
+  clearing sets the scope's limit properties to `infinity`; PRISM removes no scope and moves no
   process, and a scope stays until its processes exit (LIM-6).
 - **LIFE-2** Processes the user suspended manually are left as the user set them.
 - **LIFE-3** A cleanup step that fails is logged and does not prevent the remaining
   steps.
-- **LIFE-4** If Prism is killed without a controlled shutdown, native limits on Windows
+- **LIFE-4** If PRISM is killed without a controlled shutdown, native limits on Windows
   and Linux remain in force and an emulated suspension may remain. The next start of
-  Prism reads the journal and resumes nothing by itself, because no target system lets
-  Prism prove that a stop it finds is still its own; it lists what it may have left
+  PRISM reads the journal and resumes nothing by itself, because no target system lets
+  PRISM prove that a stop it finds is still its own; it lists what it may have left
   suspended (LIFE-6), reports the native limits an earlier session recorded, and logs all
   of it. On Windows it changes none of them (LIM-5, ADR-0012). On Linux the scope mechanism
   clears only a scope whose ownership it proves again at that moment (LIM-6); the product
@@ -507,38 +507,38 @@ Primary navigation: Overview, Processes, Performance, Limits, OOM Guard, Logs, S
   has already completed.
 - **LIFE-6** The suspension journal makes a crash visible and keeps recovery from acting
   on what it cannot verify.
-  - Every suspension Prism holds is journaled, whatever its reason. An entry stores the
-    process identity (PID and start time), the reasons for which Prism holds the
+  - Every suspension PRISM holds is journaled, whatever its reason. An entry stores the
+    process identity (PID and start time), the reasons for which PRISM holds the
     suspension (user, limiter, OOM Guard), enough metadata for diagnosis (process name,
-    the limit or OOM state that caused it, the identity of the Prism instance that
+    the limit or OOM state that caused it, the identity of the PRISM instance that
     wrote it), and when the entry was created and last updated. On Windows an entry also
-    records the threads Prism holds (ID and creation time).
-  - On restart Prism reads the live process again and requires PID and start time to
+    records the threads PRISM holds (ID and creation time).
+  - On restart PRISM reads the live process again and requires PID and start time to
     match exactly. An entry that does not match is stale: that process is never resumed
     or modified, and the entry is discarded and logged.
-  - An entry written by a Prism instance that is still running is left alone.
-  - After a crash Prism resumes nothing by itself. It closes an entry whose process is
+  - An entry written by a PRISM instance that is still running is left alone.
+  - After a crash PRISM resumes nothing by itself. It closes an entry whose process is
     gone, has another start time, or is running, and lists every other entry as possibly
     left suspended by an earlier session, saying what it could and could not check.
-  - Prism resumes a listed process only when the user asks. At that moment the process
+  - PRISM resumes a listed process only when the user asks. At that moment the process
     must still be stopped (Linux `T`, never `t`; macOS stopped); on Windows, every
     recorded thread that still exists must carry exactly one suspension and none more.
-    The user is told first that this does not prove the stop is Prism's: another program
-    may have stopped the process after the crash, or, on Windows, removed Prism's
+    The user is told first that this does not prove the stop is PRISM's: another program
+    may have stopped the process after the crash, or, on Windows, removed PRISM's
     suspension and added its own.
-  - On Windows, an entry that does not record which threads Prism suspended is listed for
-    manual intervention only: Prism offers no resume for it, because an anonymous
+  - On Windows, an entry that does not record which threads PRISM suspended is listed for
+    manual intervention only: PRISM offers no resume for it, because an anonymous
     suspension count does not show whose it is.
-  - Without such a request Prism ends no stop and lowers no suspension count that it finds
+  - Without such a request PRISM ends no stop and lowers no suspension count that it finds
     after a crash.
-  - Prism makes no suspension of its own (CPU limiter, OOM Guard) before the entry that
+  - PRISM makes no suspension of its own (CPU limiter, OOM Guard) before the entry that
     lets the next start find it has been written durably; if the journal cannot be
-    written, those features are off and Prism says why.
+    written, those features are off and PRISM says why.
   - Recovery and shutdown never resume a suspension the user requested.
-- **LIFE-7** One Prism runs per user profile
+- **LIFE-7** One PRISM runs per user profile
   ([ADR-0013](adr/0013-one-prism-per-user-profile.md), accepted 2026-10-10). A second launch
   for the same user is refused before anything is monitored, limited or recovered: it says
-  that Prism is already running, or still closing, and exits without touching the running
+  that PRISM is already running, or still closing, and exits without touching the running
   one. The ownership is an operating-system lock that ends with the process, so a launch
   after a hard kill is not kept out.
 

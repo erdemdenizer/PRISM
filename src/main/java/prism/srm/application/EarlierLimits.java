@@ -4,7 +4,7 @@ import java.util.Optional;
 import prism.srm.domain.ProcessIdentity;
 
 /**
- * Whether a native limit of an earlier (or another) Prism session may still cap a process, as far
+ * Whether a native limit of an earlier (or another) PRISM session may still cap a process, as far
  * as recovery knows (milestone 10, external audit item 2): the emulated CPU limit is neither offered
  * nor started over such a cap. Answers from what recovery has already read; never reads a file, so
  * the limiter thread can ask.

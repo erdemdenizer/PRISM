@@ -44,7 +44,7 @@ system.
    - a file that does not decode (header, count, checksum, a malformed line): the defaults,
      a WARNING, and the file moved aside as `prism.settings.corrupt-<time>`, once;
    - a newer version header: the defaults, a WARNING, and saving is turned off for the
-     session so that an older Prism never overwrites a newer file;
+     session so that an older PRISM never overwrites a newer file;
    - an unknown key is ignored and logged; a missing key takes its default;
    - three thresholds that are not a valid triple (1 ≤ emergency < critical < warning ≤ 90,
      floor ≥ 0) fall back to the defaults together, with a WARNING; the switches are kept;
@@ -73,7 +73,7 @@ system.
 
 ## Consequences
 
-- A corrupt or newer file never stops Prism and never turns termination on.
+- A corrupt or newer file never stops PRISM and never turns termination on.
 - The settings file adds one durable write per user change, on the journal's thread.
 - The Linux and macOS folder rules are worked out from the platform conventions, as for the rest
   of ADR-0007. Their unit tests (with a given environment) and the settings tests pass in CI on

@@ -61,7 +61,7 @@ reported `Not reached within PT10S`: the limiter did not report `PAUSED_EXTERNAL
   - Milestone 11 does not change the stop detection it checks.
   - It passed in run 38375835210 on the same main code, and it passed on the rerun.
 - **Likely cause.** It is consistent with the limitation PRODUCT_SPEC PROC-6 documents: "A stop
-  another program adds while Prism holds the process ends with Prism's resume, and Prism cannot
+  another program adds while PRISM holds the process ends with PRISM's resume, and PRISM cannot
   see it."
   - At a 10 % limit, the demo is held about 90 % of the time.
   - The test's own stop is a check-then-act. If the limiter stops the process between the test's
@@ -157,7 +157,7 @@ process takes. The resident memory did follow. macOS stays not validated.
 |---|---|
 | 1. Both tests passed on Linux in `verify (ubuntu-latest)`, run, not skipped, thresholds met | **Met for `3d6e4eb`.** It counts for a change only if that change is made on `3d6e4eb`, or on a commit whose parent is `3d6e4eb` and which changes nothing in `platform` or the tests. |
 | 2. Raw reports and output lines kept, commit and run named | This file. The raw surefire reports are in the milestone 11 handoff archive. |
-| 3. A note on containers | **Not established.** The run was on a hosted Azure virtual machine, not in a container, and `MemAvailable` reported the machine's 7938 MiB. Whether the job's own cgroup v2 group had a `memory.max` was not read. The gate does not read Prism's own `memory.max` (known limit). |
+| 3. A note on containers | **Not established.** The run was on a hosted Azure virtual machine, not in a container, and `MemAvailable` reported the machine's 7938 MiB. Whether the job's own cgroup v2 group had a `memory.max` was not read. The gate does not read PRISM's own `memory.max` (known limit). |
 | 4. External reviewer and product owner accept | **Pending.** |
 
 Until item 4, Linux stays not validated, as ADR-0015 §7 requires.

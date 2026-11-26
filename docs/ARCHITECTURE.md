@@ -53,7 +53,7 @@ ui  ---------> application ---------> platform (interfaces)
 | `platform` | OS-neutral interfaces, selection of the implementation for the running OS, and portable implementations that need only the JDK (for example `ProcessHandle`) | `domain`; its implementation sub-packages for selection only | JNA, OSHI, or OS-specific code |
 | `platform.oshi` | cross-platform implementations backed by OSHI | `platform`, `domain` | JavaFX; code only one OS can run; references to another implementation package |
 | `platform.windows`, `.linux`, `.macos` | OS-specific implementations: JNA mappings, Win32, systemd scopes and cgroup files read, `/proc`, POSIX | `platform`, `domain` | JavaFX; references to another implementation package |
-| `demo` | the demo workload, a separate program with its own `main` (DEMO-1 to DEMO-3) | the JDK only, `com.sun.management` included | any other package of Prism, a logger, JavaFX, JNA, OSHI; and nothing depends on it |
+| `demo` | the demo workload, a separate program with its own `main` (DEMO-1 to DEMO-3) | the JDK only, `com.sun.management` included | any other package of PRISM, a logger, JavaFX, JNA, OSHI; and nothing depends on it |
 
 Rules that follow from the table:
 
@@ -193,7 +193,7 @@ Points that follow from the product:
   the limiter and OOM Guard reasons, and takes over a user reason without resuming.
   As built in milestone 7: `SuspensionCoordinator` holds, per identity, the reasons and
   the opaque `Suspension` the controller returned (on Windows, the open handles of the
-  threads Prism suspended, one increment each). It does not stack a second suspension,
+  threads PRISM suspended, one increment each). It does not stack a second suspension,
   keeps a suspension whose release failed on a live thread as incomplete and retries it,
   and never takes a process missing from one listing for gone: it asks
   `ProcessController.liveness` on the control thread, one check per identity at a time,
@@ -223,7 +223,7 @@ Points that follow from the product:
     99999 in microseconds. Stated, not closed.
   - Priority has no descriptor-based call on either system; the same check-then-set race holds
     for it on Linux too, per thread (Linux sets every thread in `/proc/<pid>/task`).
-  - A process stopped already is not suspended, so Prism never continues a stop it did not
+  - A process stopped already is not suspended, so PRISM never continues a stop it did not
     make. A continue by another program is not noticed: the listing's state is not reliable
     enough to drop a hold on (OSHI reads the leading thread on Linux and maps macOS states
     wrongly), so that is deferred.
@@ -291,7 +291,7 @@ Points that follow from the product:
   session that still runs (its PID alive
   with the start its instance name records) is never read or waited for, and an entry the
   user dismissed is not listed again in the session.
-- **Protection rules** (Prism itself, protected processes, Managed-only automation) are
+- **Protection rules** (PRISM itself, protected processes, Managed-only automation) are
   enforced in `application`, before any platform call. `platform` supplies the facts
   (for example "this process is critical"), not the policy.
 - **OOM Guard** receives every memory sample from the system monitor, not the coalesced
@@ -323,7 +323,7 @@ Points that follow from the product:
   [TESTING.md](TESTING.md).
 - **Logs.** The per-user log folder is resolved by `platform` and handed to Logback
   before the first logger is used, so there is one source of truth for its location.
-  Logback is a runtime-only dependency, without a shutdown hook of its own (Prism's hook
+  Logback is a runtime-only dependency, without a shutdown hook of its own (PRISM's hook
   must still be able to log; every line is flushed as it is written), and `app` never
   calls it directly. The folder rules are
   `UserFolders`, selected by the static `HostPlatform.userFolders()`, which needs
@@ -342,7 +342,7 @@ Points that follow from the product:
   hands each snapshot to a `LatestValueRelay`, which keeps the newest and has at most one
   task waiting on the JavaFX Application Thread. The listings of the process monitor, the
   results of the detail reads and the news of what failed each have a relay of their own
-  of the same kind, as do the capability report, the processes Prism holds suspended and
+  of the same kind, as do the capability report, the processes PRISM holds suspended and
   the activity log, so at most one
   task waits per kind. The results of process actions are the exception: each is handed
   over with its own `Platform.runLater`, because each must be shown or logged and none
@@ -368,8 +368,8 @@ Points that follow from the product:
 
 `App.init()` takes the ownership of the user profile (`InstanceLock`, [ADR-0013](adr/0013-one-prism-per-user-profile.md),
 Accepted) on the launcher thread, after logging and before anything else: a launch that finds
-another Prism owning it shows one dialog and exits without building `MonitoringRuntime`. Only an
-owning Prism goes on: the window, then `MonitoringRuntime` (journal, ledger, recovery of earlier
+another PRISM owning it shows one dialog and exits without building `MonitoringRuntime`. Only an
+owning PRISM goes on: the window, then `MonitoringRuntime` (journal, ledger, recovery of earlier
 sessions, monitors, limits). The ownership is kept until the process exits.
 
 ### Controlled shutdown
@@ -383,7 +383,7 @@ expires. A failing step is logged and the rest still run.
 2. Through the suspension coordinator, release every suspension held by the limiter or
    by OOM Guard. A process is resumed only when no reason remains, so one the user also
    suspended stays suspended, as does any process only the user suspended.
-3. Clear native limits Prism applied. On Linux that sets a scope's limit properties to
+3. Clear native limits PRISM applied. On Linux that sets a scope's limit properties to
    `infinity`; no scope is removed and no process is moved (ADR-0016 decision 5).
 4. Release native handles.
 5. Shut down executors.
@@ -414,7 +414,7 @@ calls `MonitoringRuntime.releaseForExit`: it stops the limits and releases the a
 reasons through the live suspensions, then clears the native limits, all within one
 deadline of 2.5 s (the suspensions at most 1.5 s of it); after a completed shutdown it finds
 nothing and logs nothing. On Windows the same release also runs from a console control
-handler when the console Prism runs in is closed, because the system may end the process
+handler when the console PRISM runs in is closed, because the system may end the process
 before the hook gets that far (`WindowsConsoleClose`). `Application.stop()` asks
 `MonitoringRuntime` for the shutdown and returns; the sequence runs on `srm-shutdown`:
 stop both monitors, wait for start-up to end, call off a later look at the journals of
@@ -429,7 +429,7 @@ made stay, their thread handles are closed without resuming, and the log names w
 stays suspended. All waits together are bounded by 5 seconds; what has not ended by
 then is interrupted and the fact is logged. Each step is isolated, so a step that throws
 a `RuntimeException` is logged and the rest run (LIFE-3). `srm-shutdown` is the only
-non-daemon thread Prism creates, so the process ends when the sequence returns, and
+non-daemon thread PRISM creates, so the process ends when the sequence returns, and
 nothing calls `System.exit`: a thread that kept the process alive would be a defect to
 see in a thread dump, not one to hide.
 
@@ -447,7 +447,7 @@ enumeration, disk or network queries, native calls, blocking waits, or cgroup op
   tasks and refuses more; its writer coalesces, so at most one write waits, and a refusal
   fails the journal rather than writing on the caller's thread. `srm-recovery` holds at
   most one pending look. Resume and cleanup work
-  that Prism owes on its own (automatic reasons, shutdown) must never be rejectable: it does
+  that PRISM owes on its own (automatic reasons, shutdown) must never be rejectable: it does
   not go through a queue that can refuse it. A Resume the user asks for is a request like
   any other: it may be answered "too many waiting" or "shutting down", and the process then
   stays suspended (LIFE-2).
@@ -461,7 +461,7 @@ enumeration, disk or network queries, native calls, blocking waits, or cgroup op
   native limits, and releases native resources. On Linux it removes no scope and writes no
   cgroup file (ADR-0016 decision 5): a released scope stays until its processes exit.
 
-The threads Prism creates, all named:
+The threads PRISM creates, all named:
 
 | Thread | Daemon | Lives | Does |
 |---|---|---|---|
@@ -469,7 +469,7 @@ The threads Prism creates, all named:
 | `srm-system-monitor` | yes | while monitoring runs | the system metrics cycle, every second |
 | `srm-process-monitor` | yes | while monitoring runs | the process listing, every 2 seconds; its own executor, so a slow listing never delays a system sample. It starts with the first system snapshot that has the number of logical processors, against which the CPU share of a process is computed |
 | `srm-process-details` | yes | from the first request for details on | reads the path and the command line of one process when the Processes page asks (PROC-5); one read at a time, and only the newest request waits |
-| `srm-process-control` | yes | from the first process action or check on | runs the process actions one at a time, and the checks of whether a process Prism holds suspended is still there; during the shutdown `srm-shutdown` releases and finalizes the suspensions, nothing else touches a process |
+| `srm-process-control` | yes | from the first process action or check on | runs the process actions one at a time, and the checks of whether a process PRISM holds suspended is still there; during the shutdown `srm-shutdown` releases and finalizes the suspensions, nothing else touches a process |
 | `srm-limiter` | yes | from the start of process monitoring on | managed processes and limits: the requests of the user, the steps of every emulated limit, the native assignments and changes (a few calls each, no periodic work), the exit of a natively limited process, and a look at the suspension journal about once a second while limits run; OOM Guard's evaluations, one queued at a time, after a sample, a listing or a change, and every intervention it makes; a task that ends with an `Error` is handed to the handler for uncaught failures |
 | `srm-journal` | yes | from start-up on (the recovery of earlier sessions writes first) | writes the suspension journal, the native-limit ledger and the settings file (each only the newest of what was handed over) and runs their checks, retries and close, one at a time; nothing waits for it under a lock, and a wait for it is bounded by 2 s |
 | `srm-recovery` | yes | from start-up on; it works only while a journal of an ended session waits for its lock | looks at the journals of earlier sessions again, at most seven times in about two minutes, and lists what it reads; nothing is resumed, and the shutdown calls it off within its bound |
@@ -485,7 +485,7 @@ The executor for process actions is a single-thread `ThreadPoolExecutor` with a 
 answered with "too many actions are waiting" and nothing is done. That queue carries
 requests, not cleanup: the releases of the shutdown run on `srm-shutdown` without a
 queue, and a check of a missing suspended process that finds the queue full is asked
-again with the next listing. Threads that are not Prism's also appear in a thread dump: those of the
+again with the next listing. Threads that are not PRISM's also appear in a thread dump: those of the
 JVM and of JavaFX (among them one unnamed daemon thread, `Thread-N`, that the JavaFX
 toolkit attaches from native code when it starts), `JNA Cleaner`, and workers of the
 JDK's common pool, which OSHI's process listing uses for its parallel streams.

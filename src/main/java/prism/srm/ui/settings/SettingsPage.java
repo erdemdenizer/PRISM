@@ -285,7 +285,7 @@ public final class SettingsPage extends VBox {
         units.setTooltip(unitTooltip());
         HBox row = new HBox(theme, choices, gap, units, unitChoices);
         row.getStyleClass().add("settings-row");
-        VBox block = new VBox(row, note("System follows the operating system, also while Prism runs."));
+        VBox block = new VBox(row, note("System follows the operating system, also while PRISM runs."));
         block.getStyleClass().add("settings-section");
         return block;
     }

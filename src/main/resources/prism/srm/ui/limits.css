@@ -17,7 +17,7 @@
   -fx-text-fill: -srm-error;
 }
 
-/* A limit that may still be in force where Prism cannot reach it: a warning, not a failure. */
+/* A limit that may still be in force where PRISM cannot reach it: a warning, not a failure. */
 .limits-notice:warning {
   -fx-text-fill: -srm-warning;
 }

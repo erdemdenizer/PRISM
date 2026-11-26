@@ -4,7 +4,7 @@ package prism.srm.domain;
 public enum ActivitySeverity {
     /** Something happened as intended. */
     INFO,
-    /** Something did not happen as intended, and Prism carries on. */
+    /** Something did not happen as intended, and PRISM carries on. */
     WARNING,
     /** Something failed. */
     ERROR

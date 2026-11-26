@@ -69,7 +69,7 @@ public final class HostPlatform {
     /**
      * The controller of other processes the system gets. Making one touches nothing native: the
      * Linux and macOS controllers load their libraries and probe the system on first use. A system
-     * Prism has no controller for gets one that reports every action as unavailable.
+     * PRISM has no controller for gets one that reports every action as unavailable.
      *
      * @param bootTimeSeconds the boot time the process listing computes start times from, which
      *     the Linux controller computes them from too
@@ -189,7 +189,7 @@ public final class HostPlatform {
     }
 
     /**
-     * Describes the detected system for the log: the family Prism selected its implementations
+     * Describes the detected system for the log: the family PRISM selected its implementations
      * for, and the system properties it was detected from.
      */
     public static String systemDescription() {

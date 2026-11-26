@@ -9,17 +9,17 @@
 
 Milestone 9 brings the emulated CPU limiter (LIM-8) and the suspension journal (LIFE-4 to
 LIFE-6). ADR-0004 was written before milestone 8 and assumed that the next start could
-resume, by itself, a process a crashed Prism left suspended. Milestone 8 showed why it
+resume, by itself, a process a crashed PRISM left suspended. Milestone 8 showed why it
 cannot:
 
 - No target system tells who stopped a process. On Linux and macOS a stop is a state, not
   a count, and has no sender; on Windows each thread has an anonymous suspend count.
 - Between a crash and the next start another program may stop, continue, or stop again
   a process the journal names. A journal entry plus a matching identity plus a stopped
-  state is therefore a claim, not proof that the stop is Prism's.
+  state is therefore a claim, not proof that the stop is PRISM's.
 - Only a live token is proof: open thread handles on Windows (each one exactly one
-  increment Prism made), a pidfd on Linux, the coordinator's own record on macOS while
-  Prism runs.
+  increment PRISM made), a pidfd on Linux, the coordinator's own record on macOS while
+  PRISM runs.
 
 The limiter suspends many times a second, so the journal must not be written per cycle,
 and the limiter must not suspend anything a later session could not find.
@@ -35,14 +35,14 @@ and the limiter must not suspend anything a later session could not find.
    automatic reasons within 1.5 s; after a completed shutdown it finds nothing and says
    nothing. Logback's own shutdown hook is removed, so the hook's lines reach the log
    file; every line is flushed as it is written.
-3. *After a crash*: a journal entry is a claim. Prism resumes nothing by itself.
+3. *After a crash*: a journal entry is a claim. PRISM resumes nothing by itself.
 
-**The journal.** One file per Prism instance, `suspensions-<pid>-<startMillis>.journal`
+**The journal.** One file per PRISM instance, `suspensions-<pid>-<startMillis>.journal`
 in `UserFolders.state()/journal`, beside a `.lock` file this instance holds an exclusive
 `FileLock` on for its whole life (the journal itself is never locked, so it stays
 readable). An entry holds the identity, name, reasons, cause, writing instance, creation
 and update time, whether the suspension is incomplete, and on Windows a memento of the
-threads Prism holds (`w1:tid@creationFiletime,…`). A write is durable and verified:
+threads PRISM holds (`w1:tid@creationFiletime,…`). A write is durable and verified:
 temp file in the same folder, `force(true)`, `ATOMIC_MOVE|REPLACE_EXISTING` (three tries),
 folder `force` on POSIX (best effort), read back and compared byte for byte; the file ends
 with a CRC line. POSIX permissions are 0700 for the folder and 0600 for the files. A
@@ -60,10 +60,10 @@ in the journal.
 
 **Written off the coordinator's lock (external review).** The first version wrote the
 journal while holding the coordinator's lock, so a disk that stalled held up every
-release of every process Prism holds; a deterministic test with a stalled write proved
+release of every process PRISM holds; a deterministic test with a stalled write proved
 it. The coordinator now numbers each change of what the journal should hold and hands it
 to `JournalWriter`, which writes only the newest on a thread of its own (`srm-journal`),
-after the lock is released. What must be on disk before Prism acts waits for its number,
+after the lock is released. What must be on disk before PRISM acts waits for its number,
 outside the lock, for at most 2 s (`JOURNAL_WAIT`): a limit's declaration, the user's
 suspension before the process is touched, the entries carried over at start-up. A wait
 that runs out fails the journal for the session (it is not retried, since the stalled
@@ -87,7 +87,7 @@ nothing is withdrawn, the file and the lock stay as evidence, the Limits page an
 activity log say why. The user's own suspension still goes ahead, and its result says it
 was not recorded for after a crash.
 
-**Recovery at start-up.** Before anything is suspended, Prism takes the lock of every
+**Recovery at start-up.** Before anything is suspended, PRISM takes the lock of every
 journal whose lock is free (a dead instance), reads it (a damaged file is read as far as
 it goes and copied aside as `.corrupt-<time>`), and classifies each entry:
 
@@ -97,7 +97,7 @@ it goes and copied aside as `.corrupt-<time>`), and classifies each entry:
   or a Windows entry without a memento: listed for manual intervention, Dismiss only;
 - otherwise: listed as possibly suspended, with Resume;
 - an entry whose check throws: listed for manual intervention. One bad entry never keeps
-  Prism from starting; names read from a file are shown and logged on one line.
+  PRISM from starting; names read from a file are shown and logged on one line.
 
 The Processes page says how many entries there are at the right of its filter line and lists
 them in a dialog (Review…), with each entry's whole explanation and evidence.
@@ -112,20 +112,20 @@ journal that is written again later carries neither.
 locks of a killed process go "depending upon available system resources" (LockFileEx), so the
 journal of a session killed just before start-up can still be locked then. A locked journal is
 never read. When its writer has ended (the PID in its instance name is gone, or runs with
-another start), Prism says in the activity log that the list may be incomplete and looks again
+another start), PRISM says in the activity log that the list may be incomplete and looks again
 on `srm-recovery` after 1, 2, 4, 8, 15, 30 and 60 s; what it reads is classified, listed,
 carried over and deleted exactly as at start-up, and the log says when all have been read. One
 still locked after about two minutes stays for the next start, and the log says so. The
 Processes page says it too, beside its filter, so an empty list is never taken for a whole one:
-"Checking an earlier session…" (muted) while Prism looks, nothing once all are read, and, in the warning
-color, that a journal was not checked and a restart of Prism checks it again; the review dialog
+"Checking an earlier session…" (muted) while PRISM looks, nothing once all are read, and, in the warning
+color, that a journal was not checked and a restart of PRISM checks it again; the review dialog
 repeats why the list may be incomplete. The
 journal of a session that runs is left alone. No look begins once the shutdown has, and the
 shutdown calls a pending one off within its bound. An identity already listed, held by this
 session, or dismissed by the user is not listed again. Nothing is resumed or suspended.
 
 **Resume on request.** Resume opens a confirmation that says the stop may not be
-Prism's. Then `ProcessController.adopt(identity, memento)` checks once more and takes a
+PRISM's. Then `ProcessController.adopt(identity, memento)` checks once more and takes a
 token only when the check holds:
 
 - Linux: pidfd, state `T` (never `t`), then a pidfd-backed suspension;
@@ -134,7 +134,7 @@ token only when the check holds:
   still exists with the same creation time is probed with `SuspendThread` (raising the
   count, never lowering it). All probes first, then the decision: any count ≥ 2 refused;
   0 and 1 mixed refused; all 0 closed ("no longer suspended"); all exactly 1 taken over:
-  the probes are undone and each thread keeps one increment as Prism's. A probe that
+  the probes are undone and each thread keeps one increment as PRISM's. A probe that
   cannot be undone stays held, never forgotten. Without a memento Windows makes no
   native call.
 
@@ -154,7 +154,7 @@ three intervals within a one-sided tolerance; `ACTIVE_ABOVE_TARGET` with "floor"
 the limit: no hold, no continue, a retry once a second. A target suspended by the user
 makes the limit wait without holding a reason of its own, so the user's Resume continues
 it at once. A suspend that fails is tried again in the next cycle only when it is known to
-be transient and Prism holds nothing: the platform marks a failure transient only when the
+be transient and PRISM holds nothing: the platform marks a failure transient only when the
 thread that failed is shown to have ended (`GetExitCodeThread` on its open handle gives a
 code other than `STILL_ACTIVE`), the process is shown to run (`GetExitCodeProcess` gives
 `STILL_ACTIVE`), and the rollback released every increment (`SuspendResult.transientFailure`);
@@ -184,7 +184,7 @@ whatever the number of threads. This is accepted as a documented exception, not 
 compliance:
 - The 3 % budget stays the target of the emulated path; it is recorded as unmet on Windows.
 - Windows suspension is not redesigned in milestone 9. Native CPU rate control through Job
-  Objects (LIM-3, LIM-5, milestone 10) is the remedy: a process Prism limits natively
+  Objects (LIM-3, LIM-5, milestone 10) is the remedy: a process PRISM limits natively
   suspends nothing and costs the limiter nothing. The exception keeps applying to every
   emulated Windows limit, also after milestone 10 when the user explicitly chooses the
   emulated fallback because native assignment failed.
@@ -213,7 +213,7 @@ names the user's suspensions or carried entries stays).
 ## Alternatives considered
 
 - Resuming the limiter's entries automatically at the next start: rejected; a stop found
-  after a crash can be another program's, and continuing it is the one harm Prism must
+  after a crash can be another program's, and continuing it is the one harm PRISM must
   not do.
 - On Windows, resuming an entry without a memento when every thread shows one
   suspension: rejected; Process Explorer suspending the whole process gives the same
@@ -229,13 +229,13 @@ names the user's suspensions or carried entries stays).
 
 - After a hard kill during a limit, the target stays stopped until the user acts on the
   list at the next start; on Windows a limiter entry (no memento) must be resumed outside
-  Prism, for example in Resource Monitor. LIFE-4, LIFE-6, LIM-8 and PROC-6 say so.
+  PRISM, for example in Resource Monitor. LIFE-4, LIFE-6, LIM-8 and PROC-6 say so.
 - Residual risks the confirmation names: on Unix, a stop another program made after the
   crash ends with the user's Resume; on Windows the one increment taken over may not be
-  Prism's. In session, on Linux and macOS, a SIGSTOP another program sends while Prism
-  holds the process ends with Prism's SIGCONT, and Prism cannot see it; the limiter does
+  PRISM's. In session, on Linux and macOS, a SIGSTOP another program sends while PRISM
+  holds the process ends with PRISM's SIGCONT, and PRISM cannot see it; the limiter does
   this often. SIGCONT also runs the target's handler and gives its parent a SIGCHLD.
-- Without a writable state folder there are no CPU limits, and Prism says why.
+- Without a writable state folder there are no CPU limits, and PRISM says why.
 - On Windows one limit costs about 10 % of one core (measured 10.8 %; 18.9 % for two
   limits, 37.9 % for four), whatever the number of threads of the system: the cost is the
   system-wide thread listing of each suspend (83 % of the limiter's samples in

@@ -12,7 +12,7 @@ import java.util.OptionalInt;
  *
  * @param capabilities how each action is provided
  * @param listedPriorities the level each priority number of the listing stands for; a number
- *     that is not a key stands for none of the five levels. Empty where Prism cannot change
+ *     that is not a key stands for none of the five levels. Empty where PRISM cannot change
  *     priorities.
  */
 public record ControlProfile(

@@ -27,7 +27,7 @@ class LinuxNativeReadinessTest {
                         process,
                         java.util.Optional.of(manager + "prism-srm-limit-4242-17.scope/worker"),
                         1000))
-                .hasValueSatisfying(why -> assertThat(why).contains("a scope with Prism's name"));
+                .hasValueSatisfying(why -> assertThat(why).contains("a scope with PRISM's name"));
     }
 
     private static final long UID = 1001;
@@ -228,7 +228,7 @@ class LinuxNativeReadinessTest {
                         HARNESS,
                         Optional.of(MANAGER + "/app.slice/prism-srm-limit-2071-1791970282990.scope"),
                         UID))
-                .hasValueSatisfying(r -> assertThat(r).contains("scope with Prism's name"));
+                .hasValueSatisfying(r -> assertThat(r).contains("scope with PRISM's name"));
         assertThat(LinuxNativeReadiness.eligibility(harness, HARNESS, Optional.empty(), UID))
                 .contains("the process's cgroup could not be read");
         assertThat(LinuxNativeReadiness.eligibility(harness, HARNESS, Optional.of(MANAGER), UID))

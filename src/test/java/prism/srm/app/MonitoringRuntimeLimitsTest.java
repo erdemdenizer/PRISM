@@ -314,7 +314,7 @@ class MonitoringRuntimeLimitsTest {
     }
 
     /**
-     * A journal still locked when Prism stops looking: the page is told the list may stay
+     * A journal still locked when PRISM stops looking: the page is told the list may stay
      * incomplete until the next start, the log says why, the file stays, and nothing is resumed.
      */
     @Test

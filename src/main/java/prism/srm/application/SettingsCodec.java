@@ -45,7 +45,7 @@ final class SettingsCodec {
         READ,
         /** It did not: a wrong header, end line, count or checksum, or a line that is no setting. */
         CORRUPT,
-        /** It is a settings file of a later version, which this Prism does not read or overwrite. */
+        /** It is a settings file of a later version, which this PRISM does not read or overwrite. */
         NEWER
     }
 
@@ -113,7 +113,7 @@ final class SettingsCodec {
             return new Decoded(
                     Status.NEWER,
                     AppSettings.DEFAULTS,
-                    List.of("the file is of version " + version + ", newer than this Prism reads (" + VERSION + ")"));
+                    List.of("the file is of version " + version + ", newer than this PRISM reads (" + VERSION + ")"));
         }
         if (version != VERSION) {
             return corrupt("the file is of unknown version " + version);

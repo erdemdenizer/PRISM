@@ -13,7 +13,7 @@ import prism.srm.platform.SystemMetricsSource;
 import prism.srm.platform.UnavailableResourceLimiter;
 
 /**
- * What monitoring and process control use of the platform, the PID of Prism's own process, which
+ * What monitoring and process control use of the platform, the PID of PRISM's own process, which
  * process control never acts on, and where the suspension journal of this session lives
  * (ADR-0011). On the running system it comes from {@link HostPlatform} and the JDK; a test supplies
  * fakes and a PID of its choosing instead.

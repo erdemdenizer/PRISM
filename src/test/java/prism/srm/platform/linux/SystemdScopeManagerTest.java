@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 /**
  * The two state-changing manager calls (milestone 12, S3B, plan Rev 2.2 T-D15, T-D16): their exact message layout, the
  * single descriptor passed as {@code PIDFDs} and never a PID, every answer told apart as a refusal (nothing done) or an
- * unknown outcome, names and properties Prism does not use refused without a call, and every handle released.
+ * unknown outcome, names and properties PRISM does not use refused without a call, and every handle released.
  */
 class SystemdScopeManagerTest {
 
@@ -38,7 +38,7 @@ class SystemdScopeManagerTest {
 
     @Test
     void aScopeIsRequestedWithExactlyOnePidfdAndTheAgreedProperties() {
-        ScopeManager.Start start = manager.startScope(UNIT, 17, "Prism limit for PID 2071");
+        ScopeManager.Start start = manager.startScope(UNIT, 17, "PRISM limit for PID 2071");
 
         assertThat(start.status()).isEqualTo(ScopeManager.StartStatus.STARTED);
         assertThat(start.detail()).isEqualTo("/org/freedesktop/systemd1/job/42");
@@ -69,7 +69,7 @@ class SystemdScopeManagerTest {
                         "r{sv",
                         "Description",
                         "v{s",
-                        "Prism limit for PID 2071",
+                        "PRISM limit for PID 2071",
                         "}",
                         "}",
                         "r{sv",
@@ -141,7 +141,7 @@ class SystemdScopeManagerTest {
 
     private void expectStart(int code, String name, String text, ScopeManager.StartStatus status) {
         bus.byMember.put("StartTransientUnit", FakeSdBus.Answer.error(code, name, text));
-        assertThat(manager.startScope(UNIT, 17, "Prism limit for PID 2071").status())
+        assertThat(manager.startScope(UNIT, 17, "PRISM limit for PID 2071").status())
                 .as(name + " " + text)
                 .isEqualTo(status);
     }
@@ -195,7 +195,7 @@ class SystemdScopeManagerTest {
         assertThat(manager.setLimit("session-2.scope", INV, "MemoryMax", 1).status())
                 .isEqualTo(ScopeManager.SetStatus.REFUSED);
         assertThat(manager.setLimit(UNIT, "self", "MemoryMax", 1).status())
-                .as("only a 128-bit invocation id is a path Prism sends to")
+                .as("only a 128-bit invocation id is a path PRISM sends to")
                 .isEqualTo(ScopeManager.SetStatus.REFUSED);
         assertThat(manager.setLimit(UNIT, INV.toUpperCase(java.util.Locale.ROOT), "MemoryMax", 1)
                         .status())
@@ -206,7 +206,7 @@ class SystemdScopeManagerTest {
     @Test
     void withoutABusNothingIsSentAndTheRequestIsARefusal() {
         bus.openCode = -SystemdUserBus.ENOMEDIUM;
-        assertThat(manager.startScope(UNIT, 17, "Prism limit for PID 2071").status())
+        assertThat(manager.startScope(UNIT, 17, "PRISM limit for PID 2071").status())
                 .isEqualTo(ScopeManager.StartStatus.REFUSED);
         assertThat(bus.sent).isEmpty();
     }

@@ -9,7 +9,7 @@ import oshi.util.platform.windows.WmiQueryHandler;
  * without touching the process, from the documented WMI class {@code Win32_Thread}: a thread whose
  * {@code ThreadState} is 5 (Waiting) and whose {@code ThreadWaitReason} is 5 (Suspended). Both are
  * required: the wait reason keeps its last value while the thread runs, so a thread resumed into a
- * busy loop still shows reason 5. Independent of Prism's record of what it holds; no suspend count
+ * busy loop still shows reason 5. Independent of PRISM's record of what it holds; no suspend count
  * is read or changed.
  *
  * <p>A reading that fails is a failure, never zero: a query the system refuses or does not answer,

@@ -23,7 +23,7 @@ import prism.srm.domain.LimitAction;
 import prism.srm.domain.LimitRequest;
 
 /**
- * Measures what one native CPU limit costs Prism on this system (milestone 10, plan §11.5): the
+ * Measures what one native CPU limit costs PRISM on this system (milestone 10, plan §11.5): the
  * processor time of this JVM while the limit service holds the demo workload at its limit through
  * the system's limiter, against the same time spent asleep, and the share the workload got. Not part
  * of the build; run by hand where a native limiter exists:

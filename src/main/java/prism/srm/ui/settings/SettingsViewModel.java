@@ -76,7 +76,7 @@ final class SettingsViewModel {
 
     /** Monitoring did not start, so what it would have reported never comes. */
     void showStartupFailure(String logFolder) {
-        startupFailure = "Prism could not read what this system offers, because monitoring did not start. The log file"
+        startupFailure = "PRISM could not read what this system offers, because monitoring did not start. The log file"
                 + " in " + logFolder + " says why.";
     }
 

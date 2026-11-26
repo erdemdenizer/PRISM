@@ -64,7 +64,7 @@ final class LimitsSection extends VBox {
                         () -> !managed.selectedProperty().get()
                                 ? "–"
                                 : managed.markProperty().get().isEmpty()
-                                        ? "Not managed by Prism."
+                                        ? "Not managed by PRISM."
                                         : managed.markProperty().get(),
                         managed.selectedProperty(),
                         managed.markProperty()));

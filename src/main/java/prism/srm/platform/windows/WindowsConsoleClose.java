@@ -9,7 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * LIFE-5 on Windows when Prism runs in a console and the console is closed.
+ * LIFE-5 on Windows when PRISM runs in a console and the console is closed.
  *
  * <p>Closing a console sends {@code CTRL_CLOSE_EVENT} to the processes attached to it. The handlers
  * of a process are called "on a last-registered, first-called basis until one of the handlers returns

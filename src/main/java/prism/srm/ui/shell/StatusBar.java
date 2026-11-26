@@ -27,7 +27,7 @@ final class StatusBar extends HBox {
         /** The Overview has no live values any more; whether processes are listed is not said. */
         SYSTEM_STOPPED("System monitoring stopped unexpectedly", true),
         /** The Overview is live; only the process listing has ended. */
-        DEGRADED("Monitoring degraded: process monitoring stopped unexpectedly. Restart Prism to restore it.", true),
+        DEGRADED("Monitoring degraded: process monitoring stopped unexpectedly. Restart PRISM to restore it.", true),
         STOPPED("Monitoring stopped unexpectedly", true);
 
         private final String text;

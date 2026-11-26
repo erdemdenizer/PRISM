@@ -46,7 +46,7 @@ import prism.srm.ui.icon.Icon;
 import prism.srm.ui.icon.IconView;
 
 /**
- * The Logs page (UI-6): what Prism did and noticed during this session, newest first, among it
+ * The Logs page (UI-6): what PRISM did and noticed during this session, newest first, among it
  * every action on a process and its result with the detail the message left out. A filter, and a
  * button that opens the folder of the log file, which keeps the entries of earlier sessions. Its
  * states are those of {@link LogsViewModel}.

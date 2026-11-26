@@ -9,17 +9,17 @@ public enum LimitStatus {
     /** No limit is set, or it is disabled. */
     INACTIVE,
 
-    /** The limit is applied and the process uses less than it: Prism does not suspend it (LIM-8). */
+    /** The limit is applied and the process uses less than it: PRISM does not suspend it (LIM-8). */
     ACTIVE_NOT_THROTTLING,
 
-    /** Prism is still finding the share that holds the process near its limit. */
+    /** PRISM is still finding the share that holds the process near its limit. */
     ADJUSTING,
 
-    /** The measured use is at or below the limit while Prism throttles the process. */
+    /** The measured use is at or below the limit while PRISM throttles the process. */
     ACTIVE_THROTTLING,
 
     /**
-     * The measured use stays above the limit: the limit is lower than Prism can hold the process to
+     * The measured use stays above the limit: the limit is lower than PRISM can hold the process to
      * (the floor of the duty cycle), or the load varies faster than the limiter follows.
      */
     ACTIVE_ABOVE_TARGET,
@@ -31,7 +31,7 @@ public enum LimitStatus {
     PAUSED_EXTERNAL_STOP,
 
     /**
-     * The system enforces the limit (a Job Object): Prism does nothing per cycle (milestone 10). Set
+     * The system enforces the limit (a Job Object): PRISM does nothing per cycle (milestone 10). Set
      * only once the limits were read back as asked.
      */
     ACTIVE_ENFORCED,

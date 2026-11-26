@@ -102,11 +102,11 @@ class ConcurrentInstancesTest {
                 .isTrue();
         // From B's side, the target is now in a job B does not hold: refused, fallback eligible.
         limiterOfB.apply = FakeResourceLimiter.notAssigned(
-                OperationResult.UNSUPPORTED, "it is in a Job Object Prism does not hold", true);
+                OperationResult.UNSUPPORTED, "it is in a Job Object PRISM does not hold", true);
     }
 
     /**
-     * Characterization, reproduced before the single-instance rule: with two Prism instances on one
+     * Characterization, reproduced before the single-instance rule: with two PRISM instances on one
      * profile, B offers the emulated limit, B's user accepts it, and B's emulated controller acts on a
      * process A caps natively. Kept as the evidence the rule rests on: within one limit service
      * nothing tells B of A's later ledger, and B must not read files on its limiter thread. The rule

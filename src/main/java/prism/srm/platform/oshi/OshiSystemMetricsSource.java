@@ -268,7 +268,7 @@ final class OshiSystemMetricsSource implements SystemMetricsSource {
      * macOS OSHI answers a failed {@code host_statistics} call with 0 available while the total comes
      * from another call ({@code hw.memsize}), so a failure would otherwise look like a valid sample at
      * the edge of exhaustion and could carry OOM Guard into EMERGENCY; OSHI keeps the error to itself,
-     * so the two cannot be told apart. A system with nothing available at all could not run Prism to
+     * so the two cannot be told apart. A system with nothing available at all could not run PRISM to
      * read it, and the samples before it have already shown the pressure. Windows and Linux report a
      * failure with a total of 0, which the sample refuses already.
      */

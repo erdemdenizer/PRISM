@@ -123,7 +123,7 @@ class SuspensionCoordinatorJournalTest {
         assertThat(coordinator
                         .suspend(DEMO, "demo", SuspensionReason.CPU_LIMITER)
                         .change())
-                .as("the journal no longer holds anything Prism could rely on")
+                .as("the journal no longer holds anything PRISM could rely on")
                 .isEqualTo(Change.FAILED);
         assertThat(controller.calls).doesNotContain("suspend 4242");
         coordinator.withdraw(DEMO, SuspensionReason.CPU_LIMITER);
@@ -416,7 +416,7 @@ class SuspensionCoordinatorJournalTest {
 
     /**
      * Milestone 9 review, item 3: a journal write that stalls (a disk that does not answer) must not
-     * keep Prism from releasing the processes it holds. Whoever waits for the journal waits; a
+     * keep PRISM from releasing the processes it holds. Whoever waits for the journal waits; a
      * release of another process does not.
      */
     @Test

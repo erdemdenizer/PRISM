@@ -65,7 +65,7 @@ class ArchitectureTest {
     @Test
     void layersDependOnlyInTheAllowedDirection() {
         // The demo workload is a layer of its own that nothing may reach; that it reaches nothing
-        // is the rule below, which also names the only packages outside Prism it may use.
+        // is the rule below, which also names the only packages outside PRISM it may use.
         layeredArchitecture()
                 .consideringOnlyDependenciesInLayers()
                 .layer("App")
@@ -190,7 +190,7 @@ class ArchitectureTest {
 
     @Test
     void theDemoWorkloadUsesOnlyTheJdk() {
-        // DEMO-1: a separate program. It is started on its own, so it may use nothing of Prism, no
+        // DEMO-1: a separate program. It is started on its own, so it may use nothing of PRISM, no
         // logger and no library; com.sun.management is the JDK's way to the physical memory size.
         classes()
                 .that()
@@ -450,7 +450,7 @@ class ArchitectureTest {
     @Test
     void onlyTheCoordinatorTakesOverASuspensionAnEarlierSessionLeft() {
         // ADR-0011: taking over a stop found after a crash is the one act that may end a stop that is
-        // not Prism's. It happens in one place, on the user's request, after the coordinator's checks.
+        // not PRISM's. It happens in one place, on the user's request, after the coordinator's checks.
         noClasses()
                 .that()
                 .doNotBelongToAnyOf(prism.srm.application.SuspensionCoordinator.class)

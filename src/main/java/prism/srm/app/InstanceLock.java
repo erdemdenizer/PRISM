@@ -11,7 +11,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * One running Prism per user profile (milestone 10, final multi-instance audit; ADR-0007 left the
+ * One running PRISM per user profile (milestone 10, final multi-instance audit; ADR-0007 left the
  * rule open as a product decision, which is now taken). Two instances could otherwise each limit the
  * same process: one natively, the other emulated over it, as {@code ConcurrentInstancesTest} shows.
  *
@@ -37,7 +37,7 @@ final class InstanceLock implements AutoCloseable {
     enum Outcome {
         /** This process owns the profile. */
         OWNED,
-        /** Another Prism process, or another part of this one, owns it. */
+        /** Another PRISM process, or another part of this one, owns it. */
         HELD_ELSEWHERE,
         /** Ownership could not be asked for: the launch is refused all the same. */
         FAILED
@@ -68,7 +68,7 @@ final class InstanceLock implements AutoCloseable {
 
     /**
      * The launch: asks, and while another owner holds the profile asks again a few times, as the
-     * lock of a Prism just killed or still closing may be let go of only a moment later (ADR-0011,
+     * lock of a PRISM just killed or still closing may be let go of only a moment later (ADR-0011,
      * late locks). At most about three seconds, on the launcher thread; never on the JavaFX thread.
      */
     static InstanceLock acquireAtLaunch(Path stateFolder) {
@@ -100,7 +100,7 @@ final class InstanceLock implements AutoCloseable {
             Files.createDirectories(stateFolder);
             channel = opener.open(file);
         } catch (IOException | RuntimeException e) {
-            return failed("the file that keeps a second Prism out cannot be opened (" + file + ": " + e + ")");
+            return failed("the file that keeps a second PRISM out cannot be opened (" + file + ": " + e + ")");
         }
         FileLock lock;
         try {
@@ -110,7 +110,7 @@ final class InstanceLock implements AutoCloseable {
             return new InstanceLock(Outcome.HELD_ELSEWHERE, "", null, null);
         } catch (IOException | RuntimeException e) {
             closeQuietly(channel);
-            return failed("it cannot be told whether another Prism runs (" + file + ": " + e + ")");
+            return failed("it cannot be told whether another PRISM runs (" + file + ": " + e + ")");
         }
         if (lock == null) {
             closeQuietly(channel);
@@ -136,18 +136,18 @@ final class InstanceLock implements AutoCloseable {
         return switch (outcome) {
             case OWNED -> Optional.empty();
             case HELD_ELSEWHERE ->
-                Optional.of("Prism is already running for this user, or is still closing. Only one Prism may run"
+                Optional.of("PRISM is already running for this user, or is still closing. Only one PRISM may run"
                         + " at a time, so that two never limit the same process: switch to the window that is open,"
                         + " or try again in a moment.");
             case FAILED ->
-                Optional.of("Prism cannot start: " + problem + ". Only one Prism may run at a time, and this one"
+                Optional.of("PRISM cannot start: " + problem + ". Only one PRISM may run at a time, and this one"
                         + " cannot make sure that it is the only one.");
         };
     }
 
     /**
      * Lets go of the ownership: for a launch that failed before monitoring began, and for tests. A
-     * running Prism keeps it until the process exits, when the system lets go of it.
+     * running PRISM keeps it until the process exits, when the system lets go of it.
      */
     @Override
     public void close() {

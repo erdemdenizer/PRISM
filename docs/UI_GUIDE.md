@@ -38,7 +38,7 @@ custom frameless window or title bar. Shadows exist only on popups, small and si
 The window keeps the native chrome of the platform: its title bar, caption buttons, resizing,
 snapping and shadows are the operating system's. A custom frameless window is not the design
 direction. In a final build the native chrome matches the effective appearance of the window
-(milestone 13): a light Windows title bar above a dark Prism window is a defect, not a look.
+(milestone 13): a light Windows title bar above a dark PRISM window is a defect, not a look.
 
 ## Color
 
@@ -349,7 +349,7 @@ transitions, which sit under `@media (prefers-reduced-motion: no-preference)`, a
 - Text that stands in for a value is muted: "Reading…", the reason a value cannot be shown, an
   en dash, "No process selected". When the selected process has exited, its name stays, muted,
   with "PID n has exited" beside it.
-- While the listing shows the selected process as suspended by Prism, "Suspended by Prism"
+- While the listing shows the selected process as suspended by PRISM, "Suspended by PRISM"
   stands after its PID in the heading, small and muted, the words of the State column; no badge.
 - The actions on the selected process are on the last line of the inspector, plain 30 px
   buttons 8 px apart, in the order of their consequences: Suspend, Resume, Priority, then, 16 px
@@ -391,8 +391,8 @@ transitions, which sit under `@media (prefers-reduced-motion: no-preference)`, a
   read back what was asked; "Not applied, emulated offered", "Failed: limit differs", "Failed:
   threads still held", "Capped by an earlier session" otherwise, in the warning or error tone,
   with the whole explanation in the tooltip.
-- Above the table, one line per notice, each in its own tone: a failure of Prism (limits off,
-  the ledger) in the error color; a limit that may still be in force where Prism cannot reach
+- Above the table, one line per notice, each in its own tone: a failure of PRISM (limits off,
+  the ledger) in the error color; a limit that may still be in force where PRISM cannot reach
   it (an exited process's job, an earlier session's cap) in the warning color; a fact of the
   system muted. Notices are 4 px apart.
 - The actions on the selected process stand in three groups, 8 px apart within a group and
@@ -410,8 +410,8 @@ transitions, which sit under `@media (prefers-reduced-motion: no-preference)`, a
   until the process exits and that no second limiter is offered (ADR-0012). While a ledger of an
   earlier session is not settled, a warning notice says so, and the emulated limit is not offered
   for processes that ran while it was written.
-- A second launch for the same user shows one dialog, "Prism does not start", with the reason and
-  one button, Close (ADR-0013); nothing else of Prism appears.
+- A second launch for the same user shows one dialog, "PRISM does not start", with the reason and
+  one button, Close (ADR-0013); nothing else of PRISM appears.
 
 ## OOM Guard page
 
@@ -453,7 +453,7 @@ Further rules:
   and shrinks with the hint for an invalid value and with the memory dialog's "Press Set limit" line
   (maintenance after milestone 11; `LimitDialogsSizingSceneTest`).
 - **On the Limits page** a watched memory limit is "256 MiB (watched)". It is never called a
-  cap: its dialog and its tooltip say that Prism watches the resident memory. On a system with
+  cap: its dialog and its tooltip say that PRISM watches the resident memory. On a system with
   a native cap, "Watch resident memory…" is always in its place, disabled until a native limit
   was not applied for the process.
 

@@ -48,7 +48,7 @@ K16 can be lifted later only after separate validation and with the product owne
   [acceptance matrix](m12-acceptance-matrix.md), the Linux runs in [m12-hyperv-validation.md](m12-hyperv-validation.md).
 - **The register's summary** that no BLOCKING risk is open, with F1 and F2 fixed: [m12-risk-register.md](m12-risk-register.md).
 
-It does not cover native limits for real user processes or applications, Prism's own window on a Linux desktop, or anything under
+It does not cover native limits for real user processes or applications, PRISM's own window on a Linux desktop, or anything under
 "Before K16 can be lifted".
 
 ## Three documented exceptions

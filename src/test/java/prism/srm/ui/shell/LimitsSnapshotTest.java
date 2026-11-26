@@ -54,7 +54,7 @@ class LimitsSnapshotTest {
                         1,
                         true,
                         LimitStatus.ACTIVE_ABOVE_TARGET,
-                        Optional.of("floor: the limit is below the lowest share Prism can hold this process to"),
+                        Optional.of("floor: the limit is below the lowest share PRISM can hold this process to"),
                         OptionalDouble.of(6.1),
                         OptionalDouble.of(6.1)),
                 limited(
@@ -106,7 +106,7 @@ class LimitsSnapshotTest {
                         java.util.OptionalLong.empty(),
                         LimitStatus.FAILED,
                         prism.srm.domain.LimitNote.FALLBACK_OFFERED,
-                        Optional.of("the native limit was not applied: it is in a Job Object Prism does not hold")),
+                        Optional.of("the native limit was not applied: it is in a Job Object PRISM does not hold")),
                 LimitsFixtures.nativeLimited(
                         identity(9_120),
                         "a-build-tool-with-a-very-long-name-that-the-table-has-to-cut-somewhere.exe",
@@ -148,13 +148,13 @@ class LimitsSnapshotTest {
                             LimitRequest.of(LimitAction.DISABLE, identity(30_324), "java.exe"),
                             ControlOutcome.success(),
                             "The limits of java.exe (PID 30324) are disabled.",
-                            "Prism no longer stops it."));
+                            "PRISM no longer stops it."));
                 }));
                 cases.add(Arguments.of("limits-off", theme, size, (Consumer<Shell>)
                         shell -> shell.showLimits(new LimitsSnapshot(
                                 mixed().subList(5, 7),
                                 LimitsFixtures.EMULATED,
-                                Optional.of("Limits are off: Prism cannot record them where it would find them after a"
+                                Optional.of("Limits are off: PRISM cannot record them where it would find them after a"
                                         + " crash (the journal could not be written: There is not enough space on the"
                                         + " disk).")))));
                 cases.add(Arguments.of("limits-native", theme, size, (Consumer<Shell>) shell -> {
@@ -162,11 +162,11 @@ class LimitsSnapshotTest {
                             nativeRows(),
                             new prism.srm.domain.LimitsNotice(
                                     prism.srm.domain.LimitsNotice.Kind.RESIDUE,
-                                    "The job of build.exe (PID 6100), which has exited, still carries limits Prism could not"
-                                            + " clear (CPU 20 %); 2 processes it started stay limited. Prism keeps trying."),
+                                    "The job of build.exe (PID 6100), which has exited, still carries limits PRISM could not"
+                                            + " clear (CPU 20 %); 2 processes it started stay limited. PRISM keeps trying."),
                             new prism.srm.domain.LimitsNotice(
                                     prism.srm.domain.LimitsNotice.Kind.PRIOR_SESSION,
-                                    "worker.exe (PID 7300) may still be capped natively by an earlier Prism session (CPU 15 %)."
+                                    "worker.exe (PID 7300) may still be capped natively by an earlier PRISM session (CPU 15 %)."
                                             + " No second limiter is offered; that limit lasts until it exits.")));
                     select(shell, 1);
                 }));
@@ -178,7 +178,7 @@ class LimitsSnapshotTest {
                             LimitRequest.of(LimitAction.DISABLE, identity(30_324), "java.exe"),
                             ControlOutcome.of(prism.srm.domain.OperationResult.NATIVE_ERROR, "partial"),
                             "Disable limits was not carried out for java.exe (PID 30324).",
-                            "Its native limits are still in force (CPU 20 %, memory 512 MiB); it stays as it is. Prism tries"
+                            "Its native limits are still in force (CPU 20 %, memory 512 MiB); it stays as it is. PRISM tries"
                                     + " again later."));
                 }));
                 cases.add(Arguments.of("limits-unavailable", theme, size, (Consumer<Shell>) shell -> {

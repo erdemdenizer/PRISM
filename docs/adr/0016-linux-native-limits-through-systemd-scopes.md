@@ -10,7 +10,7 @@
 
 ## Context
 
-ADR-0003 proposed that Prism limits processes by creating child cgroups inside a subtree delegated to Prism and
+ADR-0003 proposed that PRISM limits processes by creating child cgroups inside a subtree delegated to PRISM and
 writing the target's PID into `cgroup.procs`. Planning for milestone 12 found, from the kernel and systemd
 documentation (the planning evidence, doc-facts, of plan Rev 2.2):
 
@@ -26,16 +26,16 @@ documentation (the planning evidence, doc-facts, of plan Rev 2.2):
 
 ## Decision
 
-1. On Linux, Prism limits a process by asking the **systemd user manager** to create a transient scope
-   `prism-srm-limit-<pid>-<startMillis>.scope` that contains the process, identified by a **pidfd** Prism opened
-   and bound to the process identity (PID and start time). Prism writes no cgroup file. Where the manager does not
-   accept `PIDFDs`, native limits are `UNAVAILABLE`; there is no fallback to PID-based adoption in Prism's own
+1. On Linux, PRISM limits a process by asking the **systemd user manager** to create a transient scope
+   `prism-srm-limit-<pid>-<startMillis>.scope` that contains the process, identified by a **pidfd** PRISM opened
+   and bound to the process identity (PID and start time). PRISM writes no cgroup file. Where the manager does not
+   accept `PIDFDs`, native limits are `UNAVAILABLE`; there is no fallback to PID-based adoption in PRISM's own
    messages. (systemd's user manager itself asks the system manager to move a process by PID number when it lacks the
-   privilege to move it, as from outside `user@UID.service`; Prism admits only processes inside `user@UID.service`,
+   privilege to move it, as from outside `user@UID.service`; PRISM admits only processes inside `user@UID.service`,
    checked before the pidfd is opened, and does not check that again after it: a recorded design risk.)
    Capability discovery is read-only: files under `/proc` and `/sys/fs/cgroup`, symbol lookup in `libsystemd.so.0`,
    property reads and `GetUnit`/`GetUnitByPID`. It never calls `StartTransientUnit` or any other state-changing method,
-   and never hands the pidfd of Prism or of a user process to the manager. systemd 255 is a necessary condition only;
+   and never hands the pidfd of PRISM or of a user process to the manager. systemd 255 is a necessary condition only;
    acceptance of `PIDFDs` is established by an authorized integration experiment on a disposable, test-owned process,
    and where it is not established native limits are `UNAVAILABLE`.
 2. The scope is created without limits and with `OOMPolicy=continue`, `ManagedOOMPreference=omit`,
@@ -43,14 +43,14 @@ documentation (the planning evidence, doc-facts, of plan Rev 2.2):
    `org.freedesktop.systemd1.Unit.SetProperties` on the unit object addressed by the scope's **invocation id**, never
    by its name (`CPUQuotaPerSecUSec`, `MemoryHigh`, `MemoryMax`) and verified by reading `cpu.max`, `memory.high`, `memory.max`.
    A limit is reported as applied only after the read-back matches (LIM-4).
-3. The CPU limit is Prism's whole-machine percentage P converted with the logical processor count N:
+3. The CPU limit is PRISM's whole-machine percentage P converted with the logical processor count N:
    `CPUQuotaPerSecUSec = P × N × 10 000`, which systemd writes as `cpu.max = "P·N·1000 100000"`; 100 % is set
    explicitly as N × 1 000 000 µs/s (the whole machine), not as "no quota".
 4. The default memory limit is `memory.high` (`NATIVE_SOFT`, throttling, no OOM kill, may be breached). `memory.max`
    (`NATIVE_HARD`) is offered only after separate, explicit consent that the kernel may terminate the process or
    one of its children, and only where `OOMPolicy=continue` can be set (systemd ≥ 253). Both count memory charged
    after the move only (K3); `memory.swap.max` is not touched.
-5. Removing a limit sets the property to `infinity`; the process stays in the scope until it exits. Prism never
+5. Removing a limit sets the property to `infinity`; the process stays in the scope until it exits. PRISM never
    stops, kills or abandons a scope and never writes `cgroup.kill` or `memory.oom.group`.
 6. Adoption is a one-way operation and is subject to explicit user consent that states: the move, the absence of a
    return to the original unit, the inheritance by child processes, the possibly changed ownership as seen by the
@@ -62,9 +62,9 @@ documentation (the planning evidence, doc-facts, of plan Rev 2.2):
    the limiter's contract. Extending native limits to ordinary desktop applications needs new evidence and a new
    product-owner approval (K16).
 8. Recovery after a crash is read-only classification first (`recover`, unchanged contract) and a separate explicit
-   clearing step (`clearOwned`) that runs only when ownership is proven: Prism's ledger record with the unit name
+   clearing step (`clearOwned`) that runs only when ownership is proven: PRISM's ledger record with the unit name
    and the unit's `InvocationID`, the live unit's `InvocationID` equal to it, and the recorded identity (or only its
-   surviving children) in the scope's `cgroup.procs`. A scope that merely carries Prism's name prefix, or one whose
+   surviving children) in the scope's `cgroup.procs`. A scope that merely carries PRISM's name prefix, or one whose
    record is absent, incomplete or mismatched, is never changed automatically; it is listed and limits on its
    members are blocked. There is no user action that overrides the ownership proof (K17: list and block only).
    Windows recovery (ADR-0012) is unchanged. Three rules are kept apart (plan Rev 2.2 §4.5):
@@ -73,14 +73,14 @@ documentation (the planning evidence, doc-facts, of plan Rev 2.2):
      blocked. Accordingly `OWNED_CHILDREN_ONLY` (the recorded process has exited, processes it started remain) warns
      but does not block.
    - **Scope-membership blocking** refuses native and emulated limits for every process whose cgroup is inside a
-     scope named as Prism names them, `prism-srm-limit-<pid>-<start millis>.scope`, proven or not, independently of any
+     scope named as PRISM names them, `prism-srm-limit-<pid>-<start millis>.scope`, proven or not, independently of any
      record; a failed read refuses. This is what keeps
      surviving descendants from overlapping limits.
    - **Provenance retention**: the ledger record is the only source of the ownership proof. While a proven scope
      exists and still holds processes, its record is not discarded — not when the recorded process exits — until the
      limits have been cleared and verified by read-back, or the scope has ceased to exist (no unit, or no members). A
      discarded record would turn a proven scope into an unproven one that can never be cleared safely.
-   In the S1–S2 stage, where Prism created no scope, `OWNED_CHILDREN_ONLY` only warned and its record was not
+   In the S1–S2 stage, where PRISM created no scope, `OWNED_CHILDREN_ONLY` only warned and its record was not
    carried. From S3B on, a record with provenance is carried while its verdict is `OWNED_LIMITED`,
    `OWNED_CHILDREN_ONLY` or `CLEAR_FAILED`, and membership blocking is in force.
 9. Ledger format 2 adds the unit name, invocation id, cgroup path and memory boundary; format 1 stays readable.
@@ -139,7 +139,7 @@ documentation (the planning evidence, doc-facts, of plan Rev 2.2):
   `memory.max` of 128 MiB with separate consent bounded resident memory, and on that runner the kernel swapped
   (about 400 MB) rather than killing (no `oom_kill`), because `memory.swap.max` is not touched (decision 4); a
   surviving child kept its scope and was cleared by `forget`; a crashed session's scope was proven and cleared only
-  then; a recordless scope carrying Prism's name was never changed and blocked its members; two concurrent adoptions
+  then; a recordless scope carrying PRISM's name was never changed and blocked its members; two concurrent adoptions
   held; no `prism-srm-limit-*` unit was left after the job. CI-3 runs the test JVM outside the user manager, so it
   proves nothing about desktop applications (decision 7).
 
@@ -149,16 +149,16 @@ documentation (the planning evidence, doc-facts, of plan Rev 2.2):
   most 2 s, so no native code calls back into the JVM. A unit still not active after the bound is uncertain, not
   failed.
 - **Unanswered calls are uncertain.** A reply carrying a D-Bus error name is a refusal (nothing was done); no reply,
-  a timeout or a lost connection is `UNKNOWN`, and Prism keeps the descriptor and assumes nothing.
+  a timeout or a lost connection is `UNKNOWN`, and PRISM keeps the descriptor and assumes nothing.
 - **Read-back waits.** systemd answers a property write before it realizes the cgroup (it queues the
   realization), so the read-back polls for at most 1 s until the files show the request; otherwise the last reading
   is reported as a mismatch. A controller that is not enabled for the scope (absent from `cgroup.controllers`) has
   no interface files there and reads as "no limit of that kind": systemd enables `cpu` for a unit only while a CPU
   property is set. Both were found by the first CI-3 run.
 - **100 % CPU** is set explicitly as N × 1 000 000 µs/s, so the read-back is an exact whole-machine rate.
-- **R4 "hold re-owned after clear" is not implemented.** After `clearOwned` the process stays in an unlimited Prism
+- **R4 "hold re-owned after clear" is not implemented.** After `clearOwned` the process stays in an unlimited PRISM
   scope, and the membership rule keeps any second limiter from it until it exits.
-- **The membership rule** blocks native and emulated limits for every process in a scope named as Prism names them except
+- **The membership rule** blocks native and emulated limits for every process in a scope named as PRISM names them except
   the target this limiter holds, including survivors of this session's released scopes. The product limiter keeps
   the rule although it adopts nothing.
 - **Internal audit (S7, 2026-10-15).** Independent native-API, test and architecture reviews found, and the
@@ -169,7 +169,7 @@ documentation (the planning evidence, doc-facts, of plan Rev 2.2):
   - an error that sd-bus may have produced locally after sending (`Failed`, `IOError`, `NoMemory`, ...) is
     `UNKNOWN`, not a refusal; only systemd's own errors and the standard refusals mean nothing was done
     (caveat from the final review: sd-bus can also make a standard refusal name locally from an errno after a failed
-    send, e.g. `LimitsExceeded` from ENOBUFS when its receive queue is full; not realistic on Prism's fresh private
+    send, e.g. `LimitsExceeded` from ENOBUFS when its receive queue is full; not realistic on PRISM's fresh private
     connection, and `sd_bus_call` gives no way to tell the two apart);
   - a value systemd accepted, or a call without an answer, that the read-back does not show is uncertain
     (adoption `UNCERTAIN`, change `UNVERIFIED`) and the next change sends every kind again;
@@ -177,7 +177,7 @@ documentation (the planning evidence, doc-facts, of plan Rev 2.2):
   - a scope whose ownership evidence could not be recorded never gets a limit, not through a later change either;
   - a recorded process that runs outside its scope while others remain proves nothing (`UNPROVEN_SCOPE`, list and
     block only);
-  - a hold whose scope was never proven Prism's is never sent a limit write on forget or shutdown, and
+  - a hold whose scope was never proven PRISM's is never sent a limit write on forget or shutdown, and
     clearing sends every kind;
   - the quota uses the online processors the kernel lists in `/proc/stat`, not the JVM's share;
   - the scope-membership rule has its own status and wording (`IN_PRISM_SCOPE`), not "capped by an earlier
@@ -198,7 +198,7 @@ documentation (the planning evidence, doc-facts, of plan Rev 2.2):
   real-time processes, which the user-facing wording does not say yet.
 - **Independent review closure (2026-10-16).** After the independent review of the final handoff:
   - eligibility requires the process's real, effective, saved set and file system user IDs
-    (`/proc/<pid>/status`, `Uid:`) to equal Prism's own uid; an unreadable status refuses;
+    (`/proc/<pid>/status`, `Uid:`) to equal PRISM's own uid; an unreadable status refuses;
   - `releaseAll` is bounded end to end: the work runs on its own thread (`srm-linux-release`), the caller
     waits no longer than the bound, nothing more is sent once the bound has passed, and holds not reached are
     reported with `timedOut`; a bus call in flight at the bound ends by its own call timeout;
@@ -236,7 +236,7 @@ documentation (the planning evidence, doc-facts, of plan Rev 2.2):
     cgroup as well as the invocation id, while recovery's `clearOwned` compares the invocation id and reads membership
     from the live unit's cgroup (one invocation has one cgroup);
   - remaining time-of-check/time-of-use limits, accepted and documented: a process can be moved between the membership
-    check and a send (systemd has no conditional write); the write then lands on Prism's own invocation, never another
+    check and a send (systemd has no conditional write); the write then lands on PRISM's own invocation, never another
     unit, and the re-check reports it as uncertain/unverified; the separate reads (unit properties, `/proc`, cgroup
     files) are not one atomic snapshot; `OOMPolicy` is read by name before a hard limit (a reused name could answer
     for another unit, but the `MemoryMax` write itself would then fail on the invocation path); invocation ids are
@@ -259,7 +259,7 @@ documentation (the planning evidence, doc-facts, of plan Rev 2.2):
   `-Dprism.linux.native.required=true`:
   - at 75af800: 9 of 11 passed. T-L2 failed at the 1 % edge (0.195 cores): the VM's virtual clock froze for about
     257 s during that test (VirtualBox log: "Giving up catch-up attempt at a 267 s lag", guest heartbeat lost), which
-    also made its release time out; not a Prism fault. T-L5 failed because, without swap, anonymous memory above
+    also made its release time out; not a PRISM fault. T-L5 failed because, without swap, anonymous memory above
     `memory.high` cannot be reclaimed and the kernel keeps the allocator in its throttling delay, so it never finished
     in 90 s (the test assumed swap; fixed in c85525a to accept that outcome only where SwapTotal is 0, with every
     throttling proof still required);
@@ -284,7 +284,7 @@ documentation (the planning evidence, doc-facts, of plan Rev 2.2):
     what the test timed as a 3 s window: the kernel was throttling, and the guest's clocks disagreed. The same test
     held the quota in runs 1 to 3 (0.411, 0.402, 0.400). Recorded as a clock artefact of the VM, not proven further. T-L7 alone then passed 2 of 3
     repeats (the third failure again with the 2 s `GetUnit` timeout during guest stalls; a further 256 s freeze
-    followed). Prism reported every one of these as uncertain and claimed no limit: the fail-closed path, exercised
+    followed). PRISM reported every one of these as uncertain and claimed no limit: the fail-closed path, exercised
     for real. The VM was stopped there, as further runs on a host that freezes the guest prove nothing more.
   So the latest code ran green end to end on Linux at c85525a; f9fc7a9/dc72201 add only the user-ID comparison (and a
   test print), which ran on real Linux inside every successful adoption and change of runs 3 and 4, but no run of
@@ -300,7 +300,7 @@ documentation (the planning evidence, doc-facts, of plan Rev 2.2):
   adoption keeps the real user ID, so signal 0 still works; the ownership proof before and after every change now also
   compares the four user IDs again, so such a process gets no further limit (the hold becomes uncertain). Recorded, not
   changed: the connection's `Hello` keeps libsystemd's default 25 s timeout, because `sd_bus_open_user` seals it
-  before Prism sets its 2 s bound (a hung broker can hold an open that long; callers are bounded and fail closed);
+  before PRISM sets its 2 s bound (a hung broker can hold an open that long; callers are bounded and fail closed);
   the target's cgroup is not checked again after the pidfd is open (decision 1); group IDs are not compared;
   `LinuxScopeLimiter` is large (1500+ lines) and adoption blocks `srm-limiter` for up to a few seconds — both to be
   resolved before any enablement.
@@ -315,7 +315,7 @@ documentation (the planning evidence, doc-facts, of plan Rev 2.2):
 - **Closure review (2026-11-07).** An independent review of the product paths found no way past K16 and two faults in the
   scope-membership rule that were reachable with K16 active, against decision 8: it was off when the cgroup mount could not be
   determined, and it read only the last path segment. Both are fixed, with tests seen failing first; the rule now
-  needs only `/proc/<pid>/cgroup` and covers cgroups below a Prism scope. The K16 tests were strengthened. The code does not
+  needs only `/proc/<pid>/cgroup` and covers cgroups below a PRISM scope. The K16 tests were strengthened. The code does not
   yet meet decision 4: `LimitService` asks for `memory.max` on every native memory limit, and nothing requests `memory.high`
   (register D14). Open risks:
   [evidence/m12-risk-register.md](../evidence/m12-risk-register.md).

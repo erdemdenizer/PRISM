@@ -20,7 +20,7 @@ import prism.srm.platform.Suspension;
 
 /**
  * Process control on the real system, against the demo workload only (SAFE-6): one worker thread
- * kept fully busy, whose CPU time the JDK reads independently of Prism. The waits are measurement
+ * kept fully busy, whose CPU time the JDK reads independently of PRISM. The waits are measurement
  * windows, not synchronization: CPU time is compared over a stretch of wall time.
  */
 @EnabledOnOs(OS.WINDOWS)

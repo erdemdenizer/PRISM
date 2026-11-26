@@ -414,7 +414,7 @@ class MonitoringRuntimeOomTest {
         manage(DEMO, EmergencyAction.SUSPEND);
         available(3);
         await(() -> controller.calls.contains("suspend 4242"));
-        // An emulated CPU limit makes Prism check the journal on disk about once a second.
+        // An emulated CPU limit makes PRISM check the journal on disk about once a second.
         assertThat(ask(LimitRequest.of(LimitAction.MANAGE, OTHER, "other"))
                         .outcome()
                         .succeeded())
@@ -423,7 +423,7 @@ class MonitoringRuntimeOomTest {
                 .isTrue();
 
         Path journal = journalFolder.path().resolve("suspensions-9-9.journal");
-        Files.writeString(journal, "not what Prism wrote");
+        Files.writeString(journal, "not what PRISM wrote");
 
         await(() -> controller.calls.contains("resume 4242"));
         await(() -> logged("The suspension journal cannot be written"));

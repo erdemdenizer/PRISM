@@ -109,7 +109,7 @@ class MacosProcessControllerTest {
         assertThat(macos.calls).allMatch(call -> call.startsWith("sysctl"));
     }
 
-    /** xnu's kill succeeds on a zombie; Prism answers it as gone before it is asked. */
+    /** xnu's kill succeeds on a zombie; PRISM answers it as gone before it is asked. */
     @Test
     void aZombieIsAnsweredAsGoneWithoutASignal() {
         macos.processes.get(PID).state = MacosProcessController.SZOMB;
@@ -232,7 +232,7 @@ class MacosProcessControllerTest {
                 .isEqualTo(prism.srm.platform.AdoptResult.Verdict.GONE);
     }
 
-    /** The PID now names another process: the continue is not sent, and Prism lets go of the stop. */
+    /** The PID now names another process: the continue is not sent, and PRISM lets go of the stop. */
     @Test
     void resumeAfterThePidPassedToAnotherProcessSendsNothing() {
         Suspension stop = controller.suspend(TARGET).suspension().orElseThrow();
@@ -393,7 +393,7 @@ class MacosProcessControllerTest {
         assertThat(MacosErrors.result(MacosErrors.ENOMEM)).isEqualTo(OperationResult.NATIVE_ERROR);
     }
 
-    /** A read that failed is no exit: Prism keeps the stop it holds, and the coordinator keeps it too. */
+    /** A read that failed is no exit: PRISM keeps the stop it holds, and the coordinator keeps it too. */
     @Test
     void aFailedReadIsNeverTakenForAnExit() {
         Suspension stop = controller.suspend(TARGET).suspension().orElseThrow();
@@ -412,7 +412,7 @@ class MacosProcessControllerTest {
         assertThat(controller.resume(stop).result()).isEqualTo(OperationResult.SUCCESS);
     }
 
-    /** kill(0) would signal Prism's own process group: PID 0 and below are never passed on. */
+    /** kill(0) would signal PRISM's own process group: PID 0 and below are never passed on. */
     @Test
     void pidZeroIsNeverActedOn() {
         ProcessIdentity zero = new ProcessIdentity(0, START);

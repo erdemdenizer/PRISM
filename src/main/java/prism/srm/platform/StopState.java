@@ -7,7 +7,7 @@ package prism.srm.platform;
 public enum StopState {
     /** Stopped by a signal (Linux state T, macOS SSTOP). */
     STOPPED,
-    /** Stopped under a debugger or tracer (Linux state t, the macOS P_TRACED flag): never Prism's to resume. */
+    /** Stopped under a debugger or tracer (Linux state t, the macOS P_TRACED flag): never PRISM's to resume. */
     TRACED,
     /** Not stopped. */
     RUNNING,

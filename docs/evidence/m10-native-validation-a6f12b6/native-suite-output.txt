@@ -43,19 +43,19 @@
 [INFO] Running prism.srm.platform.windows.NativeLimitRecoveryIntegrationTest
 native-validation: selfInJob=Optional[false] childInJob=Optional[false] pid=37856
   [26052] 01:30:44.728 INFO  [main] p.s.p.windows.WindowsJobLimiter - Native limits: CPU LimitCapability[level=NATIVE_HARD, mechanism=Optional[JOB_OBJECT], reason=Optional.empty], memory LimitCapability[level=NATIVE_HARD, mechanism=Optional[JOB_OBJECT], reason=Optional.empty]
-01:30:44.787 WARN  [junit-timeout-thread-1] p.srm.application.NativeRecovery - The native-limit ledger of 26052-1791671443994 is left alone: that Prism process still runs
-recovery: live session: HELD_ELSEWHERE a running program holds this job (CPU 20 %, memory 4 GiB); Prism changes nothing use=21.3
+01:30:44.787 WARN  [junit-timeout-thread-1] p.srm.application.NativeRecovery - The native-limit ledger of 26052-1791671443994 is left alone: that PRISM process still runs
+recovery: live session: HELD_ELSEWHERE a running program holds this job (CPU 20 %, memory 4 GiB); PRISM changes nothing use=21.3
 native-validation: selfInJob=Optional[false] childInJob=Optional[false] pid=27708
   [45836] 01:30:55.613 INFO  [main] p.s.p.windows.WindowsJobLimiter - Native limits: CPU LimitCapability[level=NATIVE_HARD, mechanism=Optional[JOB_OBJECT], reason=Optional.empty], memory LimitCapability[level=NATIVE_HARD, mechanism=Optional[JOB_OBJECT], reason=Optional.empty]
-recovery: child of an exited target: childUse=21.0 GONE_CHILDREN_UNKNOWN the process exited; Prism cannot prove that its limit never took effect
+recovery: child of an exited target: childUse=21.0 GONE_CHILDREN_UNKNOWN the process exited; PRISM cannot prove that its limit never took effect
 native-validation: selfInJob=Optional[false] childInJob=Optional[false] pid=55508
   [49624] 01:31:06.623 INFO  [main] p.s.p.windows.WindowsJobLimiter - Native limits: CPU LimitCapability[level=NATIVE_HARD, mechanism=Optional[JOB_OBJECT], reason=Optional.empty], memory LimitCapability[level=NATIVE_HARD, mechanism=Optional[JOB_OBJECT], reason=Optional.empty]
 recovery: stand-in says limiting CPU 20 %, memory 4 GiB
 recovery: limited=22.0 afterKill=20.5 reopenError=2 inJob=Optional[true]
-01:31:26.670 WARN  [junit-timeout-thread-3] prism.srm.application.ActivityLog - demo (PID 55508) may still be limited by an earlier Prism session (CPU 20 %, memory 4 GiB): the job of an earlier session cannot be reached. The limit lasts until the process exits; Prism starts no second limiter for it.
+01:31:26.670 WARN  [junit-timeout-thread-3] prism.srm.application.ActivityLog - demo (PID 55508) may still be limited by an earlier PRISM session (CPU 20 %, memory 4 GiB): the job of an earlier session cannot be reached. The limit lasts until the process exits; PRISM starts no second limiter for it.
 recovery: UNREACHABLE the job of an earlier session cannot be reached
 recovery: afterRecovery=20.3
-recovery: after the target exited: GONE_CHILDREN_UNKNOWN the process exited; Prism cannot prove that its limit never took effect
+recovery: after the target exited: GONE_CHILDREN_UNKNOWN the process exited; PRISM cannot prove that its limit never took effect
 native-validation: selfInJob=Optional[false] childInJob=Optional[false] pid=18128
   [51924] 01:31:37.652 INFO  [main] p.s.p.windows.WindowsJobLimiter - Native limits: CPU LimitCapability[level=NATIVE_HARD, mechanism=Optional[JOB_OBJECT], reason=Optional.empty], memory LimitCapability[level=NATIVE_HARD, mechanism=Optional[JOB_OBJECT], reason=Optional.empty]
 recovery: stand-in says changed-cpu APPLIED CPU 30 %, memory 4 GiB
@@ -64,7 +64,7 @@ recovery: partial change: afterKill=30.4 UNREACHABLE the job of an earlier sessi
 [INFO] Running prism.srm.platform.windows.ParentExitsChildSurvivesTest
 native-validation: selfInJob=Optional[false] childInJob=Optional[false] pid=36196
 01:31:47.872 INFO  [junit-timeout-thread-5] p.s.p.windows.WindowsJobLimiter - Native limits: CPU LimitCapability[level=NATIVE_HARD, mechanism=Optional[JOB_OBJECT], reason=Optional.empty], memory LimitCapability[level=NATIVE_HARD, mechanism=Optional[JOB_OBJECT], reason=Optional.empty]
-01:31:57.964 INFO  [junit-timeout-thread-5] p.s.p.windows.WindowsJobLimiter - The job of exited PID 36196 held 2 process(es); Prism cleared its limits
+01:31:57.964 INFO  [junit-timeout-thread-5] p.s.p.windows.WindowsJobLimiter - The job of exited PID 36196 held 2 process(es); PRISM cleared its limits
 parent-exits: limited=20.5 RELEASED survivors=2 childChildren=[58344:conhost.exe] free=58.3
 [INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 20.27 s -- in prism.srm.platform.windows.ParentExitsChildSurvivesTest
 [INFO] Running prism.srm.platform.windows.WindowsJobIntegrationTest

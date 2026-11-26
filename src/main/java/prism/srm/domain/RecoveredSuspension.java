@@ -4,13 +4,13 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * A process an earlier session of Prism may have left suspended, found in that session's journal
- * after it ended without a controlled shutdown (LIFE-4, LIFE-6). Prism resumes none of these by
- * itself: a journal entry is a claim, not proof that the stop is still Prism's (ADR-0011).
+ * A process an earlier session of PRISM may have left suspended, found in that session's journal
+ * after it ended without a controlled shutdown (LIFE-4, LIFE-6). PRISM resumes none of these by
+ * itself: a journal entry is a claim, not proof that the stop is still PRISM's (ADR-0011).
  *
  * @param reasons why the earlier session held it: the user, the CPU limiter, OOM Guard
- * @param state whether Prism offers to resume it after checking, or can only show it
- * @param explanation what Prism could and could not check, in plain words
+ * @param state whether PRISM offers to resume it after checking, or can only show it
+ * @param explanation what PRISM could and could not check, in plain words
  * @param resumable whether the page offers Resume; never for {@link
  *     RecoveryState#MANUAL_INTERVENTION}
  * @param evidence the whole journal entry, for whoever has to decide by hand

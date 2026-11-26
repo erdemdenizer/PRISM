@@ -122,7 +122,7 @@ class WindowsJobIntegrationTest {
         }
     }
 
-    /** E4 and plan D1: a process in a job of another program is refused before Prism makes a job. */
+    /** E4 and plan D1: a process in a job of another program is refused before PRISM makes a job. */
     @Test
     void aProcessInAJobOfAnotherProgramIsRefusedAndNoJobIsMade() throws Exception {
         DemoTarget demo = demo("--cpu", "1", "--duration", "60s");

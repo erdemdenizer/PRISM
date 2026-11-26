@@ -85,7 +85,7 @@ class SurvivingDescendantLifecycleTest {
         return new RecoveredLimit(record, RecoveredLimit.Verdict.OWNED_CHILDREN_ONLY, "children remain");
     }
 
-    /** One start of Prism: recovery over the earlier ledgers, into this session's own. */
+    /** One start of PRISM: recovery over the earlier ledgers, into this session's own. */
     private Session start() {
         session++;
         NativeLimitLedger own = ledger(session + "-" + session);

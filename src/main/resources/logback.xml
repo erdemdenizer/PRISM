@@ -8,7 +8,7 @@
 -->
 <configuration>
   <!--
-    No shutdown hook of Logback's own: Prism's hook (srm-exit-hook, ADR-0011) logs what it releases
+    No shutdown hook of Logback's own: PRISM's hook (srm-exit-hook, ADR-0011) logs what it releases
     when the JVM exits, and a Logback hook that ran first would stop the context and lose those
     lines. Every line is written to the file as it is logged (immediateFlush), so nothing waits in
     a buffer; the clean-up of old files may be cut short at exit and runs again at the next start.
@@ -24,7 +24,7 @@
     Bounded as far as Logback bounds it. A new file is begun once the current one has reached
     2 MB (counted per process) and at midnight. At start and at each rollover, files 31 to 62
     days old are deleted, and the files of the last 30 days are cut back to 20 MB, oldest first.
-    A file that is never looked at in those windows, because Prism was not started for two
+    A file that is never looked at in those windows, because PRISM was not started for two
     months, stays: see docs/adr/0007-per-user-folders-and-log-files.md.
 
     No <file> element: the active file already has its dated name, so a rollover never renames a

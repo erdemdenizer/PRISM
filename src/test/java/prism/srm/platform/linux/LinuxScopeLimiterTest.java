@@ -204,7 +204,7 @@ class LinuxScopeLimiterTest {
                         .outcome()
                         .detail()
                         .orElseThrow())
-                .contains("scope with Prism's name");
+                .contains("scope with PRISM's name");
         assertThat(systemd.calls).isEmpty();
     }
 
@@ -383,7 +383,7 @@ class LinuxScopeLimiterTest {
         assertThat(limiter.hold(DEMO).orElseThrow().state()).isEqualTo(NativeHold.State.UNCERTAIN);
         assertThat(limiter.heldDescriptors()).hasSize(1);
         assertThat(systemd.setCalls()).isZero();
-        // Never proven Prism's (native review 3): after the process exits, forget sends nothing to a unit of that name.
+        // Never proven PRISM's (native review 3): after the process exits, forget sends nothing to a unit of that name.
         systemd.units.get(UNIT).queuedPolls = 0;
         systemd.exit(proc, PID);
         ForgetResult forgotten = limiter.forget(DEMO);
@@ -735,7 +735,7 @@ class LinuxScopeLimiterTest {
 
         assertThat(change.phase()).as(change.toString()).isEqualTo(ChangeResult.Phase.NOT_DONE);
         assertThat(systemd.setCalls())
-                .as("nothing sent to a unit that is not Prism's")
+                .as("nothing sent to a unit that is not PRISM's")
                 .isEqualTo(sets);
         assertThat(systemd.read(group(), "cpu.max")).isEqualTo("max 100000");
         assertThat(limiter.hold(DEMO))
@@ -744,8 +744,8 @@ class LinuxScopeLimiterTest {
     }
 
     /**
-     * Only the invocation differs: a unit of Prism's name and cgroup path, with the target in it, but not the invocation
-     * Prism made (the scope was collected and made again by someone else). The invocation comparison alone must stop the
+     * Only the invocation differs: a unit of PRISM's name and cgroup path, with the target in it, but not the invocation
+     * PRISM made (the scope was collected and made again by someone else). The invocation comparison alone must stop the
      * change before anything is sent.
      */
     @Test
@@ -760,7 +760,7 @@ class LinuxScopeLimiterTest {
         assertThat(change.phase()).as(change.toString()).isEqualTo(ChangeResult.Phase.NOT_DONE);
         assertThat(change.outcome().detail().orElseThrow()).contains("another unit has the scope's name now");
         assertThat(systemd.setCalls())
-                .as("nothing sent to an invocation that is not Prism's")
+                .as("nothing sent to an invocation that is not PRISM's")
                 .isEqualTo(sets);
         assertThat(systemd.read(group(), "cpu.max")).isEqualTo("max 100000");
         assertThat(limiter.hold(DEMO)).contains(new NativeHold(NativeHold.State.UNCERTAIN, Optional.empty()));
@@ -768,7 +768,7 @@ class LinuxScopeLimiterTest {
 
     /**
      * The time-of-check/time-of-use window systemd leaves open: the name is reused between the ownership check and the
-     * send. The send is bound to the invocation Prism proved, so the new unit is never changed.
+     * send. The send is bound to the invocation PRISM proved, so the new unit is never changed.
      */
     @Test
     void aNameReusedBetweenTheCheckAndTheSendIsNeverChanged() {
@@ -791,7 +791,7 @@ class LinuxScopeLimiterTest {
 
         assertThat(change.phase()).as(change.toString()).isEqualTo(ChangeResult.Phase.UNVERIFIED);
         assertThat(systemd.setInvocations.subList(before, systemd.setInvocations.size()))
-                .as("every send was addressed to Prism's invocation, never to the name")
+                .as("every send was addressed to PRISM's invocation, never to the name")
                 .isNotEmpty()
                 .containsOnly(ours);
         assertThat(systemd.read(group(), "cpu.max"))
@@ -962,7 +962,7 @@ class LinuxScopeLimiterTest {
         assertThat(linux.openFds()).isEmpty();
     }
 
-    /** The invocation goes during a clearing and a unit takes the name: its files are not read back as Prism's. */
+    /** The invocation goes during a clearing and a unit takes the name: its files are not read back as PRISM's. */
     @Test
     void aClearingWhoseInvocationWentReadsNothingBackAsPrisms() {
         apply(CPU20_THROTTLE256);
@@ -983,7 +983,7 @@ class LinuxScopeLimiterTest {
         ForgetResult forgotten = limiter.forget(DEMO);
 
         assertThat(forgotten.result()).isEqualTo(ForgetResult.Outcome.NOTHING_TO_RELEASE);
-        assertThat(forgotten.outcome().detail()).contains("the scope Prism made is gone");
+        assertThat(forgotten.outcome().detail()).contains("the scope PRISM made is gone");
     }
 
     /** Uncertain native operations keep their descriptor and are released by a later release, sending nothing unproven. */
@@ -1306,7 +1306,7 @@ class LinuxScopeLimiterTest {
                 .isPresent();
     }
 
-    /** ADR-0016 decision 8: the rule covers every process inside a Prism scope, not only one directly in it. */
+    /** ADR-0016 decision 8: the rule covers every process inside a PRISM scope, not only one directly in it. */
     @Test
     void theScopeMembershipRuleCoversACgroupBelowAPrismScope() {
         proc.process(4100, "below-a-scope", TICKS);
@@ -1353,7 +1353,7 @@ class LinuxScopeLimiterTest {
         assertThat(noMount.scopeBarrier(new ProcessIdentity(4200, FakeProc.start(TICKS))))
                 .isEmpty();
         assertThat(noMount.scopeBarrier(new ProcessIdentity(4300, FakeProc.start(TICKS))))
-                .as("a system with no unified hierarchy has no scope of Prism's")
+                .as("a system with no unified hierarchy has no scope of PRISM's")
                 .isEmpty();
         assertThat(noMount.scopeBarrier(new ProcessIdentity(4400, FakeProc.start(TICKS))))
                 .as("a failed read refuses")

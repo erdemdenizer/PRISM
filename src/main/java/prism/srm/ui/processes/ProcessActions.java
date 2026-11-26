@@ -42,10 +42,10 @@ import prism.srm.ui.control.ResultTone;
  * <p><b>Enabled.</b> An action is enabled when a process is selected, the action is available on
  * this system, monitoring runs, and no action on that process is in progress. An unavailable action
  * is disabled, never hidden, and says why (CAP-2); the reason is chosen from the capability, not
- * from the operating system (CAP-1, CAP-5). Suspend is enabled for a process Prism does not hold
+ * from the operating system (CAP-1, CAP-5). Suspend is enabled for a process PRISM does not hold
  * suspended, Resume for one it does.
  *
- * <p><b>Prism's own process.</b> Once the page knows the PID of Prism, every action on that process
+ * <p><b>PRISM's own process.</b> Once the page knows the PID of PRISM, every action on that process
  * is disabled with the reason (CAP-2, SAFE-2). The service refuses such a request as well, so that a
  * request that reaches it by another way is still refused.
  *
@@ -78,7 +78,7 @@ final class ProcessActions {
     static final String NONE_AVAILABLE = "Actions on processes are not available on this system.";
     static final String SELECT_FIRST = "Select a process first.";
     static final String OWN_PROCESS =
-            "This is Prism's own process. Prism does not suspend, end, change, limit or manage itself.";
+            "This is PRISM's own process. PRISM does not suspend, end, change, limit or manage itself.";
 
     private final Consumer<ControlRequest> requests;
     private final Map<ControlAction, ReadOnlyBooleanWrapper> disabled = new EnumMap<>(ControlAction.class);
@@ -178,18 +178,18 @@ final class ProcessActions {
         refresh();
     }
 
-    /** The PID of Prism itself: its row offers no action (SAFE-2, CAP-2). */
+    /** The PID of PRISM itself: its row offers no action (SAFE-2, CAP-2). */
     void showOwnProcess(long pid) {
         ownPid = OptionalLong.of(pid);
         refresh();
     }
 
-    /** Whether a process is Prism itself, as far as the page knows. */
+    /** Whether a process is PRISM itself, as far as the page knows. */
     boolean isOwnProcess(ProcessIdentity identity) {
         return isOwn(ownPid, identity);
     }
 
-    /** The one test of Prism's own process, for this class and {@link ManagedActions}. */
+    /** The one test of PRISM's own process, for this class and {@link ManagedActions}. */
     static boolean isOwn(OptionalLong ownPid, ProcessIdentity identity) {
         return ownPid.isPresent() && identity.pid() == ownPid.getAsLong();
     }
@@ -230,7 +230,7 @@ final class ProcessActions {
         refresh();
     }
 
-    /** A new listing arrived: from now on it, not an earlier result, says what Prism holds and what priority a process has. */
+    /** A new listing arrived: from now on it, not an earlier result, says what PRISM holds and what priority a process has. */
     void listingArrived() {
         heldByResult.clear();
         refresh();
@@ -411,10 +411,10 @@ final class ProcessActions {
         }
         boolean held = heldByPrism();
         if (action == ControlAction.SUSPEND && held) {
-            return Optional.of("Already suspended by Prism; use Resume.");
+            return Optional.of("Already suspended by PRISM; use Resume.");
         }
         if (action == ControlAction.RESUME && !held) {
-            return Optional.of("Prism holds no suspension of this process.");
+            return Optional.of("PRISM holds no suspension of this process.");
         }
         return Optional.empty();
     }
@@ -452,7 +452,7 @@ final class ProcessActions {
             case PER_THREAD_SUSPENSION ->
                 action == ControlAction.SUSPEND
                         ? "Stops the threads of the process one by one. Not atomic: a thread started meanwhile runs on."
-                        : "Releases the suspension Prism holds; a suspension another program made stays.";
+                        : "Releases the suspension PRISM holds; a suspension another program made stays.";
             case PRIORITY_CLASS -> "Sets the scheduling priority. The table shows it with the next listing.";
             case TERMINATION_SIGNAL ->
                 "Asks the process to terminate. It may save its work first, or ignore the request.";

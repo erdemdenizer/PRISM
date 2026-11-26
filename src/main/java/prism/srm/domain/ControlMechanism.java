@@ -37,9 +37,9 @@ public enum ControlMechanism {
     NICE_VALUE,
 
     /**
-     * A duty cycle Prism runs itself: it suspends and resumes the process in short cycles, steered
-     * by the processor time it measures (LIM-8). Approximate, only while Prism runs, and only where
-     * the system lets Prism suspend the process.
+     * A duty cycle PRISM runs itself: it suspends and resumes the process in short cycles, steered
+     * by the processor time it measures (LIM-8). Approximate, only while PRISM runs, and only where
+     * the system lets PRISM suspend the process.
      */
     DUTY_CYCLE,
 
@@ -52,16 +52,16 @@ public enum ControlMechanism {
 
     /**
      * A transient scope of the systemd user manager on Linux (milestone 12, ADR-0016, Proposed): the process is moved, by a
-     * pidfd, into a scope Prism asked for, whose cgroup v2 limits ({@code cpu.max}, {@code memory.high},
+     * pidfd, into a scope PRISM asked for, whose cgroup v2 limits ({@code cpu.max}, {@code memory.high},
      * {@code memory.max}) the kernel enforces. The move is one-way: the process stays in that scope until it exits,
      * and the processes it starts afterwards share it. Not offered by any system in this version.
      */
     SYSTEMD_SCOPE,
 
     /**
-     * Prism watches the resident memory of the process and, when it goes above the limit, applies the
+     * PRISM watches the resident memory of the process and, when it goes above the limit, applies the
      * process's emergency action as far as OOM Guard's switches allow (LIM-9). Not a cap: the process
-     * may use more, and only while Prism runs.
+     * may use more, and only while PRISM runs.
      */
     RESIDENT_POLICY
 }

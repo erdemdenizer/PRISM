@@ -153,7 +153,7 @@ interface Win32 {
     /** The CPU rate control of a job as read back: its ControlFlags and the union read as CpuRate. */
     record CpuRate(int flags, int rate) {}
 
-    /** What Prism reads of a job's extended limits: the limit flags and the per-process memory limit. */
+    /** What PRISM reads of a job's extended limits: the limit flags and the per-process memory limit. */
     record ExtendedLimits(int limitFlags, long processMemoryLimit) {}
 
     /** CreateJobObjectW with the default security descriptor and this name; a null name makes a job without one. */

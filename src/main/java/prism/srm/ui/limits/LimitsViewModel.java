@@ -67,7 +67,7 @@ final class LimitsViewModel {
             + " on the Processes page.";
     /** What the memory column stands for: said in its header (CAP-3: a watched limit is never called a cap). */
     static final String MEMORY_NOTE = "The memory each process may commit (native cap), or, where no native cap is"
-            + " available, the resident memory Prism watches.";
+            + " available, the resident memory PRISM watches.";
 
     static final String DASH = "–";
     static final String SELECT_FIRST = "Select a managed process first.";
@@ -194,7 +194,7 @@ final class LimitsViewModel {
     }
 
     /**
-     * A failure of Prism is an error; a limit that may still be in force where Prism cannot reach it is a
+     * A failure of PRISM is an error; a limit that may still be in force where PRISM cannot reach it is a
      * warning; a fact of the system is muted (docs/UI_GUIDE.md, color).
      */
     static LimitRow.Tone tone(LimitsNotice.Kind kind) {
@@ -484,7 +484,7 @@ final class LimitsViewModel {
                 .mechanism()
                 .map(mechanism -> switch (mechanism) {
                     case JOB_OBJECT -> "Job Object: the system enforces the limit.";
-                    case DUTY_CYCLE -> "Duty cycle: Prism stops and continues the process; approximate.";
+                    case DUTY_CYCLE -> "Duty cycle: PRISM stops and continues the process; approximate.";
                     case RESIDENT_POLICY ->
                         "Watched resident memory: not a cap; OOM Guard applies the emergency action above the limit.";
                     default -> mechanism.name();
@@ -511,19 +511,19 @@ final class LimitsViewModel {
                 new Status(
                         "Not throttling" + measured.map(m -> ", " + m).orElse(""),
                         LimitRow.Tone.NORMAL,
-                        "It uses less than its limit, so Prism does not stop it.");
+                        "It uses less than its limit, so PRISM does not stop it.");
             case ADJUSTING ->
                 cpu.note() == LimitNote.NOT_MEASURED
                         ? new Status("Not measured", LimitRow.Tone.WARNING, detail)
                         : new Status(
                                 "Adjusting" + measured.map(m -> ", " + m).orElse(""),
                                 LimitRow.Tone.MUTED,
-                                "Prism is finding the share of time that holds it near its limit.");
+                                "PRISM is finding the share of time that holds it near its limit.");
             case ACTIVE_THROTTLING ->
                 new Status(
                         "Throttling" + measured.map(m -> ", " + m).orElse(""),
                         LimitRow.Tone.NORMAL,
-                        "Prism stops and continues it in short cycles; the use is measured over the last second.");
+                        "PRISM stops and continues it in short cycles; the use is measured over the last second.");
             case ACTIVE_ABOVE_TARGET -> {
                 if (cpu.note() == LimitNote.FLOOR) {
                     String lowest =
@@ -531,7 +531,7 @@ final class LimitsViewModel {
                     yield new Status(
                             "Above limit, lowest " + lowest,
                             LimitRow.Tone.WARNING,
-                            "The limit is below the lowest share Prism can hold this process to: " + lowest + ".");
+                            "The limit is below the lowest share PRISM can hold this process to: " + lowest + ".");
                 }
                 yield new Status(
                         "Above limit" + measured.map(m -> ", " + m).orElse(""),
@@ -552,19 +552,19 @@ final class LimitsViewModel {
                 new Status(
                         "Waiting: stopped elsewhere",
                         LimitRow.Tone.WARNING,
-                        "Another program has stopped it. Prism waits and does not continue it.");
+                        "Another program has stopped it. PRISM waits and does not continue it.");
             case ACTIVE_ENFORCED ->
                 new Status(
                         "Enforced" + measured.map(m -> ", " + m).orElse(""),
                         LimitRow.Tone.NORMAL,
-                        "The system caps the process and the child processes it started after the limit; Prism"
+                        "The system caps the process and the child processes it started after the limit; PRISM"
                                 + " does nothing per cycle. The use shown is this process alone.");
             case UNAVAILABLE ->
                 switch (cpu.note()) {
                     case PRIOR_SESSION ->
                         new Status("Capped by an earlier session", LimitRow.Tone.WARNING, detail + ".");
                     case IN_PRISM_SCOPE ->
-                        new Status("Not offered: in a Prism scope", LimitRow.Tone.WARNING, detail + ".");
+                        new Status("Not offered: in a PRISM scope", LimitRow.Tone.WARNING, detail + ".");
                     default -> new Status("Unavailable", LimitRow.Tone.WARNING, detail);
                 };
             case FAILED ->
@@ -577,7 +577,7 @@ final class LimitsViewModel {
                                         + ". Choose Use emulated limit to accept the emulated one; nothing runs until you do.");
                     case NATIVE_UNSETTLED -> new Status("Failed: limit differs", LimitRow.Tone.ERROR, detail + ".");
                     case IN_PRISM_SCOPE ->
-                        new Status("Not offered: in a Prism scope", LimitRow.Tone.WARNING, detail + ".");
+                        new Status("Not offered: in a PRISM scope", LimitRow.Tone.WARNING, detail + ".");
                     case RELEASE_INCOMPLETE ->
                         new Status(
                                 "Failed: threads still held",

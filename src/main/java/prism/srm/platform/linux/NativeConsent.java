@@ -19,12 +19,12 @@ final class NativeConsent {
 
     /** The statements a user reads before a first adoption (plan §2.6, items 1 to 5). */
     static final List<String> ADOPTION_STATEMENTS = List.of(
-            "This process will be moved into a systemd scope Prism creates (prism-srm-limit-….scope).",
+            "This process will be moved into a systemd scope PRISM creates (prism-srm-limit-….scope).",
             "When the limits are removed, the process does not return to its earlier systemd unit; it stays in this scope"
                     + " until it exits.",
             "Processes it starts from now on share the same limits and stay in the same scope.",
             "Your desktop environment or service manager may see this application's ownership or lifecycle differently.",
-            "Anyone who stops this scope from outside (systemctl --user stop …) terminates the processes in it; Prism"
+            "Anyone who stops this scope from outside (systemctl --user stop …) terminates the processes in it; PRISM"
                     + " never does.");
 
     /** The statement a user confirms, separately, before a hard memory limit (plan §3). */

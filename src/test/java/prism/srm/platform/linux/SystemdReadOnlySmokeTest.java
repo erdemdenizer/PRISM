@@ -19,7 +19,7 @@ import org.junit.jupiter.api.io.TempDir;
 /**
  * Read-only smoke test on a real Linux system (milestone 12, S3A, plan Rev 2.2 T-L0, T-L0b): the probe loads libsystemd
  * only after its symbol check, talks to the user manager with read-only methods, and leaves the system as it found it:
- * no socket left open after repeated probes, the test JVM's own cgroup unchanged, and no Prism scope in the user
+ * no socket left open after repeated probes, the test JVM's own cgroup unchanged, and no PRISM scope in the user
  * manager's unit list. Units that other programs start or stop meanwhile (a live desktop session does) are printed, not
  * failed on. Whatever the system lacks (no user bus, no libsystemd) must come back as a reason, never as a crash. The
  * report is printed for the evidence.
@@ -107,7 +107,7 @@ class SystemdReadOnlySmokeTest {
             removed.removeAll(unitsAfter.get());
             System.out.println("user units: " + unitsBefore.get().size() + " before, "
                     + unitsAfter.get().size() + " after; added " + added + ", removed " + removed);
-            assertThat(added).as("no Prism scope created").noneMatch(u -> u.startsWith("prism-srm-limit-"));
+            assertThat(added).as("no PRISM scope created").noneMatch(u -> u.startsWith("prism-srm-limit-"));
             assertThat(unitsAfter.get()).noneMatch(u -> u.startsWith("prism-srm-limit-"));
         } else {
             System.out.println("user units: not listable here");

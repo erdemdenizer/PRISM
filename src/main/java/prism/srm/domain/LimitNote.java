@@ -15,7 +15,7 @@ public enum LimitNote {
     MEASURING,
     /** The processor time could not be read; the process runs in full until it can. */
     NOT_MEASURED,
-    /** The limit is below the lowest share Prism can hold the process to. */
+    /** The limit is below the lowest share PRISM can hold the process to. */
     FLOOR,
     /** The use changes faster than the limiter follows. */
     VARIABLE_LOAD,
@@ -27,10 +27,10 @@ public enum LimitNote {
     EMULATED_BY_CHOICE,
     /** What the system holds could not be read back, or is not what was asked: see the detail. */
     NATIVE_UNSETTLED,
-    /** An earlier Prism session may still cap the process natively; no second limiter is started. */
+    /** An earlier PRISM session may still cap the process natively; no second limiter is started. */
     PRIOR_SESSION,
     /**
-     * The process runs inside a scope a Prism session created (or whether it does could not be read); no second
+     * The process runs inside a scope a PRISM session created (or whether it does could not be read); no second
      * limiter, native or emulated, is started on it. It may or may not hold a limit (milestone 12, scope-membership
      * rule).
      */

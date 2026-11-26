@@ -23,7 +23,7 @@ import java.util.function.LongSupplier;
  * threads, which it joins before it returns.
  *
  * <p>Everything it prints is one {@code event=...} line of {@code key=value} pairs, ASCII only, so a
- * person can read it next to Prism and a test can look for the keys.
+ * person can read it next to PRISM and a test can look for the keys.
  */
 final class DemoRun {
 

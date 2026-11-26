@@ -523,7 +523,7 @@ public final class ProcessesPage extends VBox {
         model.showControlProfile(profile);
     }
 
-    /** The PID of Prism itself, whose row offers no action. Call on the JavaFX Application Thread. */
+    /** The PID of PRISM itself, whose row offers no action. Call on the JavaFX Application Thread. */
     public void showOwnProcess(long pid) {
         model.showOwnProcess(pid);
     }
@@ -709,7 +709,7 @@ public final class ProcessesPage extends VBox {
     }
 
     /**
-     * Takes the processes Prism holds suspended, from its own record. Once process monitoring has
+     * Takes the processes PRISM holds suspended, from its own record. Once process monitoring has
      * stopped, they are offered for Resume here. Call on the JavaFX Application Thread.
      */
     public void showHeldSuspensions(List<SuspendedProcess> held) {

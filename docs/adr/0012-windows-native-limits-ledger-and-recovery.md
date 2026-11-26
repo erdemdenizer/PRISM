@@ -8,11 +8,11 @@
 ## Context
 
 ADR-0002 decided that limits on Windows use one named Job Object per managed process, and
-left one question to experiment: whether a later run can reopen the job by name after Prism
+left one question to experiment: whether a later run can reopen the job by name after PRISM
 was killed. Microsoft Learn answers it before any experiment ("Life Cycle of an Object"): a
 temporary object "can be accessed by name only as long as its handle count is nonzero. Once
 the handle count decrements to zero, the object's name is removed from the object manager's
-namespace." A process's membership in a job is a reference, not a handle. So when Prism's
+namespace." A process's membership in a job is a reference, not a handle. So when PRISM's
 last handle goes, by a crash or otherwise, the job and its limits live on with the process,
 and the name is gone.
 
@@ -29,10 +29,10 @@ processors, a test JVM in no job), on the demo workload only:
 | E2, target exited too | "gone, children unknown"; a process it started after the limit stays capped (21.2 %) |
 | E2, crash between the two calls of a change | the system holds CPU 30 % with the old memory limit; the record admits it as one of its per-kind values |
 | E3: Dynamic Fair Share Scheduling | absent here (the probe sets and reads back a rate of 2000) |
-| E4: a process in a job of another program | nested assignment would succeed; Prism refuses before it creates a job |
+| E4: a process in a job of another program | nested assignment would succeed; PRISM refuses before it creates a job |
 | E5: 20 % of the machine | 59.1 % before, 21.0 % capped, 58.7 % cleared |
 | E6: a commit limit of 256 MiB | an allocation of 512 MiB stops at 80 MiB more; once cleared, 512 MiB is allocated |
-| E7: the target exits, a process it started lives on | Prism counts two survivors (the child and its `conhost.exe`), clears its limits, and lets the job go; the child runs at 59 % again |
+| E7: the target exits, a process it started lives on | PRISM counts two survivors (the child and its `conhost.exe`), clears its limits, and lets the job go; the child runs at 59 % again |
 
 ## Decision
 
@@ -41,16 +41,16 @@ processors, a test JVM in no job), on the demo workload only:
    `AssignProcessToJobObject` is irreversible from the moment it is called, so the result says
    what is known: not assigned (proven by `IsProcessInJob`), assigned and enforced, assigned
    but holding other values, or uncertain. Only "not assigned" closes the job handle. `change`
-   alters the job Prism already holds and never assigns; it reports applied, partial (one kind
+   alters the job PRISM already holds and never assigns; it reports applied, partial (one kind
    changed, the other not) or unverified (no read-back).
 2. **The job handle stays open while the process lives in this session**, also after its
    limits are removed and after Unmanage. Closing it would remove the name, and a later limit
-   would find the process in a job Prism no longer holds.
-3. **A process already in a job Prism does not hold is refused** before a job is made. A
+   would find the process in a job PRISM no longer holds.
+3. **A process already in a job PRISM does not hold is refused** before a job is made. A
    nested cap would be a share of the outer job, not of the whole machine, and membership
    cannot be undone. The emulated limit is offered instead.
 4. **The native-limit ledger.** Before an assignment, and before a change that leaves a limit
-   in force, Prism writes a record and waits up to 2 s for it to be on disk
+   in force, PRISM writes a record and waits up to 2 s for it to be on disk
    (`native-limits-<instance>.ledger`, beside the suspension journal, on the journal's thread).
    The record holds the identity and the values, in the states intended, pending change,
    applied, and cleared. The file is written whole, from the newest model at the time of the
@@ -61,9 +61,9 @@ processors, a test JVM in no job), on the demo workload only:
 5. **Recovery.** At start-up the ledger of each ended session is read: under the dead session's
    lock, as for the suspension journal, or, for a ledger whose journal the system says is gone,
    only on proof that its session ended: this session takes that session's lock, which a running
-   session holds for as long as it runs, and the Prism process its instance name records does not
+   session holds for as long as it runs, and the PRISM process its instance name records does not
    run. A lock that is held or cannot be taken, a journal whose state cannot be told, or a process
-   that runs leaves the ledger alone and unsettled. Each record is looked at. The name is expected not to exist, and then Prism decides as follows:
+   that runs leaves the ledger alone and unsettled. Each record is looked at. The name is expected not to exist, and then PRISM decides as follows:
    - The process is gone and the record says cleared: nothing remains.
    - The process is gone and the record says otherwise: processes it started may still be
      limited ("gone, children unknown"). An intended record does not prove that the
@@ -72,14 +72,14 @@ processors, a test JVM in no job), on the demo workload only:
    - The process lives and is in a job: it may still be limited until it exits.
    **Recovery changes no job (audit of the recovery trust boundary, 2026-10-10).** A name lives
    only while a handle to the job is open, and a process that ends closes its handles: a job that
-   can still be opened by its name therefore has a running holder, perhaps a Prism session that
+   can still be opened by its name therefore has a running holder, perhaps a PRISM session that
    still runs, which recovery cannot prove has ended. Such a job is opened with
    `JOB_OBJECT_QUERY` only, its values and the process's membership are read, and the verdict is
    "held elsewhere": the process may be limited, and no second limiter is offered. This replaces
    the clearing of a reopened job that ADR-0002 decision 5 and plan D4 allowed (D4 was already
    recorded as practically unreachable); it needs external acceptance. A process an earlier
    session may still cap gets no second limiter, native or emulated, until it exits.
-6. **When the target exits**, Prism asks the job how many processes are left in it, clears its
+6. **When the target exits**, PRISM asks the job how many processes are left in it, clears its
    own limits, verifies the clearing, and only then closes the handle and removes the record.
    If it cannot verify, the handle and the record stay as a residue, shown on the Limits page
    and retried.
@@ -96,11 +96,11 @@ processors, a test JVM in no job), on the demo workload only:
 
 ## What this means for the user
 
-- **Why recovery is read-only.** After a crash the job's name is gone with Prism's last handle.
-  A job still reachable by name has a running holder, which Prism cannot prove has ended, so
-  Prism reads and reports and changes nothing it cannot prove is its own.
+- **Why recovery is read-only.** After a crash the job's name is gone with PRISM's last handle.
+  A job still reachable by name has a running holder, which PRISM cannot prove has ended, so
+  PRISM reads and reports and changes nothing it cannot prove is its own.
 - **Why a limit can outlive a crash.** The system keeps a job and its limits while a process is
-  in it. A hard kill closes Prism's handles but not the job, so the cap stays until the process
+  in it. A hard kill closes PRISM's handles but not the job, so the cap stays until the process
   exits. A controlled exit and the shutdown hook clear every limit first.
 - **After a hard kill and a restart.** The Limits page and the activity log list each process an
   earlier session may still cap ("Capped by an earlier session" or "held by a running program"),
@@ -108,8 +108,8 @@ processors, a test JVM in no job), on the demo workload only:
   so, and none for processes that ran while an unsettled ledger was written.
 - **What the user can safely do.** Let the process run under the earlier cap, or close and
   restart it (from its own window, or End task) when the cap is in the way: a restarted
-  process is a new identity in no job, and Prism can limit it normally. A sign-out or restart
-  of Windows ends every job. Prism never ends a process by itself for this.
+  process is a new identity in no job, and PRISM can limit it normally. A sign-out or restart
+  of Windows ends every job. PRISM never ends a process by itself for this.
 
 ## Alternatives considered
 
@@ -129,7 +129,7 @@ processors, a test JVM in no job), on the demo workload only:
 - After a crash or a hard kill, a native limit lasts until the process exits; the next start
   lists it and cannot clear it. The CPU limit dialog says so before the first limit, and the
   exit hook is the real safety net.
-- A process stays in Prism's job after its limits are removed (one handle per process for the
+- A process stays in PRISM's job after its limits are removed (one handle per process for the
   session). Processes it starts afterwards join the job without limits.
 - A commit limit makes the target fail when it is reached. Measured: the demo JVM under a
   20 % CPU cap and a 512 MiB commit cap fails within seconds.
@@ -150,9 +150,9 @@ processors, a test JVM in no job), on the demo workload only:
   kernel cap an earlier session made. Where no other session's ledger exists, as on Linux and
   macOS, nothing is unsettled and the milestone 9 emulated path is unchanged. An emulated
   limit found to overlap a recovered cap is stopped through its own release. A damaged ledger is
-  read again by every start and is never retired by Prism; after a reboot it blocks nothing, since
+  read again by every start and is never retired by PRISM; after a reboot it blocks nothing, since
   every process then started after it. The bound assumes the clock does not step back between a
-  process's start and the write of its record. A second Prism instance of the same user running at
+  process's start and the write of its record. A second PRISM instance of the same user running at
   the same time is kept out by ADR-0013 (Accepted); without that rule it would not be protected
   against, as `ConcurrentInstancesTest` shows.
 - A shutdown that cannot take the limiter in time says so (`ReleaseResult.timedOut`), names the

@@ -27,7 +27,7 @@ class SettingsCodecTest {
         Locale.setDefault(before);
     }
 
-    /** A file as Prism writes one: the lines given, with the end line Prism would write after them. */
+    /** A file as PRISM writes one: the lines given, with the end line PRISM would write after them. */
     static byte[] file(String... settingLines) {
         StringBuilder body = new StringBuilder("prism-settings 1\n");
         for (String line : settingLines) {

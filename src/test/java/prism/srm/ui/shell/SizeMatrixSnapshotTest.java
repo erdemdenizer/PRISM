@@ -57,18 +57,18 @@ class SizeMatrixSnapshotTest {
     private static final Instant T = Instant.parse("2026-10-08T07:00:00Z");
 
     private static final List<ActivityEntry> SESSION = List.of(
-            new ActivityEntry(T, ActivitySeverity.INFO, "Prism System Resource Manager started on Java 25.0.4.1."),
+            new ActivityEntry(T, ActivitySeverity.INFO, "PRISM started on Java 25.0.4.1."),
             new ActivityEntry(T.plusSeconds(2), ActivitySeverity.INFO, "Monitoring started: system metrics every 1 s."),
             new ActivityEntry(
                     T.plusSeconds(55),
                     ActivitySeverity.WARNING,
-                    "Change priority: Access denied: svchost.exe (PID 1288). The system does not let Prism act on"
+                    "Change priority: Access denied: svchost.exe (PID 1288). The system does not let PRISM act on"
                             + " this process. [OpenProcess failed: 5 (Access is denied.); code 5]"),
             new ActivityEntry(
                     T.plusSeconds(61),
                     ActivitySeverity.ERROR,
                     "Resume: The system did not resume java (PID 30324). The Logs page has the details. [1 live"
-                            + " thread(s) still suspended by Prism: 23 resumed, 0 ended, 1 failed (6 (The handle is"
+                            + " thread(s) still suspended by PRISM: 23 resumed, 0 ended, 1 failed (6 (The handle is"
                             + " invalid.)); code 6]"));
 
     private static final ControlProfile WINDOWS_LIKE = new ControlProfile(

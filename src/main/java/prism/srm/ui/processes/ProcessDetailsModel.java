@@ -96,7 +96,7 @@ final class ProcessDetailsModel {
     }
 
     /**
-     * "Suspended by Prism" while the listing shows the process so (PROC-6), with the words of the
+     * "Suspended by PRISM" while the listing shows the process so (PROC-6), with the words of the
      * State column; empty otherwise. From the listing only, as the column: the two never differ.
      */
     ReadOnlyStringProperty suspendedByPrismProperty() {

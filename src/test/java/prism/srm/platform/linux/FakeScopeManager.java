@@ -114,7 +114,7 @@ final class FakeScopeManager implements ScopeManager {
         write(procCgroups.resolve(Integer.toString(pid)).resolve("cgroup"), "0::" + group + "\n");
     }
 
-    /** A unit that exists already: a scope of Prism's name made by someone else, or a leftover. */
+    /** A unit that exists already: a scope of PRISM's name made by someone else, or a leftover. */
     Unit addUnit(String name, String invocationId, int... members) {
         Unit unit = new Unit(name, MANAGER + "/app.slice/" + name, invocationId);
         units.put(name, unit);

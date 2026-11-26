@@ -912,7 +912,7 @@ class ProcessActionsSceneTest {
                 .doesNotContain("Ask this process to close?");
     }
 
-    /** CAP-2 in the page itself: on Prism's own row the inspector and the context menu offer nothing and say why. */
+    /** CAP-2 in the page itself: on PRISM's own row the inspector and the context menu offer nothing and say why. */
     @Test
     void prismsOwnRowHasEveryControlAndMenuItemDisabledWithTheReason() {
         List<Object> seen = inPage(true, scene -> {

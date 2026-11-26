@@ -169,7 +169,7 @@ class OomGuardViewModelTest {
                         Tone.MUTED));
     }
 
-    /** A journal that cannot be written is a failure of Prism: said once, as an error, with what the system said. */
+    /** A journal that cannot be written is a failure of PRISM: said once, as an error, with what the system said. */
     @Test
     void aJournalThatCannotBeWrittenIsAnErrorSaidOnce() {
         OomSettings acting = settings(false, true, false);

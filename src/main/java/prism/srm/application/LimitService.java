@@ -138,11 +138,11 @@ public final class LimitService {
     private final Map<ProcessIdentity, Map<LimitKind, LimitCapability>> probed = new HashMap<>();
     /** Processes an earlier session may still cap natively: no second limiter for them. */
     private final Map<ProcessIdentity, RecoveredLimit> priorSession = new LinkedHashMap<>();
-    /** Jobs of exited processes that still carry limits Prism could not clear. */
+    /** Jobs of exited processes that still carry limits PRISM could not clear. */
     private final Map<ProcessIdentity, Residue> residues = new LinkedHashMap<>();
-    /** Processes no longer managed whose job Prism still holds, until they exit. */
+    /** Processes no longer managed whose job PRISM still holds, until they exit. */
     private final Map<ProcessIdentity, String> unmanagedHolds = new LinkedHashMap<>();
-    /** Why the native memory limit was not applied, where Prism offers to watch the resident memory instead (O9). */
+    /** Why the native memory limit was not applied, where PRISM offers to watch the resident memory instead (O9). */
     private final Map<ProcessIdentity, String> residentOffered = new HashMap<>();
     /** Processes whose user accepted the watched resident memory after the native memory limit failed. */
     private final Set<ProcessIdentity> residentApproved = new HashSet<>();
@@ -388,7 +388,7 @@ public final class LimitService {
 
     /**
      * What a CPU limit is on this system (LIM-3, CAP-2): native where the system offers a native CPU
-     * limit; otherwise the emulated duty cycle where Prism can suspend and resume processes;
+     * limit; otherwise the emulated duty cycle where PRISM can suspend and resume processes;
      * otherwise unavailable with the reason.
      */
     public LimitCapability cpuCapability() {
@@ -448,7 +448,7 @@ public final class LimitService {
         return nativeMemoryCapability().available();
     }
 
-    /** The emulated duty cycle where Prism can suspend and resume processes (milestone 9). */
+    /** The emulated duty cycle where PRISM can suspend and resume processes (milestone 9). */
     private LimitCapability emulatedCapability() {
         Map<ControlAction, Capability> table = controller.capabilities();
         Capability suspend = table.getOrDefault(ControlAction.SUSPEND, Capability.UNAVAILABLE);
@@ -462,7 +462,7 @@ public final class LimitService {
                 .toList();
         return LimitCapability.unavailable(
                 limitations.isEmpty()
-                        ? "Prism cannot suspend and resume processes on this system"
+                        ? "PRISM cannot suspend and resume processes on this system"
                         : String.join("; ", limitations));
     }
 
@@ -533,7 +533,7 @@ public final class LimitService {
                 if (selfInJob.orElse(false)) {
                     activity.record(
                             ActivitySeverity.INFO,
-                            "Prism runs inside a Job Object; processes started by the same program cannot be limited"
+                            "PRISM runs inside a Job Object; processes started by the same program cannot be limited"
                                     + " natively.");
                 }
                 publish();
@@ -574,7 +574,7 @@ public final class LimitService {
 
     /**
      * A new process listing, from the monitoring thread: a managed process it does not show is
-     * checked, on the limiter thread, and dropped when it has exited (MGD-2); so is a job Prism still
+     * checked, on the limiter thread, and dropped when it has exited (MGD-2); so is a job PRISM still
      * holds for an exited or unmanaged process. Returns at once.
      */
     public void listed(Set<ProcessIdentity> listing) {
@@ -613,14 +613,14 @@ public final class LimitService {
                         if (stopLimit(identity)) {
                             // Found late (audit item 2): the emulated limit stops through its own path,
                             // which releases only what it holds; a process the user suspended stays so.
-                            failures.put(identity, "an earlier Prism session may still cap it natively");
+                            failures.put(identity, "an earlier PRISM session may still cap it natively");
                             failureNotes.put(identity, LimitNote.PRIOR_SESSION);
                             activity.record(
                                     ActivitySeverity.WARNING,
                                     "The emulated CPU limit of "
                                             + limit.record().name() + " (PID " + identity.pid()
-                                            + ") was stopped: an earlier Prism session may still cap it natively ("
-                                            + limit.record().describe() + "). Prism runs no second limiter on it.");
+                                            + ") was stopped: an earlier PRISM session may still cap it natively ("
+                                            + limit.record().describe() + "). PRISM runs no second limiter on it.");
                         }
                     }
                 }
@@ -773,7 +773,7 @@ public final class LimitService {
             return answer(
                     request,
                     OperationResult.ACCESS_DENIED,
-                    "refused by Prism: " + refusal.get(),
+                    "refused by PRISM: " + refusal.get(),
                     LimitMessages.refused(request, refusal.get()));
         }
         registry.add(identity, request.name());
@@ -788,7 +788,7 @@ public final class LimitService {
         Map<LimitKind, LimitCapability> found;
         if (priorSession.containsKey(identity)) {
             LimitCapability no = LimitCapability.unavailable(
-                    "an earlier Prism session may still cap it natively; no second limiter is started");
+                    "an earlier PRISM session may still cap it natively; no second limiter is started");
             found = Map.of(LimitKind.CPU, no, LimitKind.MEMORY, no);
         } else {
             found = natives.limiter().capabilitiesFor(identity);
@@ -1500,7 +1500,7 @@ public final class LimitService {
         return new LimitSpec(cpu, memory);
     }
 
-    /** A first assignment or a change of the job Prism holds, whichever applies (plan S0a). */
+    /** A first assignment or a change of the job PRISM holds, whichever applies (plan S0a). */
     private NativeStep nativeStep(LimitRequest request, LimitSpec spec) {
         ProcessIdentity identity = request.identity();
         if (natives.hold(identity).isPresent()) {
@@ -1658,7 +1658,7 @@ public final class LimitService {
 
     /**
      * Whether the emulated CPU limit may run on the process (plan §9 invariant): no native CPU cap
-     * is, or may be, in force on it: Prism holds no job for it, or one known to cap nothing; and no
+     * is, or may be, in force on it: PRISM holds no job for it, or one known to cap nothing; and no
      * earlier session may still cap it.
      */
     private boolean emulatedAllowed(ProcessIdentity identity) {
@@ -1669,9 +1669,9 @@ public final class LimitService {
     }
 
     /**
-     * The barrier of audit item 2: an earlier (or another) Prism session's native cap may be in force
+     * The barrier of audit item 2: an earlier (or another) PRISM session's native cap may be in force
      * on the process while recovery has not settled its ledger; then no emulated limit is offered or
-     * started. Whatever today's probe says (final source audit): a native CPU limit Prism cannot make
+     * started. Whatever today's probe says (final source audit): a native CPU limit PRISM cannot make
      * now, after Dynamic Fair Share Scheduling was turned on or a probe failed, says nothing of a
      * kernel cap an earlier session made. Where no ledger of another session exists, as on Linux and
      * macOS, nothing is unsettled and the milestone 9 path is unchanged. Asks only what recovery has
@@ -1679,7 +1679,7 @@ public final class LimitService {
      */
     private Optional<String> earlierBarrier(ProcessIdentity identity) {
         // The identity rule first (recovery), then the scope-membership rule, independent of any record (plan Rev 2.2
-        // §4.5 b): a process inside a scope a Prism session created gets no second limiter.
+        // §4.5 b): a process inside a scope a PRISM session created gets no second limiter.
         return natives.earlier()
                 .mayStillCap(identity)
                 .or(() -> natives.limiter().scopeBarrier(identity));
@@ -1810,7 +1810,7 @@ public final class LimitService {
                 residues.remove(identity);
                 activity.record(
                         ActivitySeverity.INFO,
-                        "Prism cleared the limits the job of " + label(identity) + " still carried for the processes it"
+                        "PRISM cleared the limits the job of " + label(identity) + " still carried for the processes it"
                                 + " started.");
                 changed = true;
             }
@@ -1827,7 +1827,7 @@ public final class LimitService {
     }
 
     /**
-     * The one exit path of a process (plan bulgu 2, §8.6): its job, if Prism holds one, is cleared
+     * The one exit path of a process (plan bulgu 2, §8.6): its job, if PRISM holds one, is cleared
      * and verified before it is let go; its record goes only then. A job that still carries limits
      * stays a residue and is retried; nothing is discarded silently.
      */
@@ -1849,20 +1849,20 @@ public final class LimitService {
                 activity.record(
                         ActivitySeverity.WARNING,
                         "The job of " + name + " (PID " + identity.pid()
-                                + "), which has exited, still carries limits Prism"
+                                + "), which has exited, still carries limits PRISM"
                                 + " could not clear ("
                                 + forgotten
                                         .inForce()
                                         .map(EffectiveLimits::describe)
                                         .orElse("unknown")
-                                + "); the processes it started stay limited. Prism keeps trying.");
+                                + "); the processes it started stay limited. PRISM keeps trying.");
             } else if (forgotten.survivors() > 0) {
                 activity.record(
                         ActivitySeverity.INFO,
                         "The job of " + name + " (PID " + identity.pid() + ") still counted "
                                 + forgotten.survivors()
                                 + (forgotten.survivors() == 1 ? " process" : " processes")
-                                + " after it exited; Prism cleared its limits for them.");
+                                + " after it exited; PRISM cleared its limits for them.");
             }
         }
         unmanagedHolds.remove(identity);
@@ -1941,7 +1941,7 @@ public final class LimitService {
                     failures.put(identity, why);
                     activity.record(
                             ActivitySeverity.ERROR,
-                            "The CPU limit of " + target + " stopped: " + why + ". Prism no longer stops it.");
+                            "The CPU limit of " + target + " stopped: " + why + ". PRISM no longer stops it.");
                 }
                 case JOURNAL -> {
                     // The entry on disk stays as evidence (ADR-0011); the coordinator has told the
@@ -1992,7 +1992,7 @@ public final class LimitService {
         Optional<String> limitsOff = coordinator.journalHealthy()
                 ? Optional.empty()
                 : Optional.of((nativeCpuSystem() ? "Emulated limits are off" : "Limits are off")
-                        + ": Prism cannot record them where it would find them after a crash"
+                        + ": PRISM cannot record them where it would find them after a crash"
                         + coordinator
                                 .journalProblem()
                                 .map(problem -> " (" + problem + ").")
@@ -2011,7 +2011,7 @@ public final class LimitService {
         if ((nativeCpuSystem() || nativeMemorySystem()) && !natives.ledger().healthy()) {
             notices.add(new LimitsNotice(
                     LimitsNotice.Kind.LEDGER_FAILED,
-                    "New native limits are refused: Prism cannot record them where it would find them after a crash ("
+                    "New native limits are refused: PRISM cannot record them where it would find them after a crash ("
                             + natives.ledger().problem().orElse("") + "). Limits already in force stay."));
         }
         for (Residue residue : residues.values()) {
@@ -2019,19 +2019,19 @@ public final class LimitService {
                     LimitsNotice.Kind.RESIDUE,
                     "The job of " + residue.name() + " (PID " + residue.exited().pid()
                             + "), which has exited, still carries"
-                            + " limits Prism could not clear ("
+                            + " limits PRISM could not clear ("
                             + residue.inForce().describe() + "); "
                             + (residue.survivors() < 0
                                     ? "the processes"
                                     : residue.survivors() + (residue.survivors() == 1 ? " process" : " processes"))
-                            + " it started stay limited. Prism keeps trying."));
+                            + " it started stay limited. PRISM keeps trying."));
         }
         for (RecoveredLimit earlier : priorSession.values()) {
             notices.add(new LimitsNotice(
                     LimitsNotice.Kind.PRIOR_SESSION,
                     earlier.record().name() + " (PID "
                             + earlier.record().identity().pid() + ") may still be capped natively"
-                            + " by an earlier Prism session ("
+                            + " by an earlier PRISM session ("
                             + earlier.record().describe() + "). No second limiter is"
                             + " offered; that limit lasts until it exits."));
         }
@@ -2046,7 +2046,7 @@ public final class LimitService {
             notices.add(
                     new LimitsNotice(
                             LimitsNotice.Kind.SELF_IN_JOB,
-                            "Prism runs inside a Job Object; processes started by the same program cannot be limited natively."));
+                            "PRISM runs inside a Job Object; processes started by the same program cannot be limited natively."));
         }
         if (!nativeCpuSystem()
                 && natives.limiter().capabilities().get(LimitKind.CPU).reason().isPresent()
@@ -2082,9 +2082,9 @@ public final class LimitService {
         if (earlier != null) {
             return report(
                     requested,
-                    LimitCapability.unavailable("an earlier Prism session may still cap it natively"),
+                    LimitCapability.unavailable("an earlier PRISM session may still cap it natively"),
                     LimitStatus.UNAVAILABLE,
-                    Optional.of("an earlier Prism session may still cap it natively ("
+                    Optional.of("an earlier PRISM session may still cap it natively ("
                             + earlier.record().describe() + ")"),
                     LimitNote.PRIOR_SESSION);
         }

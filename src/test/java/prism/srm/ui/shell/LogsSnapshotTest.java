@@ -34,8 +34,7 @@ class LogsSnapshotTest {
 
     private static List<ActivityEntry> session() {
         List<ActivityEntry> entries = new ArrayList<>();
-        entries.add(
-                new ActivityEntry(T, ActivitySeverity.INFO, "Prism System Resource Manager started on Java 25.0.4.1."));
+        entries.add(new ActivityEntry(T, ActivitySeverity.INFO, "PRISM started on Java 25.0.4.1."));
         entries.add(new ActivityEntry(
                 T.plusSeconds(2), ActivitySeverity.INFO, "Monitoring started: system metrics every 1 s."));
         entries.add(new ActivityEntry(
@@ -46,13 +45,13 @@ class LogsSnapshotTest {
         entries.add(new ActivityEntry(
                 T.plusSeconds(55),
                 ActivitySeverity.WARNING,
-                "Change priority: Access denied: svchost.exe (PID 1288). The system does not let Prism act on this"
+                "Change priority: Access denied: svchost.exe (PID 1288). The system does not let PRISM act on this"
                         + " process. [OpenProcess failed: 5 (Access is denied.); code 5]"));
         entries.add(new ActivityEntry(
                 T.plusSeconds(61),
                 ActivitySeverity.ERROR,
                 "Resume: The system did not resume java (PID 30324). The Logs page has the details. [1 live thread(s) still"
-                        + " suspended by Prism: 23 resumed, 0 ended, 1 failed (6 (The handle is invalid.)); code 6]"));
+                        + " suspended by PRISM: 23 resumed, 0 ended, 1 failed (6 (The handle is invalid.)); code 6]"));
         entries.add(new ActivityEntry(
                 T.plusSeconds(70),
                 ActivitySeverity.INFO,
@@ -70,9 +69,7 @@ class LogsSnapshotTest {
         String home = "C:\\Users\\alice\\AppData\\Local\\Prism\\SystemResourceManager";
         List<ActivityEntry> entries = new ArrayList<>();
         entries.add(new ActivityEntry(
-                T,
-                ActivitySeverity.INFO,
-                "Prism System Resource Manager started on Java 25.0.4.1 (Eclipse Adoptium), JavaFX 25.0.4+2."));
+                T, ActivitySeverity.INFO, "PRISM started on Java 25.0.4.1 (Eclipse Adoptium), JavaFX 25.0.4+2."));
         entries.add(new ActivityEntry(
                 T,
                 ActivitySeverity.INFO,
@@ -95,13 +92,13 @@ class LogsSnapshotTest {
         entries.add(new ActivityEntry(
                 T.plusSeconds(601),
                 ActivitySeverity.WARNING,
-                "Change priority: Access denied: svchost.exe (PID 1288). The system does not let Prism act on this"
+                "Change priority: Access denied: svchost.exe (PID 1288). The system does not let PRISM act on this"
                         + " process. [OpenProcess failed: 5 (Access is denied.); code 5]"));
         entries.add(new ActivityEntry(
                 T.plusSeconds(640),
                 ActivitySeverity.ERROR,
                 "Resume: The system did not resume java (PID 30324). The Logs page has the details. [1 live thread(s) still"
-                        + " suspended by Prism: 23 resumed, 0 ended, 1 failed (6 (The handle is invalid.)); code 6]"));
+                        + " suspended by PRISM: 23 resumed, 0 ended, 1 failed (6 (The handle is invalid.)); code 6]"));
         entries.add(new ActivityEntry(
                 T.plusSeconds(707), ActivitySeverity.INFO, "Unmanage: prism-demo (PID 37720) is no longer managed."));
         return entries;
@@ -152,7 +149,7 @@ class LogsSnapshotTest {
                     shell.showFolderOpened(
                             Optional.of(
                                     "This folder does not exist yet: C:\\Users\\alice\\AppData"
-                                            + "\\Local\\Prism\\SystemResourceManager\\logs. Prism creates it when it first writes there."));
+                                            + "\\Local\\Prism\\SystemResourceManager\\logs. PRISM creates it when it first writes there."));
                 }));
                 cases.add(Arguments.of("logs-filtered", theme, size, (Consumer<Shell>) shell -> {
                     shell.showActivity(session());

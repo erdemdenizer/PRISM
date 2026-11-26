@@ -12,7 +12,7 @@ import prism.srm.platform.SpecNice;
 
 /**
  * The JNA side on the running macOS, read-only, on the test's own process: the entry sysctl gives
- * is the one the JDK and the process listing read, so the identity Prism checks is the listing's.
+ * is the one the JDK and the process listing read, so the identity PRISM checks is the listing's.
  */
 @EnabledOnOs(OS.MAC)
 class JnaMacosTest {
@@ -61,7 +61,7 @@ class JnaMacosTest {
         assertThat(macos.executable(pid)).hasValue("java");
     }
 
-    /** errno really reaches Prism from a failing call, also through getpriority's own way. */
+    /** errno really reaches PRISM from a failing call, also through getpriority's own way. */
     @Test
     void aFailingCallOnThisMacReportsItsErrno() {
         assertThat(macos.kill(99_999, 0).errno()).isEqualTo(MacosErrors.ESRCH);
@@ -69,9 +69,9 @@ class JnaMacosTest {
     }
 
     /**
-     * The nice value of this JVM through Prism's getpriority mapping and through ps, a system tool
+     * The nice value of this JVM through PRISM's getpriority mapping and through ps, a system tool
      * that reads the process table on its own: they must agree. The first run on GitHub read -10
-     * where 0 was assumed; this tells a value the runner gave from a misreading of Prism's.
+     * where 0 was assumed; this tells a value the runner gave from a misreading of PRISM's.
      */
     @Test
     void getpriorityReadsTheNiceValueThatPsReports() throws Exception {

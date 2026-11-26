@@ -14,7 +14,7 @@ import prism.srm.platform.SuspendResult;
 
 /**
  * Taking over, after a crash, a suspension an earlier session recorded (ADR-0011), against a fake
- * system. A suspend count is anonymous: Prism takes over only threads it recorded, each found at
+ * system. A suspend count is anonymous: PRISM takes over only threads it recorded, each found at
  * exactly one, all of them or none, and never lowers a count it cannot attribute to itself.
  */
 class WindowsAdoptTest {
@@ -220,7 +220,7 @@ class WindowsAdoptTest {
         AdoptResult result = suspensions.adopt(TARGET, Optional.of(memento));
 
         assertThat(result.verdict()).isEqualTo(AdoptResult.Verdict.REFUSED);
-        assertThat(count(11)).as("Prism's recorded increment is left as it was").isEqualTo(1);
+        assertThat(count(11)).as("PRISM's recorded increment is left as it was").isEqualTo(1);
         assertThat(win32.openHandles()).isEmpty();
     }
 

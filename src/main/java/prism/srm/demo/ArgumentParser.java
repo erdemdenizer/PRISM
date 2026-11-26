@@ -69,7 +69,7 @@ final class ArgumentParser {
         return """
                 Usage: prism-demo [--cpu <percent>] [--memory <size>] [--duration <time>] [--workers <n>]
 
-                A safe, bounded workload for demonstrating Prism. It uses what it is told to use,
+                A safe, bounded workload for demonstrating PRISM. It uses what it is told to use,
                 reports what it does, and exits by itself.
 
                   --cpu <percent>     share of the whole machine to keep busy, 0 to 100 (100 means

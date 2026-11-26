@@ -8,16 +8,16 @@ import prism.srm.domain.ProcessIdentity;
 import prism.srm.platform.Suspension;
 
 /**
- * What one suspension on Windows did: the threads Prism suspended, each with the handle it was
+ * What one suspension on Windows did: the threads PRISM suspended, each with the handle it was
  * suspended through, and the process, held open.
  *
  * <p>A thread is kept by its handle, not by its ID: the handle stays valid until it is closed,
  * also after the thread has ended (Learn, below), and while it is open the thread object exists, so
  * its ID is not given to another thread. That last point is not in the reference documentation;
  * Microsoft states it in https://devblogs.microsoft.com/oldnewthing/20110107-00/?p=11803 . Each thread carries exactly one increment of its suspend
- * count that Prism made. A hold is <em>owned</em> while that increment may still be outstanding
+ * count that PRISM made. A hold is <em>owned</em> while that increment may still be outstanding
  * and becomes <em>released</em> when ResumeThread undid it or the thread was shown to have ended;
- * a released hold is never resumed again, and only then is its handle closed. So Prism never
+ * a released hold is never resumed again, and only then is its handle closed. So PRISM never
  * forgets an increment it made, and never takes back one it did not make.
  * https://learn.microsoft.com/en-us/windows/win32/procthread/thread-handles-and-identifiers
  *
@@ -28,11 +28,11 @@ final class WindowsSuspension implements Suspension {
 
     /**
      * The form of a memento: a version, then the thread ID and the thread's creation time (a
-     * FILETIME) of every thread Prism still holds, for example {@code w1:5124@133712345678901234}.
+     * FILETIME) of every thread PRISM still holds, for example {@code w1:5124@133712345678901234}.
      */
     static final String MEMENTO_VERSION = "w1:";
 
-    /** One thread Prism suspended. */
+    /** One thread PRISM suspended. */
     static final class Hold {
         private final long handle;
         private final int threadId;
@@ -96,16 +96,16 @@ final class WindowsSuspension implements Suspension {
         return owned;
     }
 
-    /** Prism's increment on this thread is undone, or the thread has ended: the handle is closed. */
+    /** PRISM's increment on this thread is undone, or the thread has ended: the handle is closed. */
     synchronized void released(Hold hold) {
         hold.owned = false;
         closeHold(hold);
     }
 
     /**
-     * The threads Prism still holds, by ID and creation time, which together name one thread: a
+     * The threads PRISM still holds, by ID and creation time, which together name one thread: a
      * thread ID is reused once its thread object is gone, the creation time tells the new thread
-     * apart. Read now, through the handles Prism holds. If a creation time cannot be read, no
+     * apart. Read now, through the handles PRISM holds. If a creation time cannot be read, no
      * memento is given: an entry without one would let a later session act on a thread it cannot
      * tell apart, so it gets none to act on.
      */
@@ -145,7 +145,7 @@ final class WindowsSuspension implements Suspension {
     /**
      * Closes the handles of the threads without undoing anything, and leaves the process handle,
      * which another suspension shares, open. For threads that were checked during an adoption that
-     * did not go through: their one increment is not Prism's to keep track of.
+     * did not go through: their one increment is not PRISM's to keep track of.
      */
     synchronized void closeHandlesOnly() {
         for (Hold hold : holds) {

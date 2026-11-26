@@ -184,7 +184,7 @@ class MonitoringRuntimeShutdownTest {
         assertThat(outstanding(USERS)).as("LIFE-2: the user's stays").isPositive();
     }
 
-    /** A step that fails is logged and every later step still runs; Prism still ends (LIFE-3). */
+    /** A step that fails is logged and every later step still runs; PRISM still ends (LIFE-3). */
     @ParameterizedTest
     @MethodSource("steps")
     void aStepThatFailsDoesNotPreventTheRemainingSteps(String failing) throws Exception {

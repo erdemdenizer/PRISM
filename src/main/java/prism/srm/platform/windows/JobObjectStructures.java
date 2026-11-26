@@ -4,7 +4,7 @@ import com.sun.jna.Structure;
 import com.sun.jna.platform.win32.WinNT;
 
 /**
- * The Job Object structures Prism reads and writes, mapped field by field from their documented
+ * The Job Object structures PRISM reads and writes, mapped field by field from their documented
  * layout. The 8-byte members ({@code LARGE_INTEGER}, {@code SIZE_T}, {@code ULONG_PTR}) are Java
  * {@code long}, so the layout is that of 64-bit Windows on any 64-bit system that computes it, and
  * the tests check every size and offset (the limiter refuses to run on a 32-bit JVM). Under the
@@ -79,7 +79,7 @@ final class JobObjectStructures {
 
     /**
      * {@code JOBOBJECT_CPU_RATE_CONTROL_INFORMATION}, 8 bytes: ControlFlags, then a union of DWORD
-     * CpuRate, DWORD Weight and two WORDs MinRate and MaxRate. Prism writes only CpuRate (with ENABLE
+     * CpuRate, DWORD Weight and two WORDs MinRate and MaxRate. PRISM writes only CpuRate (with ENABLE
      * and HARD_CAP), so the union is one int; on read-back its meaning depends on the flags, and a
      * percentage is derived only when the flags say CpuRate.
      * https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-jobobject_cpu_rate_control_information
@@ -97,7 +97,7 @@ final class JobObjectStructures {
     /**
      * {@code JOBOBJECT_BASIC_ACCOUNTING_INFORMATION}, 48 bytes: four LARGE_INTEGER times at 0 to 24,
      * then TotalPageFaultCount, TotalProcesses, ActiveProcesses and TotalTerminatedProcesses, DWORD
-     * each, at 32, 36, 40 and 44. Prism reads ActiveProcesses: whether anything is left in a job
+     * each, at 32, 36, 40 and 44. PRISM reads ActiveProcesses: whether anything is left in a job
      * whose first process exited.
      * https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-jobobject_basic_accounting_information
      */

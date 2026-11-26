@@ -160,7 +160,7 @@ it and the details pane stay in milestone 5.
 - The I/O rates are the system's per-process I/O counters ("IO Read Bytes/sec" and
   "IO Write Bytes/sec" of the Process performance object), which count file, network
   and device I/O together. They are process I/O, not disk activity, and nothing in
-  Prism calls them disk rates. No documented, cheap per-process counter for disks
+  PRISM calls them disk rates. No documented, cheap per-process counter for disks
   alone is known on Windows; tracing disk I/O per process with ETW is out of scope.
 - User, path and command line are absent for processes this user may not open (about a
   third of the processes on the development machine). That is the expected outcome
@@ -183,11 +183,11 @@ it and the details pane stay in milestone 5.
 follows is from reading OSHI's code.
 - Linux start time is the boot time, which OSHI reads once per JVM with one-second
   granularity, plus the process's start in clock ticks. It is exact within one run of
-  Prism. Whether it is identical after a restart of Prism, and after the system clock is
+  PRISM. Whether it is identical after a restart of PRISM, and after the system clock is
   set back, is not known; recovery logic that compares identities across restarts
   (LIFE-6) must not rely on it before that is measured.
 - I/O counters of processes of other users cannot be read without privilege on Linux,
-  and OSHI then returns zero. Prism reports the counters as absent whenever both are
+  and OSHI then returns zero. PRISM reports the counters as absent whenever both are
   zero, so a process that has done no I/O at all also shows no I/O rate there.
 - The I/O counters are narrower than on Windows. On Linux, `read_bytes` and
   `write_bytes` of `/proc/<pid>/io` count what the process caused to be fetched from or
@@ -233,7 +233,7 @@ page, clean start-up and shutdown, and persisted logs.
   and the JVM exits.
 - Start-up, shutdown and the detected system are in the log file and the activity log;
   no sampling tick is logged (LOG-1 to LOG-3). The log folder has one source of truth.
-- MON-12 is measured with the window visible for ten minutes: average CPU of Prism and
+- MON-12 is measured with the window visible for ten minutes: average CPU of PRISM and
   heap before and after. It is met, or the cadence is changed and the reason recorded.
 
 **Tests.** View-model logic (unit formatting with explicit locales, coalescing);
@@ -281,7 +281,7 @@ shows.
   threads of the JVM and of JavaFX, `JNA Cleaner`, workers of the JDK's common pool
   (OSHI's process listing uses parallel streams) and one unnamed daemon thread,
   `Thread-N`, without a Java stack. That one is created when the JavaFX toolkit starts,
-  before any code of Prism runs; it is not Prism's to name.
+  before any code of PRISM runs; it is not PRISM's to name.
 - The snapshot harness renders a scene, not a window: a 720 x 480 window leaves a scene
   of about 704 x 441 on Windows 11, which is rendered as well. The harness has no window
   focus, so the focus ring is rendered by forcing its pseudo-class; that a key pressed
@@ -378,7 +378,7 @@ CPU-heavy process and a large file copy.
   903 x 606): JavaFX carries the frame of the monitor the window leaves into its size
   on the one it enters, which it did before the correction too (1116 x 739 pixels become
   1391 x 914, which is 1112.8 x 731.2 units). Not tried: dragging by hand, a scale
-  changed in the system settings while Prism runs, a start on the scaled monitor, scales
+  changed in the system settings while PRISM runs, a start on the scaled monitor, scales
   other than 125%. The correction rests on how JavaFX 25.0.4 behaves; a change of the
   JavaFX version repeats the measurement on two monitors.
 - Measured again in the final verification of milestone 5.5, with the title bar dragged by
@@ -539,7 +539,7 @@ selected while processes start and exit; operate the table by keyboard only.
 **Deferred.**
 - Actions, their context menu and the mark on Managed Processes (milestones 7 and 9);
   type-to-find, which the specification does not ask for.
-- A sort mark of Prism's own that stands beside the header text.
+- A sort mark of PRISM's own that stands beside the header text.
 - Tooltips in the tokens of the guide. They have the stock look on every page, since
   milestone 3; a popup does not take the theme of the window, so this belongs with theme
   switching (milestone 13).
@@ -609,7 +609,7 @@ pages in both themes at 1100 x 700, 720 x 480 and 704 x 441, with the wide windo
 `processes-selected-filter-focused`.
 
 **Manual verification.** Run the app: hover, tooltips, the context menu and the transitions;
-change the system appearance in the settings of the operating system while Prism runs and
+change the system appearance in the settings of the operating system while PRISM runs and
 see the window follow; the minimum window on a monitor at 100 % and one at 125 %.
 
 **Decided while building.**
@@ -682,7 +682,7 @@ and the help text (`DemoWorkloadProcessTest`). 93 tests, none of which takes rea
 beyond a 2 MiB smoke test or runs for more than a few seconds.
 
 **Manual verification.** Run it at 25% CPU and 256 MiB, each alone and both together, and
-watch it in Prism's process table next to the system's counters; confirm it exits by
+watch it in PRISM's process table next to the system's counters; confirm it exits by
 itself, refuses what is above a bound, and reports Ctrl+C.
 
 **Decided while building.**
@@ -711,7 +711,7 @@ itself, refuses what is above a bound, and reports Ctrl+C.
   exit code 1. Nothing goes on as if the memory were there.
 - Every page is written with a different value. With the same byte on every page, the
   private working set of a 256 MiB workload fell from 285 to 23 MiB about 40 seconds into a
-  run while the working set still read 302 MiB, in Prism and in the system's counter alike:
+  run while the working set still read 302 MiB, in PRISM and in the system's counter alike:
   Windows combines identical pages of a process into one shared page, and a demonstration of
   memory pressure would have demonstrated nothing. With a number on every page the private
   working set stayed at 285 MiB for 150 s.
@@ -732,18 +732,18 @@ itself, refuses what is above a bound, and reports Ctrl+C.
   stays a deferred polish item (milestone 4, "Deferred").
 
 **Behavior and limits, found while verifying.** On Windows 11, 16 logical processors,
-measured against `Win32_PerfFormattedData_PerfProc_Process` every 2 s and against Prism's
+measured against `Win32_PerfFormattedData_PerfProc_Process` every 2 s and against PRISM's
 process table read through UI Automation, after 30 s of settling:
 - `--cpu 25`: the counter gave 24.93% of the machine (23.75 to 25.94 over 21 samples),
-  Prism's row 24.94% (24.70 to 25.10), the process's own figure 24.8 to 25.1. With
+  PRISM's row 24.94% (24.70 to 25.10), the process's own figure 24.8 to 25.1. With
   `--memory 256MiB` added: 24.89%, 24.95% and 24.5 to 25.0. The tolerance for a
   demonstration is therefore about one point on a 2-second sample and a fraction of a point
   on a minute, on an otherwise idle machine; under other load the share of a process is still
   its own busy time and is not reduced by the limiter arithmetic of a later milestone.
-- `--memory 256MiB`: the working set rose to 302.6 MiB (Prism's Memory column the same), the
+- `--memory 256MiB`: the working set rose to 302.6 MiB (PRISM's Memory column the same), the
   private working set to 284.3 MiB, against 46 MiB and 28 MiB for a run without memory: the
   256 MiB plus the JVM's own footprint. The allocation of 16 chunks took about 60 ms.
-- Prism showed the process as `java`, PID, user, 24 to 27 threads, base priority 8, no state;
+- PRISM showed the process as `java`, PID, user, 24 to 27 threads, base priority 8, no state;
   the inspector showed the start time to the second, the parent PID, the path of `java.exe`
   and the command line with the jar and the arguments, all equal to `Win32_Process`. No
   special monitoring path exists for it.
@@ -756,10 +756,10 @@ process table read through UI Automation, after 30 s of settling:
   chain (a process group created by the tools) never reaches the JVM, and a key press sent to
   a Windows Terminal window lands in whichever tab has the focus. The verification cleared
   the flag and started the workload on a console it shared.
-- Prism's own cost while the workload ran: 0.19% of the machine in the median of the samples
+- PRISM's own cost while the workload ran: 0.19% of the machine in the median of the samples
   next to the 25% of the workload, with single samples of 1 to 6% at the moments the script
   read the table through UI Automation and selected the row; the same order as its idle
-  cost (PERFORMANCE.md). The workload adds nothing to Prism; it is one more process in the
+  cost (PERFORMANCE.md). The workload adds nothing to PRISM; it is one more process in the
   listing.
 - The Windows timer: `Thread.sleep` overran by about 1 ms on this machine (median 2.0 ms for
   a 1 ms sleep, 100.8 for 100 ms), not by the 15.6 ms quantum; the bounded debt corrects what
@@ -804,11 +804,11 @@ with explicit results, protection rules, capability-driven UI, and the Logs page
 - The UI enables, disables and explains actions from the capability report alone
   (CAP-1 to CAP-3, CAP-5); a fake capability report with different levels changes the
   UI without code changes.
-- Prism's own process and protected processes are refused before any native call
+- PRISM's own process and protected processes are refused before any native call
   (SAFE-2, SAFE-3).
 - An elevated or system process yields `ACCESS_DENIED` with a plain message; nothing
   crashes (SAFE-4, CAP-4).
-- Processes suspended through Prism show as "Suspended by Prism" (PROC-6).
+- Processes suspended through PRISM show as "Suspended by Prism" (PROC-6).
 - Every native handle is closed on every path.
 - Each native function, constant and structure cites its Microsoft Learn page.
 - Actions and results appear in the Logs page (UI-6).
@@ -819,7 +819,7 @@ fake controller (process vanished, denied, unsupported); the suspension coordina
 reports.
 
 **Manual verification.** Each action on the demo workload; End Task on a windowed and a
-windowless process; an action on a system process; handle count of Prism stable after
+windowless process; an action on a system process; handle count of PRISM stable after
 many operations.
 
 **Decided while building.**
@@ -834,7 +834,7 @@ many operations.
 - End Task posts `WM_CLOSE` to the visible, unowned top-level windows of the process,
   tool windows only when nothing else is there. One accepted post is `SUCCESS`, reported
   as "Close request sent; the application may ignore it". No window is `UNSUPPORTED` with
-  a pointer to Force kill; every post refused with 5 (UIPI) is `ACCESS_DENIED`. Prism
+  a pointer to Force kill; every post refused with 5 (UIPI) is `ACCESS_DENIED`. PRISM
   never waits for the exit and never falls back to termination.
 - Force Kill opens the process with `PROCESS_TERMINATE` itself first, so a refusal is a
   clean `ACCESS_DENIED`, and then calls `ProcessHandle.destroyForcibly` while its handle
@@ -850,7 +850,7 @@ many operations.
   if the next listing still names it, and fails the suspension if it is refused again. A
   process that exits while it is being suspended is `PROCESS_NOT_FOUND`, and a
   `RuntimeException` part way, which nothing is expected to throw, is rolled back before it
-  goes on. Prism owns exactly one increment per held handle and resumes each
+  goes on. PRISM owns exactly one increment per held handle and resumes each
   at most once. When a suspension fails half way, everything taken is given back; a
   `ResumeThread` that fails on a thread that still runs (`GetExitCodeThread`) keeps that
   thread's handle and ownership, the coordinator records the process as incomplete, and
@@ -865,7 +865,7 @@ many operations.
 - Change Priority sets one of the five classes (no Realtime) with `SetPriorityClass` and
   reads it back with `GetPriorityClass`; a different class read back is `NATIVE_ERROR`.
   The table shows the base priority of the next listing (4, 6, 8, 10, 13).
-- Protection, before any native call that acts: Prism's own PID; PID 0 and 4; a process
+- Protection, before any native call that acts: PRISM's own PID; PID 0 and 4; a process
   `IsProcessCritical` reports as critical; an executable with the name of a well-known
   system process. When criticality cannot be read, the process is not treated as
   protected; the action then meets the system's own access check.
@@ -880,14 +880,14 @@ many operations.
   bound of the sequence), release the automatic reasons (none yet), keep what the user
   suspended, close the handles of those suspensions without resuming, log what stays
   suspended.
-- A suspension Prism holds stays releasable when process monitoring ends with a failure.
+- A suspension PRISM holds stays releasable when process monitoring ends with a failure.
   From then on the control service takes Resume only; End Task, Force Kill, Suspend and
-  Change Priority, which need the process as it is now, are answered "Prism is not
+  Change Priority, which need the process as it is now, are answered "PRISM is not
   monitoring" at once, also one that was already queued. Resume goes through the
-  coordinator and the suspension Prism kept, with no listing. The coordinator hands over the
+  coordinator and the suspension PRISM kept, with no listing. The coordinator hands over the
   processes it holds, with their names, each time that changes; once monitoring has stopped,
   the Processes page shows them under the notice, each with a plain Resume button, the
-  result of the last Resume, and the advice to resume them before restarting Prism, because a
+  result of the last Resume, and the advice to resume them before restarting PRISM, because a
   restart leaves them suspended. A process that had exited when it is resumed is
   `PROCESS_NOT_FOUND`, "has exited; Prism no longer holds it suspended", and its handles are
   closed without a call.
@@ -898,13 +898,13 @@ many operations.
   that opens the log folder; earlier sessions are in the files there.
 
 **Behavior and limits, found while verifying.** On Windows 11 Pro 26200, 16 logical
-processors, a standard (not elevated) user, through a second Prism instance driven by UI
+processors, a standard (not elevated) user, through a second PRISM instance driven by UI
 Automation and real mouse input, against the demo workload; the system's view read with
 `Get-Process` and `Win32_Thread`:
 - Suspend of a 27-thread workload at 25%: all 27 threads in `ThreadWaitReason` 5
   (suspended), its CPU 0% over 4 s, the row "Suspended by Prism" at 0.0%, Suspend
   disabled and Resume enabled. Resume: 0 threads suspended, 24.88% over the next 4 s.
-  Prism's handle count rose from 1174 to 1198 while the threads were held and was 1172
+  PRISM's handle count rose from 1174 to 1198 while the threads were held and was 1172
   after Resume.
 - The five levels read back by the system as `Idle`/4, `BelowNormal`/6, `Normal`/8,
   `AboveNormal`/10 and `High`/13, and the Priority column showed the same numbers with
@@ -918,39 +918,39 @@ Automation and real mouse input, against the demo workload; the system's view re
   confirmation is open is ignored, as Windows does for a window that a modal dialog
   disabled; the confirmation stays and is answered first.
 - A workload killed from outside while suspended: the next listing missed it, the check
-  found it gone, the log says it "exited while Prism held it suspended", and Prism's
+  found it gone, the log says it "exited while Prism held it suspended", and PRISM's
   handle count fell back by its 24 thread handles (1204 to 1179).
 - A workload killed between the listing and the click: `PROCESS_NOT_FOUND`, "is no
   longer running".
-- Priority on Prism itself, on System (PID 4) and on Idle (PID 0): refused by Prism with
+- Priority on PRISM itself, on System (PID 4) and on Idle (PID 0): refused by PRISM with
   its own message, logged as a warning, before any call to the system.
 - A 32-bit process (`SysWOW64\ping.exe`, started for the check): all 7 threads suspended
-  through `SuspendThread` from 64-bit Prism (`Win32_Thread` wait reason 5), no output for the
+  through `SuspendThread` from 64-bit PRISM (`Win32_Thread` wait reason 5), no output for the
   4 s of the suspension, 0 suspended and one line a second again after Resume. This closes
   the WOW64 point of ADR-0002 for suspension.
 - Access denied (SAFE-4, SAFE-6) was verified without acting on any process that is not
-  Prism's: `OpenProcess` on PID 4 with `PROCESS_TERMINATE` and with
+  PRISM's: `OpenProcess` on PID 4 with `PROCESS_TERMINATE` and with
   `PROCESS_SET_INFORMATION`, and `OpenThread` with `THREAD_SUSPEND_RESUME` on one of its
   threads, each fail with 5, which the identity check reports as `ACCESS_DENIED`
   (`JnaWin32Test`). For a standard user even `PROCESS_QUERY_LIMITED_INFORMATION` is
   refused with 5 on `wininit`, `csrss`, `smss`, `services`, `lsass`, `winlogon` and
   `svchost`, so every action on them stops at the first `OpenProcess` with
   `ACCESS_DENIED` and nothing else is called. It also means `IsProcessCritical` and the
-  name list cannot be read for them unless Prism runs elevated; they are a second line
+  name list cannot be read for them unless PRISM runs elevated; they are a second line
   that matters there. An action through the UI that ends in `ACCESS_DENIED` from the
   system was not carried out live: no elevated process of the user's was used as a
   target.
 - `IsProcessCritical` answered `false` for this JVM and for `explorer`; a `true` answer
-  was not observed (it needs a readable critical process, which means an elevated Prism).
+  was not observed (it needs a readable critical process, which means an elevated PRISM).
 - The creation time from `GetProcessTimes` equalled the listed start time for every
   process this user could open (`JnaWin32Test`), closing that point of ADR-0002.
-- Prism's own CPU over the whole 153-second run, with every action and the UI
+- PRISM's own CPU over the whole 153-second run, with every action and the UI
   Automation reads: 1.1% of the machine; the listings continued every 2 s, and the UI
-  answered every read within about 100 ms. Closing the window ended Prism in 380 ms.
+  answered every read within about 100 ms. Closing the window ended PRISM in 380 ms.
 - These figures are from the last run, on the build that was reviewed and corrected; an
   earlier run before the review corrections gave the same results.
 - Recovery after process monitoring failed, through a harness outside the repository:
-  Prism's `MonitoringRuntime` with the real Windows controller, coordinator and process
+  PRISM's `MonitoringRuntime` with the real Windows controller, coordinator and process
   listing, the process source wrapped to throw an `Error` on demand, as a fatal error in it
   would. The UI cannot be made to fail that way without a seam in the product, so the page
   itself was checked by its tests and snapshots, not live. The workload at 25%: Suspend left
@@ -968,20 +968,20 @@ Automation and real mouse input, against the demo workload; the system's view re
   line. Done in milestone 7.5.
 - Multiple selection; actions on a process tree.
 - A journal of suspensions for a crash (LIFE-6, milestone 9). Until then a suspension
-  the user made outlives a crash of Prism, which is also the policy after a controlled
+  the user made outlives a crash of PRISM, which is also the policy after a controlled
   shutdown.
 - End Task for packaged (UWP/WinUI) applications, whose frame windows belong to
   `ApplicationFrameHost`: the target has no window of its own and gets `UNSUPPORTED`.
 - Force Kill through `ProcessHandle.destroyForcibly`, as decided, reopens the process by PID
   with more rights than `PROCESS_TERMINATE`: the JDK asks for `PROCESS_DUP_HANDLE` as well
-  (`ProcessHandleImpl_win.c`). Where Prism may terminate but not duplicate handles, the JDK
+  (`ProcessHandleImpl_win.c`). Where PRISM may terminate but not duplicate handles, the JDK
   finds no process and the result is `NATIVE_ERROR` with a detail that says so. Terminating
-  through the handle Prism already holds (`TerminateProcess`) would need only the right the
+  through the handle PRISM already holds (`TerminateProcess`) would need only the right the
   action needs; it changes the decided mechanism and is left for a decision.
 - An exit code of 259 (`STILL_ACTIVE`) is taken as "still running", as GetExitCodeProcess and
   GetExitCodeThread warn it may not be. Every decision this affects errs on the safe side: a
   process that exited with 259 is not forgotten while suspended, and a thread of it keeps
-  its handle and Prism's increment until shutdown. `WaitForSingleObject` would decide it,
+  its handle and PRISM's increment until shutdown. `WaitForSingleObject` would decide it,
   but needs `SYNCHRONIZE` on every open, which may refuse processes that are opened today.
 - The protection facts are read through an open of their own, before the open of the action;
   both check the identity, so the cost is one more `OpenProcess` per action.
@@ -1012,7 +1012,7 @@ is covered by tests with a fake report, not run on those systems.
   whose retry fails, unreadable exit codes, the queue of 32 overflowing, the shutdown bound
   with an action stuck inside the coordinator, undecided checks, the listing passes, failure
   codes on the real system); the fake Win32 fails a test on a handle closed twice and models
-  rights a process refuses; the runtime gets Prism's PID injected, so no test depends on the
+  rights a process refuses; the runtime gets PRISM's PID injected, so no test depends on the
   PID of the JVM that runs it; the tests that start child processes have a time bound.
 - UI: the reason of one unavailable action is on the page; a refusal is in the warning color
   and only a failure of the system in the error color, as in the log; the result goes when
@@ -1096,7 +1096,7 @@ small interface debts its acceptance noted.
   (`TextWidths`).
 
 **Behavior and limits, found while verifying.** On the development machine (Windows 11 Pro
-26200, a 100 % and a 125 % monitor, the dark appearance, animations on), through a second Prism
+26200, a 100 % and a 125 % monitor, the dark appearance, animations on), through a second PRISM
 instance driven by UI Automation and real keyboard and mouse input, against the demo workload.
 The run was repeated on the build after the review fixes with the same results (except the
 default-button focus fix of the confirmation passes, which is verified by snapshots only):
@@ -1105,7 +1105,7 @@ default-button focus fix of the confirmation passes, which is verified by snapsh
   had High checked and the row showed 13. Set back to Normal the same way.
 - Suspend: "java (PID n) was suspended. Its threads were stopped one by one." with 27 of 27
   threads suspended and 0 % CPU; "Suspended by Prism" in the heading after the listing. Resume:
-  "was resumed.", 0 suspended, 24.94 %; Prism's handle count 1172 before and after (1173 before
+  "was resumed.", 0 suspended, 24.94 %; PRISM's handle count 1172 before and after (1173 before
   and after in the repeat).
 - Keyboard: from the selected row one Tab reached Suspend, Space suspended, and the focus was on
   the row; Tab reached Resume (Suspend disabled), Space resumed; Tab through Suspend and Priority
@@ -1197,13 +1197,13 @@ on Windows only.
 - **Linux signals through a pidfd only.** End Task (SIGTERM), Force Kill (SIGKILL), Suspend
   (SIGSTOP) and Resume (SIGCONT) open a pidfd, check the identity in `/proc/<pid>/stat` after
   the open, signal through the descriptor and close it; a suspension holds its pidfd until it is
-  resumed or let go. The whole path is probed once, on first use, on Prism's own process (open,
+  resumed or let go. The whole path is probed once, on first use, on PRISM's own process (open,
   signal 0, close). Where it fails (ENOSYS, a seccomp EPERM, ENODEV, any other failure, or an
   architecture other than x86_64 and aarch64), the four actions are `UNAVAILABLE` and the
   activity log says why once; there is no `kill(2)` fallback. Change Priority stays offered.
 - **The system calls go through `syscall(2)`** with the numbers 434 and 424, on x86_64 and
   aarch64 only. The plan looked for glibc's wrappers (2.36) first; that was dropped, because a
-  missing symbol throws an `Error` in JNA, which Prism does not catch, and on those two
+  missing symbol throws an `Error` in JNA, which PRISM does not catch, and on those two
   architectures the wrapper makes the same system call.
 - **The start time** is computed from the boot time the process listing used (OSHI's, handed
   over by `HostPlatform`), not read again: after a clock step a second `btime` can differ by a
@@ -1220,7 +1220,7 @@ on Windows only.
   not raised back (EACCES); the UI says so. On Linux the listing's number is nice + 20, so the
   M7.5 mark works; on macOS the listing shows a Mach priority and no level is marked.
 - **Suspension ownership**: a process stopped already (T, t, SSTOP) is not suspended; one
-  killed while Prism held it stopped is answered as gone on Resume. A continue by another
+  killed while PRISM held it stopped is answered as gone on Resume. A continue by another
   program is not noticed; dropping the hold on the listing's state was deferred, because that
   state is not reliable enough (OSHI reads the leading thread on Linux and maps macOS states
   wrongly).
@@ -1230,7 +1230,7 @@ on Windows only.
   every action that is not available ("Not available on this system: End task, Force kill,
   Suspend, Resume."). Windows reads as before.
 - **PID 0 and below** are never passed to a call on either system (`kill(0)` would signal
-  Prism's own process group).
+  PRISM's own process group).
 - **SAFE-5** is now a test: no production class uses `ProcessBuilder`, `Runtime.exec` or a JNA
   mapping of `system`, `popen`, `posix_spawn`, `fork` or `exec*`.
 - **PRODUCT_SPEC**: CTL-3 rewritten (the narrow change the external review approved); notes in
@@ -1239,7 +1239,7 @@ on Windows only.
 **Behavior and limits.**
 - Linux 5.3 or later on x86_64 or aarch64 for End Task, Force Kill, Suspend and Resume.
 - On Linux, nice is weighed only against processes of the same autogroup or cgroup (sched(7)).
-- End Task on a process Prism has stopped is delivered and waits for Resume.
+- End Task on a process PRISM has stopped is delivered and waits for Resume.
 - A process whose main thread has ended while others run reads as a zombie and is refused.
 - OSHI's macOS state mapping does not match xnu (`SSTOP` reads as new): the State column on
   macOS may be wrong. Found from bytecode and headers, not run; not fixed here.
@@ -1248,7 +1248,7 @@ on Windows only.
 priority, Suspend and Resume (27 of 27 threads, 0 % CPU while held), the keyboard path, End task
 without a window, Force kill with exit code 1, the smallest window, and the monitoring-failure
 harness of milestone 7 all behave as before. Run after the implementation and again on the final
-build after the review fixes; Prism's handle count before Suspend and after Resume was 1170 and
+build after the review fixes; PRISM's handle count before Suspend and after Resume was 1170 and
 1171 in the first run, 1171 and 1170 in the second.
 
 **Reviewers.** `native-api-reviewer`, `architecture-reviewer`, `test-reviewer`, `ui-critic`.
@@ -1289,7 +1289,7 @@ only), SpotBugs 0 (one exclusion with its reason, for the JNA structure), Spotle
 `./mvnw -o -Pui-snapshots test`: 633 tests, 495 snapshots.
 
 **Cross-platform verification.** The first CI run (on `c23cf9d`) failed: 19 test cases, 34
-executions across the three jobs. None was a defect of Prism. The cases were:
+executions across the three jobs. None was a defect of PRISM. The cases were:
 - a Windows test class that loaded `kernel32` on Ubuntu and macOS;
 - two tests that assumed the Normal class, where GitHub's Windows runner starts jobs below
   normal;
@@ -1366,8 +1366,8 @@ system through the emulated limiter.
   limit is cancelled (CTL-9, LIFE-2).
 - Cancelling a limit, an error, and a controlled shutdown each leave the target running.
 - The journal is written per limit, not per duty cycle, and holds the fields of LIFE-6.
-- After Prism is killed mid-limit, the next start lists the target as possibly
-  suspended and the user resumes it after Prism's verification (LIFE-4, ADR-0011); on
+- After PRISM is killed mid-limit, the next start lists the target as possibly
+  suspended and the user resumes it after PRISM's verification (LIFE-4, ADR-0011); on
   Windows an entry without its threads is listed for manual intervention only. A journal
   entry whose PID or start time does not match the live process is discarded without
   touching that process, and a suspension the user requested is never resumed by
@@ -1397,7 +1397,7 @@ system through the emulated limiter.
 - Admission: the allowance per number of logical processors and per mechanism, a refusal
   that changes nothing, Disable, Enable, Remove and Unmanage, and requests from many
   threads at once.
-- The registry (PID reuse, exit, refusal of Prism itself and of protected processes).
+- The registry (PID reuse, exit, refusal of PRISM itself and of protected processes).
 - Journal recovery: matching identity, reused PID with a different start time, process
   gone, an entry with only a user reason (left suspended, listed, resumed on request after
   verification), an entry with
@@ -1408,7 +1408,7 @@ system through the emulated limiter.
 
 **Manual verification.** Limit the demo workload with one thread and with several, and
 compare the observed share with the cap; cancel the limit; suspend it manually during a
-limit; kill Prism from Task Manager during a limit and restart it.
+limit; kill PRISM from Task Manager during a limit and restart it.
 
 **Reviewers.** `test-reviewer`, `architecture-reviewer`, `performance-check` skill (timer
 frequency), `native-api-reviewer` (suspension safety).
@@ -1449,12 +1449,12 @@ Limits page.
 - Limits are cleared on controlled shutdown (LIFE-1).
 - Every job is named deterministically from the process identity, as specified in
   ADR-0002.
-- Recovery after a crash is tested experimentally on Windows: Prism is killed while a
+- Recovery after a crash is tested experimentally on Windows: PRISM is killed while a
   limit is active, and the next start attempts to reopen the named job, validate it
   against the live process identity and its job membership, and clear the limits.
   Whether the attempt succeeds is the thing being established; either outcome is
   recorded in ADR-0002 and the user-facing wording follows the result.
-- When reopening or validation fails, Prism reports the process as possibly still
+- When reopening or validation fails, PRISM reports the process as possibly still
   limited and takes no destructive action (LIFE-4).
 - A CPU limit on Windows is native first; the emulated limit is used only when native
   assignment failed and the user chose the fallback, which states its cost and is subject
@@ -1471,7 +1471,7 @@ fake; limit-service selection and failure paths against a fake limiter.
 
 **Manual verification.** Cap the demo workload at 20% and compare with Task Manager; set
 a commit limit and watch the workload report an allocation failure; try a process that
-already belongs to a job; exit Prism and confirm the limit is gone; kill Prism during a
+already belongs to a job; exit PRISM and confirm the limit is gone; kill PRISM during a
 limit, restart it, and confirm whether the limit was found and cleared.
 
 **Reviewers.** `native-api-reviewer` (required), `test-reviewer`.
@@ -1481,18 +1481,18 @@ limit, restart it, and confirm whether the limit was found and cleared.
 **Decided while building.** Per the accepted plan revision 4.1 and
 [ADR-0012](adr/0012-windows-native-limits-ledger-and-recovery.md), which amends decision 5 of
 ADR-0002. A job's name goes with its last handle, so after a crash or a hard kill the next
-start is expected not to find the job: the limit lasts until the process exits, and Prism
+start is expected not to find the job: the limit lasts until the process exits, and PRISM
 lists it as possibly still limited. Assignment and the change of a held job are separate
-operations, and a durable ledger record precedes each of them. A process in a job Prism does
+operations, and a durable ledger record precedes each of them. A process in a job PRISM does
 not hold is refused before a job is made. The emulated CPU limit is offered only after this
 process's native limit was not applied, never over a native cap that may be in force, and runs
 only with the user's consent. The memory limit is native only. Recovery is read-only and an
 unsettled earlier ledger blocks a second CPU controller whatever today's native capability is
 (recovery audits of 2026-10-10; ADR-0012, accepted by the product owner on 2026-10-10).
 The last manual check above, written before these audits and kept as written, therefore
-confirms that the restarted Prism lists the process as possibly still limited (or as held by a
+confirms that the restarted PRISM lists the process as possibly still limited (or as held by a
 running program) and that the cap stays measured until the process exits; it does not expect
-the limit to be cleared. Clearing on a controlled exit is unchanged. One Prism runs per user profile
+the limit to be cleared. Clearing on a controlled exit is unchanged. One PRISM runs per user profile
 (ADR-0013, accepted on 2026-10-10): a second launch is refused before monitoring starts, because two instances
 could otherwise run an emulated limit over each other's native cap (`ConcurrentInstancesTest`).
 
@@ -1521,7 +1521,7 @@ head `53c545c` adds only `docs/` to it.
   in three separate executions there. Linux and macOS ran this code only in CI.
 - **The hosted `native-validation` check stays red, and is not counted as green.**
   - **Why:** on GitHub's `windows-latest` runner the test JVM and its children run inside a Job
-    Object (`selfInJob=true childInJob=true`). Prism refuses such processes by design (plan D1),
+    Object (`selfInJob=true childInJob=true`). PRISM refuses such processes by design (plan D1),
     so 10 of the 11 native integration tests are skipped there, and the check fails as it must.
   - **What it did not find:** no native test failed or erred there.
   - **What stands for it:** the accepted path C evidence. The check was neither weakened nor
@@ -1536,16 +1536,16 @@ head `53c545c` adds only `docs/` to it.
       rate 2000.
     - After Remove CPU limit the job held no rate and the demo ran at 58.5 to 59.7 %.
   - **Hard kill, restart, warning and clean-up**, in two runs.
-    - **The cap outlived the kill.** After Prism was ended with `taskkill /F`, the demo stayed
+    - **The cap outlived the kill.** After PRISM was ended with `taskkill /F`, the demo stayed
       at 20.2 to 20.7 %, the job's name was gone (error 2), and the demo stayed in a job. In the
       first run it stayed capped until it ended by itself, 30 minutes after it started.
-    - **The restarted Prism.** It logged "may still be limited by an earlier Prism session
-      (CPU 20 %) … Prism starts no second limiter for it". Its Limits page said the same above
+    - **The restarted PRISM.** It logged "may still be limited by an earlier PRISM session
+      (CPU 20 %) … PRISM starts no second limiter for it". Its Limits page said the same above
       the table, and it made no new job. For the first run's exited target it logged that
-      Prism cannot prove the limit never took effect.
+      PRISM cannot prove the limit never took effect.
     - **The clean-up.** The demo was ended after its identity (PID, start time, command line, no
       child process) was checked again. The job's members, read before the kill, were the demo
-      alone. Prism then closed with a controlled shutdown.
+      alone. PRISM then closed with a controlled shutdown.
 - **Known limitations, not blocking.**
   - **Not run:** 32-bit targets, a system with Dynamic Fair Share Scheduling, and recovery
     across users or elevation.
@@ -1560,7 +1560,7 @@ head `53c545c` adds only `docs/` to it.
 Earlier measurements, before the release candidate. Measured on the real system (ADR-0012):
 a 20 % cap holds the demo workload at 21 %. After the holder of the job is killed the cap stays
 at 20.7 %, the name is gone (error 2), and the next start says "unreachable". A commit limit of 256 MiB refuses an allocation. A process the target
-started stays limited after the target exits, until Prism clears it. The native limiter costs
+started stays limited after the target exits, until PRISM clears it. The native limiter costs
 nothing measurable (docs/PERFORMANCE.md), which ends the milestone 9 performance exception for
 every process limited natively. The native suites ran with `-Dprism.native.required=true` and
 no skip on the development machine. Not verified: 32-bit targets, recovery across users or
@@ -1715,7 +1715,7 @@ milestone's acceptance, and ADR-0003 became Superseded.
   a second composition appears in the main sources.
 - A failed precondition reports `UNAVAILABLE` with its reason, and the limit service falls back to the
   emulated limiter. An unanswered step stays uncertain and starts no second limiter.
-- Limits are set only on scopes Prism created and proves as its own: a foreign or unproven scope
+- Limits are set only on scopes PRISM created and proves as its own: a foreign or unproven scope
   is refused, and a write reaches only the recorded invocation.
 - Removing a limit reads back as none. No process is moved back, no scope is stopped, no other unit
   changes, and no `prism-srm-limit-*` unit stays once its processes have exited.
@@ -1738,7 +1738,7 @@ disposable probe and without moving anything; confirm no scope or unit change is
 
 **Manual verification before K16 can be lifted.** Not part of this milestone's closure: limit the demo
 workload started from a desktop launcher and from a terminal and compare its CPU share with the cap;
-drive it into `memory.high` and into `memory.max` and record what actually happens; run Prism's own
+drive it into `memory.high` and into `memory.max` and record what actually happens; run PRISM's own
 window on a Linux desktop; confirm cleanup after exit; close D1, D2, D6, D8, D11 and D14 of the
 [risk register](evidence/m12-risk-register.md).
 
@@ -1777,8 +1777,8 @@ shutdown sequence; packaging configuration for jpackage on Windows; documentatio
 - Every page is operable by keyboard and passes the UI guide checklist in both themes.
 - On Windows the native title bar matches the effective appearance of the window: dark
   in `DARK`, light in `LIGHT`, and in `SYSTEM` whatever the operating system prefers at
-  the moment, also after that preference changes while Prism runs; the title text and the
-  caption buttons keep their contrast in both. A light native title bar above a dark Prism
+  the moment, also after that preference changes while PRISM runs; the title text and the
+  caption buttons keep their contrast in both. A light native title bar above a dark PRISM
   window does not ship. Milestone 5.5 leaves the title bar as Windows draws it.
 
 **Native title bar.** The window keeps the real Windows chrome: minimize, maximize and

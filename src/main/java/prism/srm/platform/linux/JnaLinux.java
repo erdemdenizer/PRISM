@@ -36,7 +36,7 @@ import java.util.Set;
  */
 final class JnaLinux implements LinuxNative {
 
-    /** The architectures whose system call numbers and signal numbers Prism has verified, as {@code os.arch} names them. */
+    /** The architectures whose system call numbers and signal numbers PRISM has verified, as {@code os.arch} names them. */
     static final Set<String> VERIFIED_ARCHITECTURES = Set.of("amd64", "aarch64");
 
     static final long SYS_PIDFD_SEND_SIGNAL = 424;

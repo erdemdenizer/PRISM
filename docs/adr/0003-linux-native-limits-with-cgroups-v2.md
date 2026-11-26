@@ -8,7 +8,7 @@ The product owner accepted [ADR-0016](0016-linux-native-limits-through-systemd-s
 
 ## Context
 
-Prism runs as an ordinary user in a desktop session and must limit the CPU and memory of
+PRISM runs as an ordinary user in a desktop session and must limit the CPU and memory of
 other running processes with cgroups v2, without root. From the kernel cgroup-v2
 documentation, cgroups(7) and the systemd documentation:
 
@@ -35,32 +35,32 @@ documentation, cgroups(7) and the systemd documentation:
 
 ## Decision (proposed)
 
-1. Prism limits processes through **child cgroups it creates inside a subtree delegated
-   to Prism itself**. The Linux launcher starts Prism in a transient user scope with
+1. PRISM limits processes through **child cgroups it creates inside a subtree delegated
+   to PRISM itself**. The Linux launcher starts PRISM in a transient user scope with
    delegation (`systemd-run --user --scope -p Delegate=yes`), which is the arrangement
-   systemd sanctions for a program that manages its own cgroups. Inside that scope Prism
+   systemd sanctions for a program that manages its own cgroups. Inside that scope PRISM
    moves itself to a leaf, enables the controllers for its children, and creates one
    child cgroup per limited process.
 2. A native limit is claimed only after a **runtime probe** passes for the specific
-   target: cgroup2 is mounted; Prism's own cgroup is delegated and writable; the needed
+   target: cgroup2 is mounted; PRISM's own cgroup is delegated and writable; the needed
    controller is listed for the child; the target's current cgroup has a common ancestor
-   with Prism's subtree that Prism can write to (in practice: the target runs under
+   with PRISM's subtree that PRISM can write to (in practice: the target runs under
    `user@UID.service`).
 3. If any check fails, the Linux limiter reports `UNAVAILABLE` for that process and the
    limit service falls back to the emulated limiter, so the level in effect is
-   `EMULATED`. This includes Prism started without the delegating launcher, processes
+   `EMULATED`. This includes PRISM started without the delegating launcher, processes
    in a login session scope, other users' processes and system services.
 4. Removing a limit writes `max`; the process is moved back to its original cgroup if it
-   still exists, which is the only write outside cgroups Prism created. Prism removes
+   still exists, which is the only write outside cgroups PRISM created. PRISM removes
    only cgroups it created, and only when they are empty.
-5. **CPU conversion.** Prism's CPU limit is a whole-number percentage P of the whole
+5. **CPU conversion.** PRISM's CPU limit is a whole-number percentage P of the whole
    machine. With N logical processors and the default period of 100000 microseconds,
-   Prism writes quota = P / 100 x N x period as `$MAX $PERIOD`, which is exactly
+   PRISM writes quota = P / 100 x N x period as `$MAX $PERIOD`, which is exactly
    P x N x 1000 microseconds. Example: 25% on 8 logical processors is `200000 100000`. A limit of 100% is written
    as `max`. N is the machine's logical processor count, the same divisor used for
    process CPU % in the UI, so the limit and the displayed value share one unit.
 6. **Memory wording.** `memory.max` is offered as the hard boundary (`NATIVE_HARD`) and
-   `memory.high` as the throttling boundary (`NATIVE_SOFT`). Prism describes
+   `memory.high` as the throttling boundary (`NATIVE_SOFT`). PRISM describes
    `memory.max` as a boundary at which the cgroup may enter OOM and the kernel may
    invoke the OOM killer inside it; it never states that the target process is
    guaranteed to be killed, that every allocation beyond the limit fails, or that usage
@@ -77,16 +77,16 @@ documentation, cgroups(7) and the systemd documentation:
   fallback design if the delegated-subtree approach fails validation.
 - **Writing into systemd-managed cgroups directly** without delegation: works by file
   permissions but violates systemd's single-writer rule. Rejected.
-- **Running Prism as root**: rejected by the product requirements.
+- **Running PRISM as root**: rejected by the product requirements.
 
 ## Consequences
 
-- Native limits on Linux depend on how Prism was launched; the packaged launcher must
+- Native limits on Linux depend on how PRISM was launched; the packaged launcher must
   set up the delegated scope, and the UI must explain when it is missing.
 - Moving a process out of the scope its desktop environment created is visible to that
   environment. Whether this has side effects, and what to do when the original cgroup
   has been removed, must be established on a real system.
-- If Prism's scope is stopped while foreign processes are still inside it, systemd may
+- If PRISM's scope is stopped while foreign processes are still inside it, systemd may
   terminate them. Shutdown must move every process back first; the crash case needs a
   tested answer before acceptance.
 - Open questions to settle in milestone 12: controller availability at each level on

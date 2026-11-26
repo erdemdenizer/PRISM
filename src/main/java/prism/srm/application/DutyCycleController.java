@@ -30,7 +30,7 @@ import prism.srm.domain.LimitStatus;
  *
  * <p><b>What it reports</b> never claims more than was measured: throttling only while the last
  * intervals were at or below the limit (the limit is an upper bound, so the tolerance is one-sided);
- * above the target when they were not, because the limit lies below the lowest share Prism can hold
+ * above the target when they were not, because the limit lies below the lowest share PRISM can hold
  * the target to (the floor of the duty cycle) or because the load varies faster than the limiter
  * follows; adjusting while the run share is still moving or nothing could be measured.
  */
@@ -153,7 +153,7 @@ final class DutyCycleController {
 
     /**
      * An interval that could not be measured. After a few in a row the target is let run in full,
-     * so that a limit Prism cannot see never keeps it throttled; the limiter decides when to give up.
+     * so that a limit PRISM cannot see never keeps it throttled; the limiter decides when to give up.
      */
     void unmeasured() {
         unmeasuredInARow++;
@@ -219,7 +219,7 @@ final class DutyCycleController {
         if (aboveAtFloorInARow >= tuning.intervalsToJudge()) {
             return new Judgement(
                     LimitStatus.ACTIVE_ABOVE_TARGET,
-                    Optional.of("floor: the limit is below the lowest share Prism can hold this process to"),
+                    Optional.of("floor: the limit is below the lowest share PRISM can hold this process to"),
                     LimitNote.FLOOR,
                     lastUse);
         }

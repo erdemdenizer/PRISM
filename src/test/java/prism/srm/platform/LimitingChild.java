@@ -23,7 +23,7 @@ import prism.srm.domain.ProcessIdentity;
 import prism.srm.domain.SuspensionReason;
 
 /**
- * A Prism stand-in for {@link CpuLimitIntegrationTest}: in a JVM of its own, it limits the demo
+ * A PRISM stand-in for {@link CpuLimitIntegrationTest}: in a JVM of its own, it limits the demo
  * workload with the PID it is given, writing its journal into the folder it is given, says
  * "limiting" once its own journal holds the limit's entry as written and read back and the limit
  * is at work (or "not-limiting" and why, after 30 s), and waits to be killed. Nothing ends it gracefully: the

@@ -18,7 +18,7 @@ import prism.srm.ui.control.ActionResultLine;
 import prism.srm.ui.control.CutTextTooltip;
 
 /**
- * The processes Prism still holds suspended after process monitoring stopped: each with its name,
+ * The processes PRISM still holds suspended after process monitoring stopped: each with its name,
  * its PID beside it as in the inspector, and a plain Resume button; and the message of the last
  * Resume. Below the notice that monitoring stopped; it takes room only while it has something to
  * offer, and the caption only while something is held. Layout and binding only.
@@ -39,11 +39,11 @@ final class HeldSuspensionsPane extends VBox {
     HeldSuspensionsPane(HeldSuspensions model) {
         this.model = model;
         getStyleClass().add("held-suspensions");
-        setAccessibleText("Processes Prism still holds suspended");
+        setAccessibleText("Processes PRISM still holds suspended");
 
         // Closing or restarting is what the notice above leads to; either leaves these suspended.
-        Label caption = new Label("Prism still holds these processes suspended. Resume them before you close or"
-                + " restart Prism; otherwise they stay suspended.");
+        Label caption = new Label("PRISM still holds these processes suspended. Resume them before you close or"
+                + " restart PRISM; otherwise they stay suspended.");
         caption.getStyleClass().addAll("text-small", "text-muted");
         caption.setWrapText(true);
         caption.setMinHeight(Region.USE_PREF_SIZE);

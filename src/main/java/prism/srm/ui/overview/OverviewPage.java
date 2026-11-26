@@ -70,7 +70,7 @@ public final class OverviewPage extends VBox {
     /** The four metrics. */
     private final GridPane metrics;
 
-    /** The facts under the metrics: the system, and what Prism does on it, side by side. */
+    /** The facts under the metrics: the system, and what PRISM does on it, side by side. */
     private final GridPane lowerRow;
 
     /** Told the part the user opened; nothing until whoever shows the pages says what it does. */

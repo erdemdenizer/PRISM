@@ -3,8 +3,8 @@ package prism.srm.domain;
 import java.util.Objects;
 
 /**
- * A process Prism holds suspended, as the user is to be shown it: its identity and its name. Lets
- * the user release a suspension Prism still holds after process monitoring has stopped, when no
+ * A process PRISM holds suspended, as the user is to be shown it: its identity and its name. Lets
+ * the user release a suspension PRISM still holds after process monitoring has stopped, when no
  * listing shows the process any more.
  */
 public record SuspendedProcess(ProcessIdentity identity, String name) {

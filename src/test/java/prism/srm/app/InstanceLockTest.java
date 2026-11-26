@@ -26,7 +26,7 @@ import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
 
 /**
- * One Prism per user profile (milestone 10, final multi-instance audit): the ownership is an
+ * One PRISM per user profile (milestone 10, final multi-instance audit): the ownership is an
  * operating-system lock, decided before anything is monitored, limited or recovered; a second launch
  * is refused and touches nothing of the first; a killed owner frees the profile; a failure to tell
  * refuses the launch; nothing leaks. Runs on every system (real locks, JVMs this test starts).
@@ -55,7 +55,7 @@ class InstanceLockTest {
         return lock;
     }
 
-    /** A first Prism in a JVM of its own; returns once it has said whether it owns the profile. */
+    /** A first PRISM in a JVM of its own; returns once it has said whether it owns the profile. */
     private Process holder(List<String> said) throws IOException, InterruptedException {
         String java = Path.of(System.getProperty("java.home"), "bin", "java").toString();
         ProcessBuilder builder = new ProcessBuilder(
@@ -133,7 +133,7 @@ class InstanceLockTest {
     }
 
     /**
-     * Across processes, as two launches are: a running Prism with its journal owns the profile; a
+     * Across processes, as two launches are: a running PRISM with its journal owns the profile; a
      * second launch is refused and changes nothing in the folder; killing the first, as Task Manager
      * would, frees the profile for the next launch: the file left behind is no marker.
      */
@@ -217,10 +217,10 @@ class InstanceLockTest {
         }
     }
 
-    /** A lock file left by an earlier Prism keeps nothing out: only a held lock does. */
+    /** A lock file left by an earlier PRISM keeps nothing out: only a held lock does. */
     @Test
     void aLockFileLeftBehindIsNoMarker() throws IOException {
-        Files.writeString(state.resolve(InstanceLock.FILE), "left by an earlier Prism");
+        Files.writeString(state.resolve(InstanceLock.FILE), "left by an earlier PRISM");
 
         assertThat(acquire().outcome()).isEqualTo(InstanceLock.Outcome.OWNED);
     }

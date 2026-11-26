@@ -10,7 +10,7 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-/** LIFE-1 in a real process: a stuck step does not keep Prism alive past the bound. */
+/** LIFE-1 in a real process: a stuck step does not keep PRISM alive past the bound. */
 class ShutdownRealProcessTest {
 
     private static final long MOST_SECONDS = 45;

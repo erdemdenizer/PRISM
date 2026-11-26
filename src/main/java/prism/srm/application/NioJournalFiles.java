@@ -87,7 +87,7 @@ final class NioJournalFiles implements JournalFiles {
         Files.move(from, to, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
     }
 
-    /** Far more than any journal Prism writes: a file larger than this is not read at all. */
+    /** Far more than any journal PRISM writes: a file larger than this is not read at all. */
     static final long LARGEST_READ = 4L * 1024 * 1024;
 
     @Override

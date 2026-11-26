@@ -49,7 +49,7 @@ import prism.srm.platform.ResourceLimiter;
  * Native CPU and memory limits on Linux through systemd transient scopes (milestone 12, S3B/S4, plan Rev 2.2, ADR-0016
  * draft). One scope per process, {@code prism-srm-limit-<pid>-<startMillis>.scope}, created by the user manager over a
  * pidfd only; limits are runtime unit properties, set one kind per call and verified by reading {@code cpu.max},
- * {@code memory.high} and {@code memory.max}. Prism never writes a cgroup file and never stops, kills, abandons or
+ * {@code memory.high} and {@code memory.max}. PRISM never writes a cgroup file and never stops, kills, abandons or
  * attaches to a unit.
  *
  * <p><b>Who may be adopted (K16).</b> Nothing is asked of the system before the {@link
@@ -70,7 +70,7 @@ import prism.srm.platform.ResourceLimiter;
  * <p><b>Recovery (§4.3, §4.5).</b> {@link #recover} classifies and changes nothing; {@link #clearOwned} clears only a
  * scope whose ownership it proves again at that moment (the record's unit and invocation id equal the live unit's, and
  * the recorded process is its member, or has exited and other processes remain). A recorded process that runs outside
- * its scope proves nothing. A scope with Prism's name but no proof is never changed. {@link #scopeBarrier} keeps every process inside a Prism scope this limiter does not hold from a second
+ * its scope proves nothing. A scope with PRISM's name but no proof is never changed. {@link #scopeBarrier} keeps every process inside a PRISM scope this limiter does not hold from a second
  * limiter, native or emulated, whatever the ledger says.
  *
  * <p>One operation at a time under one lock; every system call is bounded. Never on the JavaFX Application Thread.
@@ -128,7 +128,7 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
         final OptionalLong deadline;
 
         final List<String> problems = new ArrayList<>();
-        /** A send found no unit with the invocation id: the scope Prism made is gone (nothing was written). */
+        /** A send found no unit with the invocation id: the scope PRISM made is gone (nothing was written). */
         boolean gone;
 
         /** Per property, a value systemd accepted or that got no answer: it may be written after the read-back. */
@@ -205,7 +205,7 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
     /**
      * The product's limiter in milestone 12 (K16): it admits no process, reports every kind {@code UNAVAILABLE} with
      * the reason that Linux native limits are not validated for desktop applications, never opens a bus connection and
-     * never looks for earlier sessions' limits. It keeps the scope-membership rule: a process inside a Prism scope gets
+     * never looks for earlier sessions' limits. It keeps the scope-membership rule: a process inside a PRISM scope gets
      * no emulated limit either. Making it reads only {@code /proc/self/mountinfo}.
      */
     public static LinuxScopeLimiter product(LongSupplier bootSeconds) {
@@ -329,8 +329,8 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
 
     /**
      * Why the process does not run wholly as this user: every one of its real, effective, saved set and file system
-     * user IDs must be Prism's own. A set-user-ID program started in the session, or one that changed its IDs, is not
-     * the user's to limit; an unreadable status refuses. This is Prism's policy (cgroup v2 itself checks only write access
+     * user IDs must be PRISM's own. A set-user-ID program started in the session, or one that changed its IDs, is not
+     * the user's to limit; an unreadable status refuses. This is PRISM's policy (cgroup v2 itself checks only write access
      * to the common ancestor's {@code cgroup.procs}); it is checked again after the pidfd is open, and cannot see a change
      * of IDs after that.
      */
@@ -386,12 +386,12 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
         };
     }
 
-    /** Why a hold's scope is not, at this moment, Prism's invocation with the target in it. */
+    /** Why a hold's scope is not, at this moment, PRISM's invocation with the target in it. */
     private record Outside(Kind kind, String why) {
         enum Kind {
-            /** The unit is gone or is another invocation, or the target is not in it: Prism's hold no longer holds. */
+            /** The unit is gone or is another invocation, or the target is not in it: PRISM's hold no longer holds. */
             NOT_OURS,
-            /** The target has exited; the scope may still be Prism's. */
+            /** The target has exited; the scope may still be PRISM's. */
             EXITED,
             /** Something could not be read; nothing is known to have changed. */
             UNREADABLE
@@ -399,7 +399,7 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
     }
 
     /**
-     * Why the hold's scope is not, at this moment, the invocation Prism made with the target in it: the unit is gone, has
+     * Why the hold's scope is not, at this moment, the invocation PRISM made with the target in it: the unit is gone, has
      * another invocation id or cgroup, cannot be read, or the target (alive by its descriptor, the same identity) is not
      * in exactly that cgroup and listed in its {@code cgroup.procs}. Empty when it is. The files are read first and the
      * descriptor and identity checked after them, so the reads describe the live process the descriptor names. A read,
@@ -413,7 +413,7 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
         SystemdUserBus.Reading<SystemdUserBus.UnitFacts> facts =
                 scopes.orElseThrow().unit(hold.unit);
         if (facts.status() == SystemdUserBus.Status.NO_SUCH_UNIT) {
-            return Optional.of(new Outside(Outside.Kind.NOT_OURS, "the scope Prism made is gone"));
+            return Optional.of(new Outside(Outside.Kind.NOT_OURS, "the scope PRISM made is gone"));
         }
         if (facts.value().isEmpty()) {
             return Optional.of(new Outside(Outside.Kind.UNREADABLE, "the scope could not be read: " + facts.detail()));
@@ -513,11 +513,11 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
         lock.lock();
         try {
             if (closed) {
-                return ApplyResult.notAssigned(fail(OperationResult.NATIVE_ERROR, "Prism is closing"), false);
+                return ApplyResult.notAssigned(fail(OperationResult.NATIVE_ERROR, "PRISM is closing"), false);
             }
             if (holds.containsKey(target)) {
                 return ApplyResult.notAssigned(
-                        fail(OperationResult.INVALID_ARGUMENT, "Prism already holds a scope for this process"), false);
+                        fail(OperationResult.INVALID_ARGUMENT, "PRISM already holds a scope for this process"), false);
             }
             if (spec.none()) {
                 return ApplyResult.notAssigned(fail(OperationResult.INVALID_ARGUMENT, "no limit was asked for"), false);
@@ -623,7 +623,7 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
                 }
                 case PIDFDS_REFUSED -> {
                     adoptionRefused = Optional.of(
-                            "this systemd user manager does not accept a process by pidfd; Prism never moves one by PID");
+                            "this systemd user manager does not accept a process by pidfd; PRISM never moves one by PID");
                     return refusedStart(target, OperationResult.UNSUPPORTED, start, true);
                 }
                 case ACCESS_DENIED -> {
@@ -653,7 +653,7 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
                             Optional.of(EffectiveLimits.NONE),
                             false);
                 }
-                // The unit does not exist, so the process is in no scope of Prism's: the system shows nothing happened.
+                // The unit does not exist, so the process is in no scope of PRISM's: the system shows nothing happened.
                 return ApplyResult.notAssigned(
                         fail(OperationResult.NATIVE_ERROR, "the scope's start failed: " + facts.detail()), true);
             }
@@ -698,14 +698,14 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
             Optional<Outside> left = outsideItsScope(target, hold);
             if (sent.gone || (left.isPresent() && left.get().kind() != Outside.Kind.EXITED)) {
                 // Moved out, or the unit changed, while the limits were set: they are not known to be the target's
-                // (TOCTOU, see change()). An exit is not this: the scope is still Prism's and holds what was set.
+                // (TOCTOU, see change()). An exit is not this: the scope is still PRISM's and holds what was set.
                 hold.inForce = Optional.empty();
                 hold.state = NativeHold.State.UNCERTAIN;
                 return new ApplyResult(
                         ApplyResult.Phase.UNCERTAIN,
                         fail(
                                 OperationResult.NATIVE_ERROR,
-                                left.map(Outside::why).orElse("the scope Prism made is gone")
+                                left.map(Outside::why).orElse("the scope PRISM made is gone")
                                         + " while its limits were set"),
                         Optional.empty(),
                         false);
@@ -763,7 +763,7 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
     }
 
     private static String description(ProcessIdentity target) {
-        return "Prism limit for PID " + target.pid();
+        return "PRISM limit for PID " + target.pid();
     }
 
     /** Waits, at most {@link #START_BOUND}, for the unit to be active, gone or failed. */
@@ -862,7 +862,7 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
                         ? f.memoryBytes().getAsLong()
                         : ScopeManager.INFINITY)
                 .orElse(Long.MIN_VALUE);
-        // Loosen first, tighten after: the scope never holds both a throttle and a hard limit of Prism's at once.
+        // Loosen first, tighten after: the scope never holds both a throttle and a hard limit of PRISM's at once.
         if (high == ScopeManager.INFINITY && oldHigh != high) {
             set(manager, unit, MEMORY_HIGH, high, sent);
         }
@@ -969,7 +969,7 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
     }
 
     /**
-     * What the scope's cgroup holds, in Prism's terms; empty when a file cannot be read. A controller that is not
+     * What the scope's cgroup holds, in PRISM's terms; empty when a file cannot be read. A controller that is not
      * enabled for the cgroup (absent from its {@code cgroup.controllers}) has no interface files there and sets no limit
      * at that level, so it reads as "no limit of that kind" (cgroup v2: a controller's files exist only where it is
      * enabled). systemd enables the cpu controller for a unit only while it has a CPU property set.
@@ -997,7 +997,7 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
         if (share.kind() == CpuQuota.Kind.EXACT) {
             rate = OptionalInt.of(share.rate());
         } else if (share.kind() == CpuQuota.Kind.FOREIGN) {
-            foreign.add("a CPU quota Prism does not set");
+            foreign.add("a CPU quota PRISM does not set");
         }
         OptionalLong memoryHigh = high.value().get();
         OptionalLong memoryMax = max.value().get();
@@ -1023,11 +1023,11 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
             if (hold == null) {
                 return new ChangeResult(
                         ChangeResult.Phase.NO_HOLD,
-                        fail(OperationResult.INVALID_ARGUMENT, "Prism holds no scope for this process"),
+                        fail(OperationResult.INVALID_ARGUMENT, "PRISM holds no scope for this process"),
                         Optional.empty());
             }
             if (closed) {
-                return notDone(OperationResult.NATIVE_ERROR, "Prism is closing");
+                return notDone(OperationResult.NATIVE_ERROR, "PRISM is closing");
             }
             if (hold.provenance.isEmpty()) {
                 return notDone(OperationResult.NATIVE_ERROR, "whether the process is in its scope is unknown");
@@ -1048,7 +1048,7 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
             if (system.isPresent()) {
                 return notDone(OperationResult.UNSUPPORTED, system.get());
             }
-            // Ownership and membership now, immediately before anything is sent: the unit is still the invocation Prism
+            // Ownership and membership now, immediately before anything is sent: the unit is still the invocation PRISM
             // made and the process is still in it. Otherwise nothing is sent (independent audit follow-up).
             Optional<Outside> outside = outsideItsScope(target, hold);
             if (outside.isPresent()) {
@@ -1088,11 +1088,11 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
                         ChangeResult.Phase.UNVERIFIED,
                         fail(
                                 OperationResult.NATIVE_ERROR,
-                                movedDuring.map(Outside::why).orElse("the scope Prism made is gone")
+                                movedDuring.map(Outside::why).orElse("the scope PRISM made is gone")
                                         + " while its limits were changed"),
                         Optional.empty());
             }
-            // Proven again: the scope is the invocation Prism made, with the target in it (or the target has exited).
+            // Proven again: the scope is the invocation PRISM made, with the target in it (or the target has exited).
             hold.state = NativeHold.State.ASSIGNED;
             if (observed.isPresent() && observed.get().equals(spec.effective())) {
                 hold.inForce = observed;
@@ -1178,7 +1178,7 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
         }
         Optional<String> invocation = hold.provenance.flatMap(ScopeProvenance::invocationId);
         if (invocation.isEmpty()) {
-            // Never proven Prism's (no answer at the start, or the membership not shown): no limit was ever set in it
+            // Never proven PRISM's (no answer at the start, or the membership not shown): no limit was ever set in it
             // (limits follow A6 only), and a unit with that name is not changed.
             return Optional.of(new ForgetResult(
                     ForgetResult.Outcome.NOTHING_TO_RELEASE,
@@ -1188,10 +1188,10 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
         }
         if (!facts.value().get().invocationId().equals(invocation)
                 || !facts.value().get().controlGroup().equals(hold.provenance.flatMap(ScopeProvenance::cgroupPath))) {
-            // Another unit has the name now: it is not the scope Prism made, and nothing is changed in it.
+            // Another unit has the name now: it is not the scope PRISM made, and nothing is changed in it.
             return Optional.of(new ForgetResult(
                     ForgetResult.Outcome.NOTHING_TO_RELEASE,
-                    ControlOutcome.success("the scope Prism made is gone"),
+                    ControlOutcome.success("the scope PRISM made is gone"),
                     0,
                     Optional.empty()));
         }
@@ -1219,10 +1219,10 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
         setKinds(manager, hold.unit, Optional.empty(), EffectiveLimits.NONE, false, sent);
         if (sent.gone) {
             // The invocation went before the sends reached it; a unit that took the name since has the same cgroup
-            // path, so its files are not read back as Prism's.
+            // path, so its files are not read back as PRISM's.
             return Optional.of(new ForgetResult(
                     ForgetResult.Outcome.NOTHING_TO_RELEASE,
-                    ControlOutcome.success("the scope Prism made is gone"),
+                    ControlOutcome.success("the scope PRISM made is gone"),
                     0,
                     Optional.empty()));
         }
@@ -1292,7 +1292,7 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
         SystemdUserBus.UnitFacts unit = facts.value().get();
         Optional<String> recorded = record.provenance().flatMap(ScopeProvenance::invocationId);
         if (recorded.isEmpty() || !unit.invocationId().equals(recorded)) {
-            // R7, R9: a scope of that name exists, but nothing proves it is the one Prism made.
+            // R7, R9: a scope of that name exists, but nothing proves it is the one PRISM made.
             return new RecoveredLimit(
                     record,
                     RecoveredLimit.Verdict.UNPROVEN_SCOPE,
@@ -1327,7 +1327,7 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
             }
             // R4, R11.
             return new RecoveredLimit(
-                    record, RecoveredLimit.Verdict.OWNED_LIMITED, "its scope is Prism's and holds it");
+                    record, RecoveredLimit.Verdict.OWNED_LIMITED, "its scope is PRISM's and holds it");
         }
         if (!alive && pids.contains((int) identity.pid())) {
             // R8: the PID is in the scope, but it is another process now.
@@ -1359,7 +1359,7 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
         lock.lock();
         try {
             if (admitsNone() || closed) {
-                return ClearResult.unsupported(closed ? "Prism is closing" : PRODUCT_REASON);
+                return ClearResult.unsupported(closed ? "PRISM is closing" : PRODUCT_REASON);
             }
             RecoveredLimit now = classify(record);
             if (!now.ownershipProven()) {
@@ -1431,7 +1431,7 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
             path = files.get().processCgroup((int) target.pid());
         } else {
             // The rule needs only /proc/<pid>/cgroup, not the mount. A process listed with no unified line is on a
-            // system without that hierarchy, where no Prism scope can exist.
+            // system without that hierarchy, where no PRISM scope can exist.
             ProcFs.Reading<String> text = proc.cgroupText((int) target.pid());
             if (text.value().filter(found -> !CgroupV2.hasUnifiedLine(found)).isPresent()) {
                 return Optional.empty();
@@ -1450,7 +1450,7 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
             return Optional.of("its cgroup could not be read (" + path.detail() + "); no limit is started");
         }
         return ScopeNames.enclosingPrismScope(path.value().get())
-                .map(scope -> "it runs in " + scope + ", a scope a Prism session created; no second limiter is started"
+                .map(scope -> "it runs in " + scope + ", a scope a PRISM session created; no second limiter is started"
                         + " on it");
     }
 

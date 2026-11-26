@@ -540,7 +540,7 @@ public final class Shell extends BorderPane {
     }
 
     /**
-     * The PID of Prism itself: the Processes page offers no action on its row and says why (CAP-2).
+     * The PID of PRISM itself: the Processes page offers no action on its row and says why (CAP-2).
      * The services refuse such a request on their own as well (SAFE-2). Call on the JavaFX
      * Application Thread.
      */
@@ -577,7 +577,7 @@ public final class Shell extends BorderPane {
     }
 
     /**
-     * Takes the processes Prism holds suspended. The Processes page is given them whether it is on
+     * Takes the processes PRISM holds suspended. The Processes page is given them whether it is on
      * screen or not: once process monitoring has stopped, it is where they can still be resumed.
      * Call on the JavaFX Application Thread.
      */

@@ -11,7 +11,7 @@ import prism.srm.domain.ScopeProvenance;
 import prism.srm.platform.ApplyResult;
 
 /**
- * A disposable Prism "session" for the real-crash test (T-L7, test review S7): a separate JVM that composes the harness
+ * A disposable PRISM "session" for the real-crash test (T-L7, test review S7): a separate JVM that composes the harness
  * limiter, adopts exactly the one disposable process named on its command line (its PID and start time), prints the
  * ownership evidence it recorded, and then waits to be killed with SIGKILL by the test. It never releases anything: the
  * scope and its limit are left as a crash leaves them.

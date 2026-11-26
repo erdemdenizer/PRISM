@@ -31,7 +31,7 @@ interface LinuxNative {
 
     /**
      * Why the pidfd system calls cannot be made from here at all, without trying them: the
-     * architecture is not one whose system call and signal numbers Prism has verified. Empty
+     * architecture is not one whose system call and signal numbers PRISM has verified. Empty
      * where they can be tried.
      */
     Optional<String> pidfdUnreachable();

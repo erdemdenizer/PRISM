@@ -10,7 +10,7 @@ import prism.srm.domain.ControlOutcome;
  * @param suspension present on success; present on a failure too when the failure could not be
  *     undone completely, holding what remains
  * @param stoppedElsewhere the process was not suspended because it was stopped already, by another
- *     program, by a tracer or by the user outside Prism (Linux, macOS). Nothing was done and nothing
+ *     program, by a tracer or by the user outside PRISM (Linux, macOS). Nothing was done and nothing
  *     is held. Told apart from the other refusals, so that the CPU limiter waits for the process
  *     to run again instead of ending the limit.
  */

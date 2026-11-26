@@ -37,9 +37,9 @@ import prism.srm.platform.Suspension;
  * the descriptor was opened started after it, later than the identity's start time, so a matching
  * start time names the very process the descriptor refers to, and the signal cannot reach another
  * (pidfd_send_signal(2): "a PID file descriptor is a stable reference to a specific process").
- * Where the system cannot give that, these four actions are unavailable: Prism does not fall back
+ * Where the system cannot give that, these four actions are unavailable: PRISM does not fall back
  * to {@code kill(2)}, which could reach a process that took over the PID. Whether it can is
- * probed once, on the first use of the controller, on the whole path: open a pidfd of Prism's own
+ * probed once, on the first use of the controller, on the whole path: open a pidfd of PRISM's own
  * process, send it signal 0, close it.
  * https://man7.org/linux/man-pages/man2/pidfd_open.2.html
  * https://man7.org/linux/man-pages/man2/pidfd_send_signal.2.html
@@ -177,7 +177,7 @@ public final class LinuxProcessController implements ProcessController {
         return LISTED_PRIORITIES;
     }
 
-    /** Lowering the nice value needs CAP_SYS_NICE or a suitable RLIMIT_NICE of the target, which Prism cannot know ahead (setpriority(2)). */
+    /** Lowering the nice value needs CAP_SYS_NICE or a suitable RLIMIT_NICE of the target, which PRISM cannot know ahead (setpriority(2)). */
     @Override
     public Restorability priorityRestorability() {
         return Restorability.NOT_REVERSIBLE;
@@ -224,11 +224,11 @@ public final class LinuxProcessController implements ProcessController {
         boolean handedOver = false;
         try {
             if (opened.stat().stopped()) {
-                // Stopped by another program, or by a tracer: Prism does not take it over, so that
+                // Stopped by another program, or by a tracer: PRISM does not take it over, so that
                 // its Resume never continues a process someone else stopped.
                 return SuspendResult.stoppedElsewhere(ControlOutcome.of(
                         OperationResult.INVALID_ARGUMENT,
-                        "already stopped (state " + opened.stat().state() + "); Prism does not take it over"));
+                        "already stopped (state " + opened.stat().state() + "); PRISM does not take it over"));
             }
             LinuxNative.Call sent = calls.pidfdSendSignal(fd, SIGSTOP);
             if (sent.failed()) {
@@ -495,7 +495,7 @@ public final class LinuxProcessController implements ProcessController {
     }
 
     /**
-     * Tries the whole pidfd path on Prism's own process: open, signal 0, close. Empty if it works;
+     * Tries the whole pidfd path on PRISM's own process: open, signal 0, close. Empty if it works;
      * otherwise why not, which is logged: at INFO where the mechanism is simply not there, as a
      * warning where the failure was not one that says so.
      */
@@ -524,7 +524,7 @@ public final class LinuxProcessController implements ProcessController {
     }
 
     private static String failedProbe(String call, int errno) {
-        String reason = call + " on Prism's own process failed with " + LinuxErrors.describe(errno);
+        String reason = call + " on PRISM's own process failed with " + LinuxErrors.describe(errno);
         if (LinuxErrors.meansNoPidfd(errno)) {
             LOG.info("pidfd signalling is unavailable: {}", reason);
         } else {

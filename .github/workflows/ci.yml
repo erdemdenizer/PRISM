@@ -1,4 +1,4 @@
-# The full gate on the three systems Prism runs on (docs/TESTING.md, milestone 8). The Linux and
+# The full gate on the three systems PRISM runs on (docs/TESTING.md, milestone 8). The Linux and
 # macOS process-control code is verified only where these jobs have actually run and passed; the
 # tests gated with @EnabledOnOs run on their own system only, and the test reports are kept as an
 # artifact so that which ran and which were skipped can be read per system. The UI snapshot
@@ -117,7 +117,7 @@ jobs:
       - name: Every Linux native test ran and passed
         if: always()
         run: node .github/scripts/linux-native-validation.mjs target/surefire-reports
-      - name: No Prism scope left behind
+      - name: No PRISM scope left behind
         if: always()
         shell: bash
         run: |

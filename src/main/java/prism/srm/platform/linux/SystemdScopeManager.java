@@ -19,7 +19,7 @@ import java.util.regex.Pattern;
  * resolves a unit path whose last element is a 128-bit id through its table of invocation ids and answers {@code
  * org.freedesktop.systemd1.NoUnitForInvocationID} when no unit has it (src/core/manager.c,
  * {@code manager_load_unit_from_dbus_path}; the path element is unescaped by {@code bus_label_unescape},
- * src/basic/unit-def.c and src/basic/bus-label.c). A limit therefore reaches the invocation Prism proved, or nothing;
+ * src/basic/unit-def.c and src/basic/bus-label.c). A limit therefore reaches the invocation PRISM proved, or nothing;
  * a unit that took the name later is never changed. Sources: org.freedesktop.systemd1(5)
  * and systemd.resource-control(5) of systemd v255; {@code PIDFDs} for scopes: systemd NEWS 255; error names: v255
  * bus-common-errors.h ({@code UnitExists}, {@code NoSuchUnit}) and sd-bus-protocol.h; the {@code 'h'} argument is
@@ -49,7 +49,7 @@ final class SystemdScopeManager implements ScopeManager {
 
     private static final Pattern INVOCATION = Pattern.compile("[0-9a-f]{32}");
 
-    /** The properties Prism sets at runtime, and only these. */
+    /** The properties PRISM sets at runtime, and only these. */
     static final Set<String> LIMIT_PROPERTIES = Set.of("CPUQuotaPerSecUSec", "MemoryHigh", "MemoryMax");
 
     private static final Pattern SCOPE = Pattern.compile("prism-srm-limit-[0-9]{1,7}-[0-9]{1,15}\\.scope");
@@ -121,7 +121,7 @@ final class SystemdScopeManager implements ScopeManager {
         if (!SCOPE.matcher(unit).matches()
                 || pidfd < 0
                 || !DESCRIPTION.matcher(description).matches()) {
-            return new Start(StartStatus.REFUSED, "not a request Prism makes: " + unit + " fd " + pidfd);
+            return new Start(StartStatus.REFUSED, "not a request PRISM makes: " + unit + " fd " + pidfd);
         }
         Outcome outcome = send(WriteMethod.START_TRANSIENT_UNIT, message -> {
             int code = api.appendString(message, unit);
@@ -193,7 +193,7 @@ final class SystemdScopeManager implements ScopeManager {
                 || !INVOCATION.matcher(invocationId).matches()
                 || !LIMIT_PROPERTIES.contains(property)) {
             return new LimitSet(
-                    SetStatus.REFUSED, "not a request Prism makes: " + unit + " " + invocationId + " " + property);
+                    SetStatus.REFUSED, "not a request PRISM makes: " + unit + " " + invocationId + " " + property);
         }
         Outcome outcome = send(WriteMethod.UNIT_SET_PROPERTIES, invocationPath(invocationId), message -> {
             int code = api.appendBoolean(message, true);

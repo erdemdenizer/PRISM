@@ -35,8 +35,8 @@ import prism.srm.platform.ProcessController;
  * process from following each other unseen.
  *
  * <p><b>Order of checks</b>, each of which ends the request with its own answer before anything is
- * done to the process: shutting down; the action unavailable on this system; Prism itself; the
- * protection facts the system gives (SAFE-2, SAFE-3). Resume releases only what Prism holds, so it
+ * done to the process: shutting down; the action unavailable on this system; PRISM itself; the
+ * protection facts the system gives (SAFE-2, SAFE-3). Resume releases only what PRISM holds, so it
  * needs no protection check. Then the action: End Task, Force Kill and Change Priority through
  * the controller, Suspend and Resume through the suspension coordinator, which alone suspends and
  * resumes (CTL-9).
@@ -142,7 +142,7 @@ public final class ProcessControlService {
     }
 
     /**
-     * Takes a request about a process an earlier session of Prism may have left suspended
+     * Takes a request about a process an earlier session of PRISM may have left suspended
      * (ADR-0011) and returns at once; any thread. Resume releases the process only after the
      * coordinator's check; Dismiss closes the entry and touches nothing. Like Resume, neither
      * needs process monitoring. One action per process at a time, as for every other action.
@@ -221,7 +221,7 @@ public final class ProcessControlService {
                     ControlOutcome.of(OperationResult.UNSUPPORTED, "the action is unavailable on this system"),
                     RecoveryMessages.unavailable(request));
         }
-        // Prism never suspends itself or a protected process: an entry that names one is not to be acted on.
+        // PRISM never suspends itself or a protected process: an entry that names one is not to be acted on.
         Optional<ProtectionRules.Refusal> refusal = rules.refusal(request.identity());
         if (refusal.isEmpty()) {
             refusal = rules.refusal(controller.protectionFacts(request.identity()));
@@ -229,7 +229,7 @@ public final class ProcessControlService {
         if (refusal.isPresent()) {
             return RecoveryMessages.result(
                     request,
-                    ControlOutcome.of(OperationResult.ACCESS_DENIED, "refused by Prism: " + refusal.get()),
+                    ControlOutcome.of(OperationResult.ACCESS_DENIED, "refused by PRISM: " + refusal.get()),
                     RecoveryMessages.refused(request, refusal.get()));
         }
         SuspensionCoordinator.RecoveryOutcome outcome = coordinator.resumeRecovered(request.identity());
@@ -275,7 +275,7 @@ public final class ProcessControlService {
     /**
      * Process monitoring has stopped for good: no action that needs a process as it is now is
      * taken any more, also none that waits already. Resume still is: it releases a suspension
-     * Prism holds through what Prism kept of it, and needs no listing. Requests for it go on as
+     * PRISM holds through what PRISM kept of it, and needs no listing. Requests for it go on as
      * before, one at a time per process, until the shutdown.
      */
     public void observationLost() {
@@ -341,7 +341,7 @@ public final class ProcessControlService {
             if (refusal.isPresent()) {
                 return answer(
                         request,
-                        ControlOutcome.of(OperationResult.ACCESS_DENIED, "refused by Prism: " + refusal.get()),
+                        ControlOutcome.of(OperationResult.ACCESS_DENIED, "refused by PRISM: " + refusal.get()),
                         ControlMessages.refused(request, refusal.get()));
             }
         }

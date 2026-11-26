@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Writes the suspension journal for the coordinator, never under the coordinator's lock
- * (milestone 9 review, item 3): a disk that is slow or stops answering must not keep Prism from
+ * (milestone 9 review, item 3): a disk that is slow or stops answering must not keep PRISM from
  * releasing the processes it holds. The coordinator hands over what the journal should hold,
  * numbered; only the newest is written, in order, on the executor given. Whoever must know that
  * an entry is on disk before acting (a CPU limit before its first suspend, the user's suspension

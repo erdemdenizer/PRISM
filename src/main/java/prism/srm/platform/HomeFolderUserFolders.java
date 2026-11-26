@@ -4,7 +4,7 @@ import java.nio.file.Path;
 import java.util.Objects;
 
 /**
- * The folders on a system Prism does not know: a hidden folder in the user's home. No convention
+ * The folders on a system PRISM does not know: a hidden folder in the user's home. No convention
  * is claimed for such a system; this only keeps the files in one predictable place.
  */
 final class HomeFolderUserFolders implements UserFolders {

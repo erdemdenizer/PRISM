@@ -15,22 +15,22 @@ public record RecoveredLimit(LimitRecord record, Verdict verdict, String detail)
         /** The job was reached and holds no limit, or the record shows the limits had been cleared. */
         NOTHING_TO_CLEAR,
         /**
-         * A job of Prism's name can still be opened: a running program holds it, and it holds what the
+         * A job of PRISM's name can still be opened: a running program holds it, and it holds what the
          * record allows. Recovery changes nothing; the process may be limited until it exits.
          */
         HELD_ELSEWHERE,
         /** The process is gone and the record shows the limits were cleared, or never applied. */
         GONE,
         /**
-         * The process is gone; Prism cannot prove that its limit never took effect, so the
+         * The process is gone; PRISM cannot prove that its limit never took effect, so the
          * processes it started may still be limited until they exit.
          */
         GONE_CHILDREN_UNKNOWN,
-        /** The process runs in a job Prism cannot reach any more: it may still be limited until it exits. */
+        /** The process runs in a job PRISM cannot reach any more: it may still be limited until it exits. */
         UNREACHABLE,
         /** The job was found but the system refused access to it. */
         ACCESS_DENIED,
-        /** A job of Prism's name holds limits Prism did not record; nothing was changed. */
+        /** A job of PRISM's name holds limits PRISM did not record; nothing was changed. */
         VALUES_MISMATCH,
         /** The process runs and is in no job: the limit never took effect. */
         NOT_IN_JOB,
@@ -40,14 +40,14 @@ public record RecoveredLimit(LimitRecord record, Verdict verdict, String detail)
         // Linux, milestone 12 (plan Rev 2.1 §4.3). Windows never gives these.
 
         /**
-         * Linux: the record's scope is proven Prism's (the record's unit and invocation id equal the live unit's)
+         * Linux: the record's scope is proven PRISM's (the record's unit and invocation id equal the live unit's)
          * and still holds the recorded process; its limits may be in force. Classifying clears nothing: clearing is a
          * separate operation (ResourceLimiter#clearOwned), which recovery asks of a limiter that clears. The product's
          * Linux limiter does not (K16).
          */
         OWNED_LIMITED,
         /**
-         * Linux: the record's scope is proven Prism's; the recorded process has exited and processes it started
+         * Linux: the record's scope is proven PRISM's; the recorded process has exited and processes it started
          * remain in the scope, possibly limited.
          *
          * <p>Like {@link #GONE_CHILDREN_UNKNOWN}, it does not block another limiter by identity: no live process can
@@ -62,7 +62,7 @@ public record RecoveredLimit(LimitRecord record, Verdict verdict, String detail)
         /** Linux: an explicit clearing was attempted and not verified (partly cleared, or unreadable). */
         CLEAR_FAILED,
         /**
-         * Linux: a scope with the record's name, or with Prism's name pattern, exists but its ownership is not proven
+         * Linux: a scope with the record's name, or with PRISM's name pattern, exists but its ownership is not proven
          * (no record, an incomplete record, or another invocation id). It is never changed; the process is blocked
          * from a second limiter and listed for the user.
          */
@@ -118,7 +118,7 @@ public record RecoveredLimit(LimitRecord record, Verdict verdict, String detail)
     }
 
     /**
-     * Whether recovery proved that the scope is Prism's (Linux): the only verdicts an explicit clearing may act on, and
+     * Whether recovery proved that the scope is PRISM's (Linux): the only verdicts an explicit clearing may act on, and
      * only after the limiter proves it again at that moment.
      */
     public boolean ownershipProven() {

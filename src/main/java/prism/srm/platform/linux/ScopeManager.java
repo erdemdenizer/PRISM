@@ -74,11 +74,11 @@ interface ScopeManager {
     SystemdUserBus.Reading<String> scopeProperty(String unit, String property);
 
     /**
-     * Sets one runtime property of a unit Prism created: {@code CPUQuotaPerSecUSec}, {@code MemoryHigh} or {@code
+     * Sets one runtime property of a unit PRISM created: {@code CPUQuotaPerSecUSec}, {@code MemoryHigh} or {@code
      * MemoryMax}, with {@link #INFINITY} for none. The unit is addressed by its invocation id, so the call reaches that
      * invocation of the unit or none: a unit that later took the same name is never changed ({@link
      * SetStatus#NO_SUCH_UNIT}). The name is checked only for its form: the caller must have proven that the invocation id
-     * is the one of Prism's unit of that name (the scope limiter reads both from the live unit before it sends).
+     * is the one of PRISM's unit of that name (the scope limiter reads both from the live unit before it sends).
      */
     LimitSet setLimit(String unit, String invocationId, String property, long value);
 

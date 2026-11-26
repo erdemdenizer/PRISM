@@ -13,12 +13,12 @@ import org.junit.jupiter.api.condition.EnabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 
 /**
- * The evidence that the memory still available, as Prism reads it, follows what processes take
+ * The evidence that the memory still available, as PRISM reads it, follows what processes take
  * (plan A15.4, P1-7, ADR-0015 §7): the reading falls when the demo workload holds M of touched
  * memory and rises again when it exits. M is small (at most 512 MiB, at most a quarter of what is
  * available, never above the demo's own cap), so no memory pressure is made (DEMO-2).
  *
- * <p>On Windows and Linux the signal is documented and this test is the evidence that Prism reads
+ * <p>On Windows and Linux the signal is documented and this test is the evidence that PRISM reads
  * it: below the thresholds the test fails, it never skips. On macOS it only reports what it
  * measured: the compressor may keep pages that are nearly all zero out of physical memory, so a
  * smaller fall there is no defect, and the signal stays unvalidated (O17).

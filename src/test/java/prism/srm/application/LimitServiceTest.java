@@ -130,7 +130,7 @@ class LimitServiceTest {
                 ask(LimitRequest.of(LimitAction.MANAGE, new ProcessIdentity(OWN_PID, Instant.EPOCH), "prism"));
 
         assertThat(result.outcome().result()).isEqualTo(OperationResult.ACCESS_DENIED);
-        assertThat(result.text()).contains("Prism's own process");
+        assertThat(result.text()).contains("PRISM's own process");
         assertThat(service.snapshot().processes()).isEmpty();
     }
 
@@ -703,7 +703,7 @@ class LimitServiceTest {
         service.refuseFurtherLimits();
         service.stopForShutdown();
         service.request(LimitRequest.of(LimitAction.MANAGE, new ProcessIdentity(9, Instant.EPOCH), "x"));
-        assertThat(results.get(results.size() - 1).text()).contains("Prism is closing");
+        assertThat(results.get(results.size() - 1).text()).contains("PRISM is closing");
         scheduler.advance(Duration.ofSeconds(5));
         assertThat(target.stopped()).isTrue();
 

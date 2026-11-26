@@ -34,7 +34,7 @@ class OshiSystemMetricsSourceTest {
     }
 
     /**
-     * Prism's CPU percentage is busy time on every system. This OSHI option would turn the
+     * PRISM's CPU percentage is busy time on every system. This OSHI option would turn the
      * Windows counters into the frequency-adjusted "processor utility" instead; a configuration
      * file that switched it on would change what the metric means on one system only.
      */

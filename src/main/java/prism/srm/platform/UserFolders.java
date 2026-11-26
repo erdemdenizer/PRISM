@@ -3,7 +3,7 @@ package prism.srm.platform;
 import java.nio.file.Path;
 
 /**
- * Where Prism keeps its files for the current user, by the convention of the running system.
+ * Where PRISM keeps its files for the current user, by the convention of the running system.
  *
  * <p>An implementation only works out paths: it creates nothing, reads no file, and does not
  * throw. It is used before logging is set up, so it must not use a logger either.
@@ -17,7 +17,7 @@ public interface UserFolders {
     Path logs();
 
     /**
-     * Returns the folder for the state Prism keeps for itself between runs, such as the suspension
+     * Returns the folder for the state PRISM keeps for itself between runs, such as the suspension
      * journal (ADR-0011). It may not exist yet; whoever writes there creates it.
      */
     Path state();

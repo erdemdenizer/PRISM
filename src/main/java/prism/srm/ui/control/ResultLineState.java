@@ -17,7 +17,7 @@ import prism.srm.domain.RecoveryResult;
  * gives it, so the whole is the text the activity log has; text that stands in for a result (a
  * reason, an action on its way) is one muted part. Counts the results that came to be shown, so
  * the line can mark each arrival. Shared by the actions on the selected process, the Resume of
- * what Prism holds after monitoring stopped, the recovery list and the Limits page. Every method is called on the JavaFX Application
+ * what PRISM holds after monitoring stopped, the recovery list and the Limits page. Every method is called on the JavaFX Application
  * Thread; needs no running toolkit.
  */
 public final class ResultLineState {

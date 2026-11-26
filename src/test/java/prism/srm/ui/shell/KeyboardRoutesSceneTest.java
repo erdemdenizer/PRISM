@@ -583,7 +583,7 @@ class KeyboardRoutesSceneTest {
                         Optional.empty())),
                 List.of()));
         shell.showActivity(List.of(
-                new ActivityEntry(Instant.parse("2026-10-08T07:00:00Z"), ActivitySeverity.INFO, "Prism started.")));
+                new ActivityEntry(Instant.parse("2026-10-08T07:00:00Z"), ActivitySeverity.INFO, "PRISM started.")));
     }
 
     static Sidebar sidebar(Shell shell) {

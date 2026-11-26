@@ -12,7 +12,7 @@ import prism.srm.platform.ResourceLimiter;
 /**
  * The real Linux scope limiter over a fake systemd and fake proc and cgroup files, for tests outside this package that
  * need the limiter's own R table and clearing rules with the application's ledger and recovery (test review S8). Each
- * {@link #limiter} is one Prism session; they share the one system.
+ * {@link #limiter} is one PRISM session; they share the one system.
  */
 public final class ScopeSystemFixture {
 

@@ -3,7 +3,7 @@ package prism.srm.platform;
 import java.util.Locale;
 
 /**
- * The operating system family Prism is running on. Used inside the platform packages to choose
+ * The operating system family PRISM is running on. Used inside the platform packages to choose
  * an implementation; code above them asks for capabilities and never sees this type.
  */
 public enum HostSystem {

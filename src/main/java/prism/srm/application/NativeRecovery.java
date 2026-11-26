@@ -45,7 +45,7 @@ public final class NativeRecovery implements EarlierLimits {
 
     /** Until the first look, nothing is known: every process may be named (audit item 2). */
     private static final Unsettled NOT_LOOKED_YET =
-            new Unsettled(Instant.MAX, "Prism has not read the native-limit ledgers of earlier sessions yet");
+            new Unsettled(Instant.MAX, "PRISM has not read the native-limit ledgers of earlier sessions yet");
 
     private volatile Optional<Unsettled> unsettled = Optional.of(NOT_LOOKED_YET);
 
@@ -70,7 +70,7 @@ public final class NativeRecovery implements EarlierLimits {
     }
 
     /**
-     * @param sessionRunning whether the Prism process an instance name records still runs; a session
+     * @param sessionRunning whether the PRISM process an instance name records still runs; a session
      *     is treated as ended only when this says no and its lock can be taken (audit, C). A test
      *     answers in its place.
      */
@@ -101,7 +101,7 @@ public final class NativeRecovery implements EarlierLimits {
         synchronized (this) {
             for (RecoveredLimit each : found) {
                 if (each.blocksAnotherLimiter() && each.record().identity().equals(identity)) {
-                    return Optional.of("an earlier Prism session may still cap it natively ("
+                    return Optional.of("an earlier PRISM session may still cap it natively ("
                             + each.record().describe() + ")");
                 }
             }
@@ -166,7 +166,7 @@ public final class NativeRecovery implements EarlierLimits {
         others = present;
         unsettled = Optional.of(new Unsettled(
                 bound,
-                others.size() + " native-limit ledger(s) of earlier Prism sessions are not settled yet ("
+                others.size() + " native-limit ledger(s) of earlier PRISM sessions are not settled yet ("
                         + String.join(", ", others) + ")"));
     }
 
@@ -206,8 +206,8 @@ public final class NativeRecovery implements EarlierLimits {
         }
         try {
             if (sessionRunning.test(instance)) {
-                // The lock alone is not proof: the Prism process the name records still runs (audit, C).
-                LOG.warn("The native-limit ledger of {} is left alone: that Prism process still runs", instance);
+                // The lock alone is not proof: the PRISM process the name records still runs (audit, C).
+                LOG.warn("The native-limit ledger of {} is left alone: that PRISM process still runs", instance);
                 return List.of();
             }
             return settle(instance);
@@ -230,7 +230,7 @@ public final class NativeRecovery implements EarlierLimits {
                 // Evidence, not an empty ledger (audit item 1): it stays, and the next start reads it.
                 activity.record(
                         ActivitySeverity.WARNING,
-                        "The native-limit ledger of an earlier Prism session could not be read ("
+                        "The native-limit ledger of an earlier PRISM session could not be read ("
                                 + ledger.problem() + "). It is kept and read again at the next start; until then"
                                 + " no emulated limit is offered for processes that ran while it was written.");
                 return List.of();
@@ -271,7 +271,7 @@ public final class NativeRecovery implements EarlierLimits {
             keptDamaged.add(instance);
             activity.record(
                     ActivitySeverity.WARNING,
-                    "The native-limit ledger of an earlier Prism session is damaged: " + ledger.problem()
+                    "The native-limit ledger of an earlier PRISM session is damaged: " + ledger.problem()
                             + ". The file is kept as it is; until it is settled, no emulated limit is offered for"
                             + " processes that ran while it was written.");
         } else if (kept) {
@@ -287,7 +287,7 @@ public final class NativeRecovery implements EarlierLimits {
     /**
      * The ledgers of sessions whose journal has gone, read as ended only on proof (audit, C): this
      * session takes the session's lock, which a running session holds as long as it runs, and the
-     * Prism process its name records does not run. A lock that is held, or cannot be taken, or a
+     * PRISM process its name records does not run. A lock that is held, or cannot be taken, or a
      * process that runs, leaves the ledger alone and unsettled. A ledger with a journal beside it is
      * left to the suspension journal's recovery, which reads it under that journal's lock.
      */
@@ -302,7 +302,7 @@ public final class NativeRecovery implements EarlierLimits {
         } catch (IOException e) {
             activity.record(
                     ActivitySeverity.WARNING,
-                    "The native-limit ledgers of earlier Prism sessions cannot be listed (" + e + "). No emulated"
+                    "The native-limit ledgers of earlier PRISM sessions cannot be listed (" + e + "). No emulated"
                             + " limit is offered for processes that started before now until they can be read.");
             refresh();
             return all;
@@ -393,7 +393,7 @@ public final class NativeRecovery implements EarlierLimits {
                         ActivitySeverity.WARNING,
                         who + " may still be limited (" + limits + "): " + result.detail()
                                 + ". The limit lasts until the program holding the job clears it, or the process exits;"
-                                + " Prism starts no second limiter for it.");
+                                + " PRISM starts no second limiter for it.");
             case NOTHING_TO_CLEAR, NOT_IN_JOB, GONE ->
                 activity.record(
                         ActivitySeverity.INFO,
@@ -403,26 +403,26 @@ public final class NativeRecovery implements EarlierLimits {
                 activity.record(
                         ActivitySeverity.WARNING,
                         who + ", limited by an earlier session (" + limits
-                                + "), has exited. Prism cannot prove that the limit"
-                                + " never took effect: the processes it started may still be limited until they exit, and Prism"
+                                + "), has exited. PRISM cannot prove that the limit"
+                                + " never took effect: the processes it started may still be limited until they exit, and PRISM"
                                 + " cannot reach that job.");
             case UNREACHABLE, ACCESS_DENIED, VALUES_MISMATCH, FAILED ->
                 activity.record(
                         ActivitySeverity.WARNING,
-                        who + " may still be limited by an earlier Prism session (" + limits + "): " + result.detail()
-                                + ". The limit lasts until the process exits; Prism starts no second limiter for it.");
+                        who + " may still be limited by an earlier PRISM session (" + limits + "): " + result.detail()
+                                + ". The limit lasts until the process exits; PRISM starts no second limiter for it.");
             // Linux (milestone 12): what a limiter that does not clear reports. Unreachable in the K16 product, which
             // reads no ledger; the wording is listed in the M12 risk register (D8).
             case OWNED_LIMITED ->
                 activity.record(
                         ActivitySeverity.WARNING,
-                        who + " may still be limited by a systemd scope an earlier Prism session created (" + limits
+                        who + " may still be limited by a systemd scope an earlier PRISM session created (" + limits
                                 + "): " + result.detail() + ". This version does not clear it; the limit lasts until"
-                                + " the processes in the scope exit, and Prism starts no second limiter for it.");
+                                + " the processes in the scope exit, and PRISM starts no second limiter for it.");
             case OWNED_CHILDREN_ONLY ->
                 activity.record(
                         ActivitySeverity.WARNING,
-                        who + ", limited by a systemd scope an earlier Prism session created (" + limits
+                        who + ", limited by a systemd scope an earlier PRISM session created (" + limits
                                 + "), has exited: " + result.detail() + ". The processes it started are still in the"
                                 + " scope and may be limited until they exit; this version does not clear it.");
             case CLEARED ->
@@ -433,7 +433,7 @@ public final class NativeRecovery implements EarlierLimits {
                 activity.record(
                         ActivitySeverity.WARNING,
                         who + " may still be limited (" + limits + "): " + result.detail()
-                                + ". Prism changes nothing it cannot prove it created, and starts no second limiter"
+                                + ". PRISM changes nothing it cannot prove it created, and starts no second limiter"
                                 + " for it.");
         }
     }

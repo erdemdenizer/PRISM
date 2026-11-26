@@ -537,8 +537,8 @@ Scenario 'single-process' {
   $states = @($names | ForEach-Object { $b = if ($_ -eq 'Priority') { Matching $app.Root '^Priority, current' } else { Named $app.Root $_ }; [pscustomobject]@{ Name = $_; Found = [bool]$b; Enabled = ($b -and $b.Current.IsEnabled); Help = $(if ($b) { $b.Current.HelpText }) } })
   Rep 'own-row-buttons' 'INFO' (($states | ForEach-Object { "$($_.Name) found=$($_.Found) enabled=$($_.Enabled)" }) -join ', ')
   Check 'ui-own-row-actions-disabled' (@($states | Where-Object { -not $_.Found -or $_.Enabled }).Count -eq 0) "every action found and disabled: $(@($states | Where-Object { $_.Found -and -not $_.Enabled }).Count) of $($names.Count)"
-  $reason = Matching $app.Root "Prism's own process"
-  $helps = @($states | Where-Object { $_.Help -match "Prism's own process" }).Count
+  $reason = Matching $app.Root "PRISM's own process"
+  $helps = @($states | Where-Object { $_.Help -match "PRISM's own process" }).Count
   Check 'ui-own-row-says-why' ($null -ne $reason -and $helps -eq $names.Count) "line [$(if ($reason) { $reason.Current.Name })], $helps of $($names.Count) controls say it when pointed at"
   [void][W]::SetForegroundWindow($app.H); Start-Sleep -Milliseconds 300
   $r = $row.Current.BoundingRectangle
@@ -549,13 +549,13 @@ Scenario 'single-process' {
     foreach ($q in (Dialogs $app)) { [void][W]::PostMessage($q, 0x10, [IntPtr]::Zero, [IntPtr]::Zero) }
     [System.Windows.Forms.SendKeys]::SendWait('{ESC}'); Start-Sleep -Milliseconds 500
     $detail = ($menu.Keys | Sort-Object | ForEach-Object { "$_ enabled=$($menu[$_])" }) -join ', '
-    # The right click must have been on Prism's own row: the inspector still gives the reason afterwards.
-    $stillOwn = $null -ne (Matching $app.Root "Prism's own process")
+    # The right click must have been on PRISM's own row: the inspector still gives the reason afterwards.
+    $stillOwn = $null -ne (Matching $app.Root "PRISM's own process")
     Check 'ui-own-row-menu-disabled' ($stillOwn -and $menu.Count -eq 5 -and @($menu.Values | Where-Object { $_ }).Count -eq 0) "context menu: $detail; own process still selected: $stillOwn"
   } else { Rep 'ui-own-row-menu-disabled' 'NOT TESTED' 'another program was under the pointer: no right click was made' }
   Start-Sleep -Seconds 1
   $t = Threads $app.Pid
-  $heard = [regex]::Matches((Log-Text $lad), 'Prism does not (act on|manage) .*own process').Count
+  $heard = [regex]::Matches((Log-Text $lad), 'PRISM does not (act on|manage) .*own process').Count
   Check 'own-process-alive-and-running' ($t.Alive -and $t.Suspended -eq 0 -and -not $app.Proc.HasExited -and $heard -eq 0) "alive=$($t.Alive), $($t.Suspended) of $($t.All) threads suspended, requests that reached the service=$heard"
   # LIFE-7
   Start-Sleep -Seconds 1
@@ -771,7 +771,7 @@ Scenario 'hard-kill-native' {
   $app = Start-Prism $lad
   Start-Sleep -Seconds 8
   $log = Log-Text $lad
-  Check 'next-start-reports-it' ($log -match "\(PID $($demo.Pid)\) may still be limited by an earlier Prism session") 'the log reports the limit of the earlier session'
+  Check 'next-start-reports-it' ($log -match "\(PID $($demo.Pid)\) may still be limited by an earlier PRISM session") 'the log reports the limit of the earlier session'
   $still = CpuPercent $demo.Pid 6
   $t = Threads $demo.Pid
   Check 'next-start-changes-nothing' ((Near-Limit $still 7) -and $t.Alive -and $t.Suspended -eq 0) "$still % after the next start, $($t.Suspended) of $($t.All) threads suspended (LIM-5)"
@@ -839,7 +839,7 @@ Scenario 'emulated-hard-kill' {
   if ($review -and (Click-El $app $review)) {
     $dh = Wait-Dialog $app; $d = $uia::FromHandle($dh); Start-Sleep -Seconds 1
     Shot $dh 'review'
-    # LIFE-6: the limiter's entry names no threads, so it is for manual intervention, and Prism says so.
+    # LIFE-6: the limiter's entry names no threads, so it is for manual intervention, and PRISM says so.
     Check 'no-resume-offered-without-recorded-threads' ($null -eq (Matching $d '^Resume .* after a check')) 'an anonymous suspension count does not show whose it is'
     $why = Matching $d 'did not record which threads'
     Check 'says-why-and-what-to-do' ($null -ne $why) "[$(if ($why) { $why.Current.Name })]"

@@ -72,12 +72,12 @@ class NativeLimitRecordsTest {
         assertThat(record.admits(limits(20, 256)))
                 .as("memory set first, CPU not")
                 .isTrue();
-        assertThat(record.admits(limits(40, 512))).as("a value Prism never set").isFalse();
+        assertThat(record.admits(limits(40, 512))).as("a value PRISM never set").isFalse();
         assertThat(record.admits(limits(30, 128))).isFalse();
         assertThat(record.admits(EffectiveLimits.NONE)).isFalse();
         assertThat(record.admits(new EffectiveLimits(
                         OptionalInt.of(2000), OptionalLong.of(512 * MIB), Optional.of("weight-based"))))
-                .as("anything foreign is never Prism's")
+                .as("anything foreign is never PRISM's")
                 .isFalse();
         assertThat(record.describe()).isEqualTo("CPU 20 % or CPU 30 %; memory 512 MiB or memory 256 MiB");
     }
@@ -149,7 +149,7 @@ class NativeLimitRecordsTest {
                 .as("its process is gone: no identity to block")
                 .isFalse();
         assertThat(new RecoveredLimit(record, RecoveredLimit.Verdict.HELD_ELSEWHERE, "").blocksAnotherLimiter())
-                .as("a running program holds a job of Prism's name on it: no second limiter")
+                .as("a running program holds a job of PRISM's name on it: no second limiter")
                 .isTrue();
     }
 

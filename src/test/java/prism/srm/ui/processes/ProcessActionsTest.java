@@ -127,7 +127,7 @@ class ProcessActionsTest {
                         ControlAction.SUSPEND,
                         ControlAction.CHANGE_PRIORITY);
         assertThat(actions.explanationProperty(ControlAction.RESUME).get())
-                .isEqualTo("Prism holds no suspension of this process.");
+                .isEqualTo("PRISM holds no suspension of this process.");
         assertThat(actions.messageProperty().get()).isEmpty();
     }
 
@@ -292,7 +292,7 @@ class ProcessActionsTest {
         assertThat(actions.messageProperty().get()).isEmpty();
     }
 
-    /** PROC-6: a listing that shows the process suspended by Prism decides; a result decides until then. */
+    /** PROC-6: a listing that shows the process suspended by PRISM decides; a result decides until then. */
     @Test
     void suspendAndResumeFollowTheResultAndThenTheListing() {
         model.showControlProfile(new prism.srm.domain.ControlProfile(windows(), java.util.Map.of()));
@@ -306,7 +306,7 @@ class ProcessActionsTest {
         assertThat(disabled(ControlAction.RESUME)).isFalse();
         assertThat(disabled(ControlAction.SUSPEND)).isTrue();
         assertThat(actions.explanationProperty(ControlAction.SUSPEND).get())
-                .isEqualTo("Already suspended by Prism; use Resume.");
+                .isEqualTo("Already suspended by PRISM; use Resume.");
 
         list(process(10, "demo").build());
         assertThat(disabled(ControlAction.RESUME)).isTrue();
@@ -404,7 +404,7 @@ class ProcessActionsTest {
         assertThat(actions.unmappedPriorityProperty().get()).isEmpty();
     }
 
-    /** Without the table of levels (a system Prism cannot change priorities on) no number is called unknown. */
+    /** Without the table of levels (a system PRISM cannot change priorities on) no number is called unknown. */
     @Test
     void withoutLevelsNoNumberIsShownAsOneThatStandsForNone() {
         model.showControlProfile(new prism.srm.domain.ControlProfile(windows(), java.util.Map.of()));
@@ -523,7 +523,7 @@ class ProcessActionsTest {
                 .isEmpty();
 
         list(process(10, "demo").state(ProcessState.SUSPENDED_BY_PRISM).build());
-        assertThat(model.details().suspendedByPrismProperty().get()).isEqualTo("Suspended by Prism");
+        assertThat(model.details().suspendedByPrismProperty().get()).isEqualTo("Suspended by PRISM");
         model.select(null);
         assertThat(model.details().suspendedByPrismProperty().get()).isEmpty();
     }
@@ -648,7 +648,7 @@ class ProcessActionsTest {
         assertThat(actions.observedLevelProperty().get()).isEqualTo(prism.srm.domain.PriorityLevel.BELOW_NORMAL);
     }
 
-    /** CAP-2 and SAFE-2: on Prism's own row every action is disabled, with the reason, and nothing is sent. */
+    /** CAP-2 and SAFE-2: on PRISM's own row every action is disabled, with the reason, and nothing is sent. */
     @Test
     void prismsOwnProcessOffersNoActionAndSaysWhy() {
         model.showControlProfile(new prism.srm.domain.ControlProfile(windows(), java.util.Map.of()));
@@ -667,7 +667,7 @@ class ProcessActionsTest {
         assertThat(sent).isEmpty();
     }
 
-    /** Only Prism's own PID: the next process is acted on as before. */
+    /** Only PRISM's own PID: the next process is acted on as before. */
     @Test
     void anotherProcessKeepsItsActionsWhenPrismKnowsItsOwn() {
         model.showControlProfile(new prism.srm.domain.ControlProfile(windows(), java.util.Map.of()));

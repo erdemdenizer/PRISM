@@ -31,12 +31,12 @@ themselves without `-Dprism.linux.native.required=true` and ran in the native ru
 
 **The race of native-1.** `LinuxHarness.Started.await` could see the process ended before the reader thread had queued the
 last output line, and returned "no line". A test failed without registering its child for cleanup, so its `sleep 300`
-stayed in a Prism scope, with the limits already cleared, until it exited by itself; `SystemdReadOnlySmokeTest` then failed
+stayed in a PRISM scope, with the limits already cleared, until it exited by itself; `SystemdReadOnlySmokeTest` then failed
 on that leftover scope. `LinuxHarnessAwaitTest` reproduced the race before the fix. `151ab20` changes only test code:
 "ended silently" now needs the process and the reader to have ended.
 
-**Cleanup after each passing run.** No Prism scope right after the run or 3 s later; user units unchanged apart from
-Prism scopes (331 of 331, no difference); no Java process of the run left.
+**Cleanup after each passing run.** No PRISM scope right after the run or 3 s later; user units unchanged apart from
+PRISM scopes (331 of 331, no difference); no Java process of the run left.
 
 **On real systemd.** `cpu.max` read `2000 100000`, `40000 100000` and `200000 100000` for 1 %, 20 % and 100 % on 2 vCPUs;
 `memory.high` and `memory.max` read 134217728 for 128 MiB; every scope had an invocation id; systemd answered
@@ -51,7 +51,7 @@ at c85525a and at a388cc0 (ADR-0016, "Final verification"). Swap was not disable
 
 **These are observations, not a validation.** The owner logged in to GNOME (Wayland, seat0). A disposable GTK 4 probe wrote its
 identity, window events and a child's signals to a log. No process was moved into a scope, no unit property was changed, no real
-application was touched. Prism's own window was not run. A DBusActivatable launch was not tried.
+application was touched. PRISM's own window was not run. A DBusActivatable launch was not tried.
 
 | Path | Where the probe's process landed | Its child |
 |---|---|---|
@@ -80,7 +80,7 @@ from a fresh clone of a hash-checked bundle, as in round 1. The [acceptance matr
 
 An earlier candidate, 70b9b6d, gave the same results (verify-6, native-6 to 8); the only change to code after it is one test.
 
-**Cleanup after each run.** No Prism scope 3 s later; user units 249 before and 249 after; no Java process of the run left; no clock
+**Cleanup after each run.** No PRISM scope 3 s later; user units 249 before and 249 after; no Java process of the run left; no clock
 gap; no kernel lockup line. The host monitor's lowest readings were 8.0 GiB free memory and 7.0 GiB free commit, above its limits.
 
 **Differences from round 1.**
@@ -88,7 +88,7 @@ gap; no kernel lockup line. The host monitor's lowest readings were 8.0 GiB free
 - The environment is unchanged: kernel 7.0.0-38, systemd 255.4-1ubuntu8.18, OpenJDK 25.0.4.1, 4 GiB of swap.
 - The count of user units is 249 where it was 331. The likely reason, not checked, is that no graphical session was logged in this time. Before and after still match.
 - The same swap outcome: `oom_kill=0`, `memory.max` reached 1069 times in native-9, the allocator and sibling alive. **The OOM kill is still not observed here.**
-- No GNOME observation was repeated. Those of round 1 stand: the probe is separate from Prism's code.
+- No GNOME observation was repeated. Those of round 1 stand: the probe is separate from PRISM's code.
 
 **A fault of the runner, not the product.** In the 70b9b6d runs, the host script's `tar` read `D:/...` as a remote host, so the
 reports were not unpacked and the validator said "no report". Unpacked by hand, all three passed; the script now passes `--force-local`.
@@ -113,9 +113,9 @@ a fresh clone of a hash-checked bundle. Each run's `source-identity.txt` shows t
 Since 3b3475b only two test files and documents changed, so round 2 and the run at 963d68a (verify-8, native-12 to 14) are earlier results
 of nearly the same code. They are not results of this commit, and this section does not rely on them.
 
-**Cleanup after each run.** No Prism scope 3 s later; no Java process of the run left; no clock gap; no kernel lockup line. User units were
+**Cleanup after each run.** No PRISM scope 3 s later; no Java process of the run left; no clock gap; no kernel lockup line. User units were
 257 before and 257 after in each native run. In verify-9 they were 249 before and 257 after: a loop device and a mount for `snap-store`
-revision 1468 appeared, which points to a snapd refresh during the run. None of the eight is a Prism unit, and the suite's own check inside
+revision 1468 appeared, which points to a snapd refresh during the run. None of the eight is a PRISM unit, and the suite's own check inside
 that run found 249, 249 and no change. The host monitor's lowest readings were 7.16 GiB free memory and 6.37 GiB free commit.
 
 **Values in native-15, on 2 vCPUs.**

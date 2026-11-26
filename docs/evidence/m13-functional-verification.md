@@ -53,7 +53,7 @@ Every row is a result of an action, measured from outside PRISM, not the state o
 | Native memory limit enforced | A process growing in steps of 16 MiB under a 512 MiB limit: refused at the limit, committed memory, growth after removal | 352 MiB held, 506 MiB committed, 768 MiB after | 352, 511, 768 |
 | Closing clears native limits | CPU after close; a process stopped at the memory limit grows to 768 MiB once PRISM has closed | 19.8 %, PASS | 20 %, PASS |
 | Closing | Exit code 0 every time, in about 0.4 s | PASS | PASS |
-| Second launch | A dialog that says Prism is already running, no main window from the second process, exit 0, the first runs on | PASS | PASS |
+| Second launch | A dialog that says PRISM is already running, no main window from the second process, exit 0, the first runs on | PASS | PASS |
 | Second launch while the first closes | Never two main windows; a later start works | PASS | PASS |
 | Modules | Probe on the image runtime: `jdk.localedata` present; `1.234.567,5`, `%25`, `15 Ocak 2026`, `İ` | PASS | PASS |
 
@@ -75,15 +75,15 @@ runtime and its own main class, because the delivered demo allocates at start an
 
 In unit and integration tests, at `65be4d3`:
 
-- The order of LIFE-1 is pinned in one test; a failure injected at each of the 19 steps leaves the rest running, and Prism
+- The order of LIFE-1 is pinned in one test; a failure injected at each of the 19 steps leaves the rest running, and PRISM
   ends (`MonitoringRuntimeShutdownTest`, 20 tests). The shutdown is asked for only once the limiter holds its process.
 - A defect was found and fixed in this stage (`ec6f4f0`): if the step that releases the automatic suspensions failed or ran
-  out of time, the last step let go of what the limiter still held, and the process stayed frozen after Prism closed. The
+  out of time, the last step let go of what the limiter still held, and the process stayed frozen after PRISM closed. The
   last step now releases it first. A resume that throws there is tried once more and reported; if both throw, nothing is let
   go of and the exit hook still finds it (`SuspensionCoordinatorTest`).
 - A sampling cycle stuck in a native call does not keep a real JVM alive: with a bound of 1 s it ended with exit 0 within
   4.5 s, under the 5 s the application uses (`ShutdownRealProcessTest`).
-- `logback.xml` flushes every line, and has no hook of its own that could stop logging before Prism's own last line
+- `logback.xml` flushes every line, and has no hook of its own that could stop logging before PRISM's own last line
   (`LoggingConfigurationTest`).
 
 ## WP1: Settings
@@ -105,7 +105,7 @@ In unit and integration tests, at `65be4d3`:
 The phase 1 report said for SAFE-2 with `win.norestart`: "one process, controls disabled, PASS". That was wrong. Its screen
 capture shows that no row was selected; the buttons were disabled for that reason only. On a selected own row, Suspend, End
 task and Force kill are enabled. The safety holds, because the service refuses each request, as the checks above show by
-result. That the buttons are enabled for Prism's own process is a gap against CAP-2, below.
+result. That the buttons are enabled for PRISM's own process is a gap against CAP-2, below.
 
 The verifier was also reviewed by an independent test review before this handoff. It found checks that could pass without
 proving their claim: a dialog of any window counted for the second launch, a disabled button turned into a pass, a dead
@@ -116,7 +116,7 @@ report the image as accepted. All were fixed in `65be4d3`, and the runs above ar
 
 | Item | Status |
 |---|---|
-| CAP-2 for Prism's own row: Suspend, End task, Force kill and Manage are enabled and refused only after confirmation | Open, not fixed in this stage |
+| CAP-2 for PRISM's own row: Suspend, End task, Force kill and Manage are enabled and refused only after confirmation | Open, not fixed in this stage |
 | UI-7 native title bar (WP2) | Not implemented in this stage. Windows 10 limitation open (K12); UI-7 is not reported as met |
 | Logs page states, keyboard routes, real keys (WP4, WP5) | Next stage |
 | Full demo script on the image, including OOM Guard | NOT TESTED |

@@ -3,26 +3,26 @@ package prism.srm.platform.linux;
 import java.util.OptionalLong;
 
 /**
- * The conversion between Prism's CPU limit and the cgroup v2 / systemd quota (milestone 12, LIM-6, plan Rev 1 §3.8).
+ * The conversion between PRISM's CPU limit and the cgroup v2 / systemd quota (milestone 12, LIM-6, plan Rev 1 §3.8).
  *
- * <p>Prism's limit is a whole percentage P (1 to 100) of the whole machine with N logical processors, the unit of
+ * <p>PRISM's limit is a whole percentage P (1 to 100) of the whole machine with N logical processors, the unit of
  * PROC-2. systemd's {@code CPUQuotaPerSecUSec} is processor time per second of wall time, so P % of N processors is
  * {@code P x N x 10 000} microseconds per second; with systemd's default period of 100 ms the kernel shows it as
  * {@code cpu.max = "P x N x 1000 100000"}. Every product is computed exactly; an input that would overflow, or a
- * processor count outside what Prism measures, is refused. The two conversions below read a limit of 100 % as no
+ * processor count outside what PRISM measures, is refused. The two conversions below read a limit of 100 % as no
  * quota, {@code max}; only tests call them. The limiter sets 100 % explicitly as the whole machine (ADR-0016 decision
  * 3), so that its read-back is an exact rate.
  *
  * <p>Back from a read-back: a {@code cpu.max} quota Q per period T over N processors is the share {@code Q / (T x N)}
- * of the machine, which in Prism's unit (hundredths of a percent, {@link prism.srm.domain.EffectiveLimits#cpuRate})
- * is {@code Q x 10 000 / (T x N)}. Only an exact whole rate from 1 to 10 000 is Prism's; anything else is foreign.
+ * of the machine, which in PRISM's unit (hundredths of a percent, {@link prism.srm.domain.EffectiveLimits#cpuRate})
+ * is {@code Q x 10 000 / (T x N)}. Only an exact whole rate from 1 to 10 000 is PRISM's; anything else is foreign.
  */
 final class CpuQuota {
 
     /** systemd's default CPUQuotaPeriodSec, 100 ms (systemd.resource-control(5)). */
     static final long PERIOD_USEC = 100_000;
 
-    /** The most logical processors Prism converts for: far above any machine it runs on, far below an overflow. */
+    /** The most logical processors PRISM converts for: far above any machine it runs on, far below an overflow. */
     static final int MOST_PROCESSORS = 1 << 16;
 
     /** systemd's "infinity" for a uint64 property such as CPUQuotaPerSecUSec: UINT64_MAX, -1 as a signed long. */
@@ -30,13 +30,13 @@ final class CpuQuota {
 
     private CpuQuota() {}
 
-    /** What a read-back quota is in Prism's terms. */
+    /** What a read-back quota is in PRISM's terms. */
     enum Kind {
         /** No quota at all. */
         UNLIMITED,
-        /** Exactly a whole rate Prism can have set. */
+        /** Exactly a whole rate PRISM can have set. */
         EXACT,
-        /** A quota Prism never sets: not a whole rate of hundredths of a percent, or above the whole machine. */
+        /** A quota PRISM never sets: not a whole rate of hundredths of a percent, or above the whole machine. */
         FOREIGN
     }
 

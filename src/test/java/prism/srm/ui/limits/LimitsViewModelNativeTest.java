@@ -72,10 +72,10 @@ class LimitsViewModelNativeTest {
                     OptionalLong.empty(),
                     status,
                     LimitNote.IN_PRISM_SCOPE,
-                    Optional.of("it runs in prism-srm-limit-4242-1.scope, a scope a Prism session created")))));
+                    Optional.of("it runs in prism-srm-limit-4242-1.scope, a scope a PRISM session created")))));
 
             LimitRow row = only();
-            assertThat(row.status()).as("%s", status).isEqualTo("Not offered: in a Prism scope");
+            assertThat(row.status()).as("%s", status).isEqualTo("Not offered: in a PRISM scope");
             assertThat(row.detail()).as("%s", status).contains("prism-srm-limit-4242-1.scope");
             assertThat(row.status()).as("%s", status).doesNotContain("Capped", "Failed");
         }
@@ -143,7 +143,7 @@ class LimitsViewModelNativeTest {
                 .startsWith("A memory limit is not available for this process");
     }
 
-    /** A failure of Prism is red; a limit that may still be in force is a warning; a fact is muted. */
+    /** A failure of PRISM is red; a limit that may still be in force is a warning; a fact is muted. */
     @Test
     void eachNoticeHasTheToneOfWhatItSays() {
         model.show(LimitsFixtures.nativeSnapshot(

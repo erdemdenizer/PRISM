@@ -21,7 +21,7 @@ public record ChangeResult(Phase phase, ControlOutcome outcome, Optional<Effecti
         PARTIAL,
         /** Something was set but nothing could be read back: per kind, the old value or the new one. */
         UNVERIFIED,
-        /** Nothing was set: the process exited, Prism is closing, or the job could not be read first. */
+        /** Nothing was set: the process exited, PRISM is closing, or the job could not be read first. */
         NOT_DONE,
         /** The limiter holds no job for the process. */
         NO_HOLD

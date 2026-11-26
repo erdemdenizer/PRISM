@@ -12,7 +12,7 @@ import prism.srm.domain.ProcessIdentity;
 import prism.srm.platform.SuspendResult;
 
 /**
- * Per-thread suspension against a fake system: Prism adds exactly one to each thread's suspend
+ * Per-thread suspension against a fake system: PRISM adds exactly one to each thread's suspend
  * count, takes back exactly that one, and never forgets one it may still hold.
  */
 class WindowsSuspensionsTest {
@@ -126,7 +126,7 @@ class WindowsSuspensionsTest {
         assertThat(win32.openHandles()).isEmpty();
     }
 
-    /** A refusal part way is rolled back: each thread Prism suspended gets exactly one resume. */
+    /** A refusal part way is rolled back: each thread PRISM suspended gets exactly one resume. */
     @Test
     void aRefusalPartWayRollsBackExactlyWhatPrismDid() {
         threads(11, 12, 13);
@@ -327,7 +327,7 @@ class WindowsSuspensionsTest {
         assertThat(win32.calls.stream().filter("Toolhelp threads"::equals)).hasSize(2);
     }
 
-    /** Nothing known about a thread whose release failed: Prism keeps owning its increment. */
+    /** Nothing known about a thread whose release failed: PRISM keeps owning its increment. */
     @Test
     void aFailedReleaseOfAThreadWhoseExitCodeCannotBeReadKeepsItOwned() {
         threads(11, 12);
@@ -502,7 +502,7 @@ class WindowsSuspensionsTest {
 
     /**
      * Milestone 9 review: which failed suspends the limiter may make again, and which end it. Only a
-     * thread shown to have ended under Prism's hand, of a process shown to run, with everything undone.
+     * thread shown to have ended under PRISM's hand, of a process shown to run, with everything undone.
      */
     @Test
     void aThreadThatEndedAsItWasSuspendedIsTransientOnceEverythingIsUndone() {

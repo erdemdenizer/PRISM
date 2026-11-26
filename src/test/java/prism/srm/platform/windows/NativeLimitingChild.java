@@ -16,7 +16,7 @@ import prism.srm.platform.ApplyResult;
 import prism.srm.platform.ChangeResult;
 
 /**
- * A Prism stand-in for {@link NativeLimitRecoveryIntegrationTest} (plan §11.3 E2): in a JVM of its
+ * A PRISM stand-in for {@link NativeLimitRecoveryIntegrationTest} (plan §11.3 E2): in a JVM of its
  * own it limits the process with the PID it is given natively, in the order the application keeps
  * (the durable INTENDED record first, then the assignment, then APPLIED), says "limiting" once the
  * ledger holds it on disk, and waits to be killed; nothing ends it gracefully, so the job's name goes
@@ -35,7 +35,7 @@ public final class NativeLimitingChild {
 
     public static void main(String[] args) {
         Path folder = Path.of(args[0]);
-        // "@self": named as a Prism session is, after this process's own PID and start time.
+        // "@self": named as a PRISM session is, after this process's own PID and start time.
         String instance = args[1].equals("@self")
                 ? SuspensionJournal.instanceName(
                         ProcessHandle.current().pid(),

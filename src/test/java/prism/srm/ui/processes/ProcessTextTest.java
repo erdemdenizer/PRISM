@@ -118,12 +118,12 @@ class ProcessTextTest {
         assertThat(word).isNotBlank().isNotEqualTo(DASH).matches("[A-Z][a-z]+");
     }
 
-    /** PROC-6: Prism's own suspension is named as such, not as a state the system reported. */
+    /** PROC-6: PRISM's own suspension is named as such, not as a state the system reported. */
     @Test
     void aProcessPrismHoldsSuspendedSaysSo() {
         assertThat(text.state(
                         process(1, "a").state(ProcessState.SUSPENDED_BY_PRISM).build()))
-                .isEqualTo("Suspended by Prism");
+                .isEqualTo("Suspended by PRISM");
     }
 
     @Test

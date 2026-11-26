@@ -28,11 +28,11 @@ public interface FallbackOfferDialog {
     /** What the offer says, in words: the reason, the mechanism, the cost and the bound. */
     static String text(FallbackOffer offer) {
         String cost = offer.perThreadSuspension()
-                ? " It can cost Prism about a tenth of one logical processor while it holds the process back,"
+                ? " It can cost PRISM about a tenth of one logical processor while it holds the process back,"
                         + " because every pause lists the threads of the whole system."
                 : "";
         return "The native limit was not applied: " + offer.reason() + ". The emulated limit stops and continues the"
-                + " process in short cycles; it is approximate and works only while Prism runs." + cost
+                + " process in short cycles; it is approximate and works only while PRISM runs." + cost
                 + " At most " + offer.mostLimits()
                 + (offer.mostLimits() == 1 ? " emulated limit runs" : " emulated limits run")
                 + " at once on this computer.";

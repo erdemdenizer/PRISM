@@ -575,11 +575,11 @@ class LinuxNativeLimitIntegrationTest {
         assertThat(next.capabilitiesFor(demo.identity).get(LimitKind.CPU).available())
                 .isFalse();
         assertThat(recovering.scopeBarrier(harness.identityOf((int) demo.identity.pid())))
-                .as("it stays in the Prism scope, kept from a second limiter")
+                .as("it stays in the PRISM scope, kept from a second limiter")
                 .isPresent();
     }
 
-    // ----- T-L11, T-L15: not eligible, recordless Prism scope -----
+    // ----- T-L11, T-L15: not eligible, recordless PRISM scope -----
 
     @Test
     void aProcessOutsideTheUserManagerIsNotEligibleAndNothingIsCreated() throws Exception {
@@ -630,7 +630,7 @@ class LinuxNativeLimitIntegrationTest {
                         .get(LimitKind.CPU)
                         .reason()
                         .orElse(""))
-                .contains("scope with Prism's name");
+                .contains("scope with PRISM's name");
         assertThat(limiter.scopeBarrier(member.identity)).isPresent();
         LimitRecord guess = LimitRecord.intended(member.identity, "demo", EffectiveLimits.NONE, "9-9")
                 .withProvenance(ScopeProvenance.unitOnly(name));

@@ -92,7 +92,7 @@ class ProcessControlServiceTest {
                         "End task: Close request sent to java (PID 4242). The application may ignore it. [posted]"));
     }
 
-    /** SAFE-2: Prism is refused before anything, the system included, is asked. */
+    /** SAFE-2: PRISM is refused before anything, the system included, is asked. */
     @Test
     void prismItselfIsRefusedBeforeAnyCall() {
         service.request(request(ControlAction.FORCE_KILL, new ProcessIdentity(OWN, Instant.EPOCH)));
@@ -101,7 +101,7 @@ class ProcessControlServiceTest {
         assertThat(controller.calls).isEmpty();
         assertThat(results.get(0).result()).isEqualTo(OperationResult.ACCESS_DENIED);
         assertThat(results.get(0).text())
-                .isEqualTo("Prism does not act on java (PID 1111). It is Prism's own process.");
+                .isEqualTo("PRISM does not act on java (PID 1111). It is PRISM's own process.");
         assertThat(activity.entries()).extracting(ActivityEntry::severity).containsExactly(ActivitySeverity.WARNING);
     }
 
@@ -218,7 +218,7 @@ class ProcessControlServiceTest {
                 .extracting(ActivityEntry::severity, ActivityEntry::message)
                 .containsExactly(tuple(
                         ActivitySeverity.WARNING,
-                        "Change priority: Access denied: java (PID 4242). The system does not let Prism act on this process."
+                        "Change priority: Access denied: java (PID 4242). The system does not let PRISM act on this process."
                                 + " [SetPriorityClass; code 5]"));
     }
 
@@ -230,7 +230,7 @@ class ProcessControlServiceTest {
 
         assertThat(executor.waiting()).isZero();
         assertThat(results.get(0).result()).isEqualTo(OperationResult.UNSUPPORTED);
-        assertThat(results.get(0).text()).isEqualTo("Nothing was done to java (PID 4242). Prism is closing.");
+        assertThat(results.get(0).text()).isEqualTo("Nothing was done to java (PID 4242). PRISM is closing.");
         assertThat(service.inFlight(DEMO)).isFalse();
     }
 
@@ -277,7 +277,7 @@ class ProcessControlServiceTest {
         ProcessControlResult result = ProcessControlService.notCarriedOut(request(ControlAction.SUSPEND, DEMO));
 
         assertThat(result.result()).isEqualTo(OperationResult.UNSUPPORTED);
-        assertThat(result.text()).isEqualTo("Nothing was done to java (PID 4242). Prism is not monitoring processes.");
+        assertThat(result.text()).isEqualTo("Nothing was done to java (PID 4242). PRISM is not monitoring processes.");
     }
 
     /** Whoever is told of the result may at once ask again for the same process. */
@@ -301,7 +301,7 @@ class ProcessControlServiceTest {
         assertThat(busyWhenTold).containsExactly(false);
     }
 
-    // --- Process monitoring has stopped: a suspension Prism holds can still be released ---
+    // --- Process monitoring has stopped: a suspension PRISM holds can still be released ---
 
     private ProcessControlResult only(ControlRequest request) {
         results.clear();
@@ -326,7 +326,7 @@ class ProcessControlServiceTest {
             ProcessControlResult refused = only(request(action, DEMO));
             assertThat(refused.result()).as(action.name()).isEqualTo(OperationResult.UNSUPPORTED);
             assertThat(refused.text())
-                    .isEqualTo("Nothing was done to java (PID 4242). Prism is not monitoring processes.");
+                    .isEqualTo("Nothing was done to java (PID 4242). PRISM is not monitoring processes.");
         }
         assertThat(controller.calls).containsExactly("facts 4242", "suspend 4242");
 
@@ -337,7 +337,7 @@ class ProcessControlServiceTest {
         assertThat(coordinator.held()).isEmpty();
 
         ProcessControlResult again = only(request(ControlAction.RESUME, DEMO));
-        assertThat(again.text()).isEqualTo("Prism does not hold java (PID 4242) suspended for you.");
+        assertThat(again.text()).isEqualTo("PRISM does not hold java (PID 4242) suspended for you.");
         assertThat(held.resumes).as("nothing is taken back twice").isEqualTo(1);
         assertThat(service.inFlight(DEMO)).isFalse();
     }
@@ -361,11 +361,11 @@ class ProcessControlServiceTest {
         ProcessControlResult result = only(request(ControlAction.RESUME, OTHER));
 
         assertThat(result.result()).isEqualTo(OperationResult.INVALID_ARGUMENT);
-        assertThat(result.text()).isEqualTo("Prism does not hold java (PID 5555) suspended for you.");
+        assertThat(result.text()).isEqualTo("PRISM does not hold java (PID 5555) suspended for you.");
         assertThat(controller.calls).isEmpty();
     }
 
-    /** The process ended while held: nothing is resumed, Prism lets go of it and says so. */
+    /** The process ended while held: nothing is resumed, PRISM lets go of it and says so. */
     @Test
     void resumingAProcessThatHasExitedSaysSoAndLetsGoOfIt() {
         only(request(ControlAction.SUSPEND, DEMO));
@@ -378,7 +378,7 @@ class ProcessControlServiceTest {
         ProcessControlResult result = only(request(ControlAction.RESUME, DEMO));
 
         assertThat(result.result()).isEqualTo(OperationResult.PROCESS_NOT_FOUND);
-        assertThat(result.text()).isEqualTo("java (PID 4242) has exited. Prism no longer holds it suspended.");
+        assertThat(result.text()).isEqualTo("java (PID 4242) has exited. PRISM no longer holds it suspended.");
         assertThat(coordinator.held()).isEmpty();
         assertThat(controller.calls).containsExactly("facts 4242", "suspend 4242", "resume 4242");
         assertThat(activity.entries())

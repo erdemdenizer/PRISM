@@ -13,13 +13,13 @@ import prism.srm.domain.OomManagement;
 
 /**
  * The words of the results of managing processes and limiting them (UI-4, CAP-5). They say what
- * was done and never claim more: an emulated limit is called approximate, and a limit Prism cannot
+ * was done and never claim more: an emulated limit is called approximate, and a limit PRISM cannot
  * reach is not called enforced.
  */
 public final class LimitMessages {
 
     /** What every emulated CPU limit is, said where one is set (CAP-5). */
-    static final String APPROXIMATE = "Approximate: Prism stops and continues the process in short cycles."
+    static final String APPROXIMATE = "Approximate: PRISM stops and continues the process in short cycles."
             + " It cannot hold a process below about 5 % of what it would use.";
 
     private LimitMessages() {}
@@ -87,11 +87,11 @@ public final class LimitMessages {
     }
 
     static Wording notMonitoring(LimitRequest request) {
-        return new Wording(nothingDone(request), "Prism is not monitoring processes.");
+        return new Wording(nothingDone(request), "PRISM is not monitoring processes.");
     }
 
     static Wording shuttingDown(LimitRequest request) {
-        return new Wording(nothingDone(request), "Prism is closing.");
+        return new Wording(nothingDone(request), "PRISM is closing.");
     }
 
     static Wording tooManyPending(LimitRequest request) {
@@ -103,9 +103,9 @@ public final class LimitMessages {
     }
 
     static Wording refused(LimitRequest request, ProtectionRules.Refusal refusal) {
-        String headline = "Prism does not manage " + target(request) + ".";
+        String headline = "PRISM does not manage " + target(request) + ".";
         return switch (refusal) {
-            case OWN_PROCESS -> new Wording(headline, "It is Prism's own process.");
+            case OWN_PROCESS -> new Wording(headline, "It is PRISM's own process.");
             case SYSTEM_PROCESS, SYSTEM_EXECUTABLE -> new Wording(headline, "It is a system process.");
             case CRITICAL_PROCESS -> new Wording(headline, "The system marks it as critical.");
         };
@@ -120,7 +120,7 @@ public final class LimitMessages {
     }
 
     static Wording notManaged(LimitRequest request) {
-        return new Wording(nothingDone(request), "Prism limits only a process you manage; manage it first.");
+        return new Wording(nothingDone(request), "PRISM limits only a process you manage; manage it first.");
     }
 
     static Wording gone(LimitRequest request) {
@@ -142,7 +142,7 @@ public final class LimitMessages {
     }
 
     static Wording tooManyLimits(LimitRequest request, int most) {
-        return new Wording(nothingDone(request), "Prism limits at most " + most + " processes at a time.");
+        return new Wording(nothingDone(request), "PRISM limits at most " + most + " processes at a time.");
     }
 
     /**
@@ -152,17 +152,17 @@ public final class LimitMessages {
     static Wording tooManyPerThreadLimits(LimitRequest request, int most, int processors) {
         return new Wording(
                 nothingDone(request),
-                "On this computer Prism runs at most " + most + (most == 1 ? " CPU limit" : " CPU limits")
+                "On this computer PRISM runs at most " + most + (most == 1 ? " CPU limit" : " CPU limits")
                         + " at a time (one for every 4 of its " + processors + " logical processors, at most "
                         + LimitService.MOST_PER_THREAD_LIMITS + "): each suspends the process thread by thread"
-                        + " and can take Prism about a tenth of a processor while it holds the process back."
+                        + " and can take PRISM about a tenth of a processor while it holds the process back."
                         + " Remove or disable another limit first.");
     }
 
     static Wording journalFailed(LimitRequest request, String problem) {
         return new Wording(
                 "The CPU limit of " + target(request) + " did not start.",
-                "Prism cannot record it where it would find it after a crash: " + problem + ".");
+                "PRISM cannot record it where it would find it after a crash: " + problem + ".");
     }
 
     static Wording limited(LimitRequest request, int percent) {
@@ -176,7 +176,7 @@ public final class LimitMessages {
     }
 
     static Wording limitRemoved(LimitRequest request) {
-        return new Wording("The CPU limit of " + target(request) + " is removed.", "Prism no longer stops it.");
+        return new Wording("The CPU limit of " + target(request) + " is removed.", "PRISM no longer stops it.");
     }
 
     static Wording noLimit(LimitRequest request) {
@@ -190,7 +190,7 @@ public final class LimitMessages {
 
     static Wording disabled(LimitRequest request, boolean hadLimit) {
         return new Wording(
-                "The limits of " + target(request) + " are disabled.", hadLimit ? "Prism no longer stops it." : "");
+                "The limits of " + target(request) + " are disabled.", hadLimit ? "PRISM no longer stops it." : "");
     }
 
     // ----- Native limits (milestone 10) -----
@@ -233,7 +233,7 @@ public final class LimitMessages {
     static Wording nativeNotApplied(LimitRequest request, String reason) {
         return new Wording(
                 "The native CPU limit of " + target(request) + " was not applied.",
-                "Reason: " + reason + ". Prism offers the emulated limit instead; nothing runs unless you accept it.");
+                "Reason: " + reason + ". PRISM offers the emulated limit instead; nothing runs unless you accept it.");
     }
 
     static Wording nativeFailed(LimitRequest request, String what) {
@@ -242,7 +242,7 @@ public final class LimitMessages {
 
     static Wording uncertain(LimitRequest request) {
         return new Wording(
-                "Prism cannot tell whether the limit of " + target(request) + " took effect.",
+                "PRISM cannot tell whether the limit of " + target(request) + " took effect.",
                 "It keeps the job, checks again at the next request and clears it at shutdown. No second limiter is"
                         + " started meanwhile; remove the limit to force a check.");
     }
@@ -255,8 +255,8 @@ public final class LimitMessages {
 
     static Wording unverified(LimitRequest request, String candidates) {
         return new Wording(
-                "Prism could not read back the limits of " + target(request) + ".",
-                "In force: " + candidates + ". Prism checks again at the next request; remove the limits to be sure.");
+                "PRISM could not read back the limits of " + target(request) + ".",
+                "In force: " + candidates + ". PRISM checks again at the next request; remove the limits to be sure.");
     }
 
     static Wording partial(LimitRequest request, String inForce) {
@@ -268,7 +268,7 @@ public final class LimitMessages {
     static Wording nativeUnknown(LimitRequest request, String inForce) {
         return new Wording(
                 nothingDone(request),
-                "A native CPU limit may already be in force on this process (" + inForce + "). Prism will not add a"
+                "A native CPU limit may already be in force on this process (" + inForce + "). PRISM will not add a"
                         + " second limiter; remove the native limit first, or wait for the process to exit.");
     }
 
@@ -276,24 +276,24 @@ public final class LimitMessages {
         return new Wording(
                 nothingDone(request),
                 "No emulated limit is offered for it yet: " + why + ", and one of them may still cap this process"
-                        + " natively. Prism will not add a second limiter until that is settled.");
+                        + " natively. PRISM will not add a second limiter until that is settled.");
     }
 
     /**
-     * The scope-membership rule (milestone 12, plan Rev 2.2 §4.5 b): the process runs inside a scope a Prism session
+     * The scope-membership rule (milestone 12, plan Rev 2.2 §4.5 b): the process runs inside a scope a PRISM session
      * created, so no second limiter is started on it, native or emulated, whatever the records say.
      */
     static Wording inPrismScope(LimitRequest request, String why) {
         return new Wording(
                 nothingDone(request),
-                "No limit is offered for it: " + why + ". Prism changes nothing in that scope; whatever limit it holds"
+                "No limit is offered for it: " + why + ". PRISM changes nothing in that scope; whatever limit it holds"
                         + " lasts until the processes in it exit.");
     }
 
     static Wording priorSession(LimitRequest request, String inForce) {
         return new Wording(
                 nothingDone(request),
-                "An earlier Prism session may still cap this process natively (" + inForce + "). No second limiter is"
+                "An earlier PRISM session may still cap this process natively (" + inForce + "). No second limiter is"
                         + " offered; that limit lasts until the process exits.");
     }
 
@@ -307,7 +307,7 @@ public final class LimitMessages {
     static Wording ledgerFailed(LimitRequest request, String problem) {
         return new Wording(
                 nothingDone(request),
-                "Prism cannot record the native limit where it would find it after a crash: " + problem + ".");
+                "PRISM cannot record the native limit where it would find it after a crash: " + problem + ".");
     }
 
     static Wording noFallbackOffered(LimitRequest request) {
@@ -322,13 +322,13 @@ public final class LimitMessages {
     static Wording cannotClear(LimitRequest request, String inForce) {
         return new Wording(
                 actionName(request.action()) + " was not carried out for " + target(request) + ".",
-                "Its native limits are still in force (" + inForce + "); it stays as it is. Prism tries again later.");
+                "Its native limits are still in force (" + inForce + "); it stays as it is. PRISM tries again later.");
     }
 
     static Wording unmanagedNative(LimitRequest request) {
         return new Wording(
                 target(request) + " is no longer managed.",
-                "Its native limits are cleared; it stays in Prism's job, without limits, until it exits.");
+                "Its native limits are cleared; it stays in PRISM's job, without limits, until it exits.");
     }
 
     static Wording disabledNative(LimitRequest request) {
@@ -338,7 +338,7 @@ public final class LimitMessages {
     // ----- OOM Guard (milestone 11) -----
 
     /** What every watched memory limit is, said where one is set (LIM-9, CAP-3): never a cap. */
-    static final String WATCHED = "Not a cap: Prism watches the resident memory of the process and, when it goes above"
+    static final String WATCHED = "Not a cap: PRISM watches the resident memory of the process and, when it goes above"
             + " the limit, applies its emergency action as far as the automatic intervention switches of OOM Guard"
             + " allow. A process held for its limit is usually let go only by you, since a suspended process keeps"
             + " its memory.";
@@ -375,7 +375,7 @@ public final class LimitMessages {
     static Wording residentOffered(LimitRequest request, String reason) {
         return new Wording(
                 "The native memory limit of " + target(request) + " was not applied.",
-                "Reason: " + reason + ". Prism offers to watch its resident memory instead; that is not a cap, and"
+                "Reason: " + reason + ". PRISM offers to watch its resident memory instead; that is not a cap, and"
                         + " nothing is watched unless you accept it.");
     }
 

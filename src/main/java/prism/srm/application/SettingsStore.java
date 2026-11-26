@@ -34,9 +34,9 @@ public final class SettingsStore {
     static final int MOVE_ATTEMPTS = 3;
 
     private static final String NOT_SAVED =
-            "Prism could not save this. It stays in force for this session; the log says why.";
+            "PRISM could not save this. It stays in force for this session; the log says why.";
 
-    private static final String NEWER_FILE = "The settings file belongs to a later version of Prism. Prism uses the"
+    private static final String NEWER_FILE = "The settings file belongs to a later version of PRISM. PRISM uses the"
             + " defaults, and what you change here lasts for this session only.";
 
     private final Path folder;
@@ -49,7 +49,7 @@ public final class SettingsStore {
     private final AtomicReference<AppSettings> waiting = new AtomicReference<>();
     private final AtomicBoolean queued = new AtomicBoolean();
 
-    /** False once a file of a later version was found: this Prism never overwrites it. */
+    /** False once a file of a later version was found: this PRISM never overwrites it. */
     private volatile boolean saveAllowed = true;
 
     /** What {@link #load} found wrong with the file, for the Settings page; empty when nothing. */
@@ -110,7 +110,7 @@ public final class SettingsStore {
             activity.record(
                     ActivitySeverity.WARNING,
                     "The settings file could not be read (" + unreadable + "); the defaults are used: " + file);
-            loadProblem = Optional.of("The settings file could not be read, so Prism uses the defaults: " + file);
+            loadProblem = Optional.of("The settings file could not be read, so PRISM uses the defaults: " + file);
             return AppSettings.DEFAULTS;
         }
         SettingsCodec.Decoded decoded = SettingsCodec.decode(bytes);
@@ -119,7 +119,7 @@ public final class SettingsStore {
                 saveAllowed = false;
                 activity.record(
                         ActivitySeverity.WARNING,
-                        "The settings file was written by a later version of Prism ("
+                        "The settings file was written by a later version of PRISM ("
                                 + String.join("; ", decoded.problems()) + "). The defaults are used, and this"
                                 + " session does not change the file: " + file);
                 loadProblem = Optional.of(NEWER_FILE);
@@ -134,7 +134,7 @@ public final class SettingsStore {
                                 + (aside == null
                                         ? "; the file could not be moved aside: " + file
                                         : "; the file is kept as " + aside));
-                loadProblem = Optional.of("The settings file was damaged, so Prism uses the defaults. "
+                loadProblem = Optional.of("The settings file was damaged, so PRISM uses the defaults. "
                         + (aside == null ? "It could not be moved aside: " + file : "It is kept as " + aside));
                 return AppSettings.DEFAULTS;
             }
@@ -181,7 +181,7 @@ public final class SettingsStore {
         if (!saveAllowed) {
             activity.record(
                     ActivitySeverity.WARNING,
-                    "The settings were not saved: the file belongs to a later version of Prism. They stay in force"
+                    "The settings were not saved: the file belongs to a later version of PRISM. They stay in force"
                             + " for this session.");
             saveOutcome.accept(Optional.of(NEWER_FILE));
             return;
