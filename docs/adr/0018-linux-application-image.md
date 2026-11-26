@@ -1,7 +1,7 @@
 # 0018. The Linux application image
 
-- Status: **Proposed**. The image is not accepted until the product owner accepts this record and
-  `verify-image.sh` has passed on a desktop session.
+- Status: **Accepted** (2026-11-27, by the product owner), after `verify-image.sh` passed on an Ubuntu
+  24.04.5 desktop: [evidence/linux-image-2026-11-26.md](../evidence/linux-image-2026-11-26.md).
 - Date: 2026-11-26
 
 ## Context

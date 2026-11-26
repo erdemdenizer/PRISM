@@ -4,7 +4,7 @@ The first run of `verify-image.sh` ([ADR-0018](../adr/0018-linux-application-ima
 Verdict: **ACCEPTED**, 31 PASS, 0 FAIL, 0 NOT TESTED. Raw results: [linux-image-2026-11-26/](linux-image-2026-11-26/)
 (`results.tsv`, `summary.txt`; the VM user's home folder is written as `~`).
 
-This is evidence for ADR-0018, which is still Proposed: the owner's acceptance is open.
+This is the evidence on which ADR-0018 was accepted (2026-11-27).
 
 ## What was built
 
