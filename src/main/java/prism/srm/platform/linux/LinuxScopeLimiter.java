@@ -352,7 +352,8 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
             return Optional.of("it does not run wholly as your user (user IDs "
                     + ids.value().get() + ")");
         }
-        // Risk D8: a set-group-ID program runs with a group the user did not start it with; its four group IDs differ.
+        // Risk D8: a set-group-ID program runs with a group the user did not start it with, and its four group IDs then
+        // differ unless the program made them equal itself (setresgid); that case is not caught here.
         ProcFs.Reading<List<Long>> groups = proc.gids((int) target.pid());
         if (groups.value().isEmpty()) {
             return Optional.of("its group IDs could not be read: " + groups.detail());
@@ -390,12 +391,26 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
     private Liveness liveness(ProcessIdentity target, int fd) {
         LinuxNative.Call checked = calls.pidfdSendSignal(fd, 0);
         if (!checked.failed()) {
-            // The descriptor keeps the PID from being reused until the process is waited on, so the stat read is its
-            // own: a zombie ('Z', proc_pid_stat(5)) has terminated, although the signal reached it.
-            ProcFs.Reading<ProcStat> stat = proc.stat((int) target.pid());
-            return stat.value().filter(read -> read.state() == 'Z').isPresent() ? Liveness.EXITED : Liveness.RUNS;
+            return terminatedZombie(target) ? Liveness.EXITED : Liveness.RUNS;
         }
         return checked.errno() == LinuxErrors.ESRCH ? Liveness.EXITED : Liveness.NOT_SIGNALLABLE;
+    }
+
+    /**
+     * Whether the process has terminated and waits to be reaped, which signal 0 still reaches (risk D8). The state in
+     * {@code /proc/<pid>/stat} is the thread-group leader's, and a leader that exits before its other threads is a
+     * zombie while they still run (kernel/exit.c, delay_group_leader; pidfd_poll in kernel/fork.c says so): so 'Z'
+     * counts only with a single thread left. A zombie's PID is not reused before it is reaped (pidfd_open(2)), but it
+     * can be reaped between the signal and these reads, so the start time read must still be the target's.
+     */
+    private boolean terminatedZombie(ProcessIdentity target) {
+        ProcFs.Reading<ProcStat> stat = proc.stat((int) target.pid());
+        if (stat.value().filter(read -> read.state() == 'Z').isEmpty()) {
+            return false;
+        }
+        ProcFs.Reading<Integer> threads = proc.threads((int) target.pid());
+        return threads.value().filter(count -> count == 1).isPresent()
+                && identityProblem(target).isEmpty();
     }
 
     /** Before an adoption: empty when the descriptor's process runs and may be signalled; otherwise the refusal. */
@@ -623,19 +638,22 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
             if (user.isPresent()) {
                 return ApplyResult.notAssigned(fail(OperationResult.ACCESS_DENIED, user.get()), false);
             }
+            // Risk D2: the cgroup again, read before the last liveness and identity checks, so that they
+            // prove the read was the target's. Before the open it could have described another process
+            // with the PID. systemd's user manager falls back to PID 1's AttachProcessesToUnit by PID when
+            // it lacks the privilege, so a process a privileged actor moved out of the user's own manager
+            // must not be asked for. The window between these checks and the start request stays (D2).
+            Optional<String> moved = cgroupProblem(target);
+            if (moved.isPresent()) {
+                return ApplyResult.notAssigned(fail(OperationResult.UNSUPPORTED, moved.get()), true);
+            }
             notAlive = notSignallable(target, fd);
             if (notAlive.isPresent()) {
                 return notAlive.get();
             }
-            // Risk D2: the cgroup again, now that the descriptor pins the process and the identity is proved. Before
-            // the
-            // open it could have belonged to another process with the PID. systemd's user manager falls back to PID 1's
-            // AttachProcessesToUnit by PID when it lacks the privilege, so a process a privileged actor moved out of
-            // the
-            // user's own manager must not be asked for.
-            Optional<String> moved = cgroupProblem(target);
-            if (moved.isPresent()) {
-                return ApplyResult.notAssigned(fail(OperationResult.UNSUPPORTED, moved.get()), true);
+            Optional<String> replaced = identityProblem(target);
+            if (replaced.isPresent()) {
+                return ApplyResult.notAssigned(fail(OperationResult.PROCESS_NOT_FOUND, replaced.get()), false);
             }
             Hold hold = new Hold(unit, fd);
             holds.put(target, hold);
@@ -1311,8 +1329,7 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
             return new RecoveredLimit(record, RecoveredLimit.Verdict.FAILED, "the record names no scope");
         }
         // Risk D11: a record proves only the scope PRISM names for its process. A record naming another unit, however
-        // it
-        // came to be, is not asked about.
+        // it came to be, is not asked about.
         if (!unitName.equals(ScopeNames.of(identity))) {
             return new RecoveredLimit(
                     record,

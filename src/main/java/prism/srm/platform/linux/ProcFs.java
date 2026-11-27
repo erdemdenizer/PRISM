@@ -137,6 +137,32 @@ final class ProcFs {
         return ids(pid, "Gid:");
     }
 
+    /** The number of threads of the process, from the {@code Threads:} line of {@code /proc/<pid>/status}. */
+    Reading<Integer> threads(int pid) {
+        Path file = root.resolve(Integer.toString(pid)).resolve("status");
+        List<String> lines;
+        try {
+            lines = Files.readAllLines(file, StandardCharsets.UTF_8);
+        } catch (NoSuchFileException gone) {
+            return Reading.not(Status.MISSING, file + " is not there");
+        } catch (AccessDeniedException denied) {
+            return Reading.not(Status.DENIED, file + " cannot be read");
+        } catch (IOException failed) {
+            return Reading.not(Status.FAILED, file + ": " + failed);
+        }
+        for (String line : lines) {
+            if (line.startsWith("Threads:")) {
+                try {
+                    return Reading.found(
+                            Integer.parseInt(line.substring("Threads:".length()).strip()));
+                } catch (NumberFormatException malformed) {
+                    break;
+                }
+            }
+        }
+        return Reading.not(Status.FAILED, file + " has no Threads line");
+    }
+
     private Reading<List<Long>> ids(int pid, String label) {
         Path file = root.resolve(Integer.toString(pid)).resolve("status");
         List<String> lines;

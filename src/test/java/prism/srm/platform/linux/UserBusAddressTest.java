@@ -30,6 +30,14 @@ class UserBusAddressTest {
                 .contains("unix:path=/tmp/%c3%a7/bus");
     }
 
+    /** A session address that is set but empty is used as it is, as libsystemd uses it (and then fails). */
+    @Test
+    void anEmptySessionAddressIsStillTheAddress() {
+        Map<String, String> env = Map.of("DBUS_SESSION_BUS_ADDRESS", "", "XDG_RUNTIME_DIR", "/run/user/1000");
+
+        assertThat(JnaSdBusApi.userBusAddress(env::get)).contains("");
+    }
+
     @Test
     void withNeitherVariableThereIsNoAddress() {
         assertThat(JnaSdBusApi.userBusAddress(Map.<String, String>of()::get)).isEmpty();

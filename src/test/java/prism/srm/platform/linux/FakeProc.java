@@ -164,7 +164,7 @@ final class FakeProc {
                 folder.resolve("status"),
                 String.format(
                         Locale.ROOT,
-                        "Name:\t%s\nState:\t%c\nUid:\t%d\t%d\t%d\t%d\nGid:\t%d\t%d\t%d\t%d\n",
+                        "Name:\t%s\nState:\t%c\nUid:\t%d\t%d\t%d\t%d\nGid:\t%d\t%d\t%d\t%d\nThreads:\t%d\n",
                         proc.name,
                         proc.state,
                         proc.uids[0],
@@ -174,7 +174,8 @@ final class FakeProc {
                         proc.gids[0],
                         proc.gids[1],
                         proc.gids[2],
-                        proc.gids[3]));
+                        proc.gids[3],
+                        proc.threadNice.size()));
         for (Map.Entry<Integer, Integer> thread : proc.threadNice.entrySet()) {
             write(
                     folder.resolve("task")

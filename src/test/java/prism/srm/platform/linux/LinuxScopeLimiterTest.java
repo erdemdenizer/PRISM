@@ -220,6 +220,20 @@ class LinuxScopeLimiterTest {
         assertThat(systemd.calls).noneMatch(call -> call.startsWith("start"));
     }
 
+    /**
+     * A leader that exited before its other threads shows 'Z' while they run: the process lives, its limits stay
+     * (native-API review of risk D8).
+     */
+    @Test
+    void aZombieLeaderWithLiveThreadsStillRuns() {
+        proc.process(PID, "demo", TICKS, 2072, 2073);
+        apply(CPU20_THROTTLE256);
+        proc.state(PID, 'Z');
+
+        assertThat(limiter.forget(DEMO).result()).isEqualTo(ForgetResult.Outcome.STILL_RUNS);
+        assertThat(systemd.read(group(), "cpu.max")).isEqualTo("80000 100000");
+    }
+
     /** Risk D8: a zombie has exited, though signal 0 still reaches it; it is not "moved" out of its scope. */
     @Test
     void aZombieHasExitedAlthoughSignalZeroStillReachesIt() {
