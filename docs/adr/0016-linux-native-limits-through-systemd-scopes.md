@@ -323,7 +323,7 @@ documentation (the planning evidence, doc-facts, of plan Rev 2.2):
   3 of 3, with no scope, unit or process left; hosted `verify` on Windows, Ubuntu and macOS and `linux-native-validation`
   passed. Details: [evidence/m12-acceptance-matrix.md](../evidence/m12-acceptance-matrix.md).
 - **Final candidate (2026-11-07).** At f0f4279: the full gate on Windows (2298 tests, 0 failures, 37 skipped), on the VM (2287, 0, 64) and on
-  the macOS test machine (local user: kerem) (2287, 0, 63); the native suite 3 of 3 on the VM; hosted `verify` on Windows, Ubuntu and macOS and
+  the macOS test machine (2287, 0, 63); the native suite 3 of 3 on the VM; hosted `verify` on Windows, Ubuntu and macOS and
   `linux-native-validation` passed; hosted `native-validation` failed, as it does by design. The product owner accepted this
   record on 2026-11-07.
 - **K16.** `HostPlatform` builds `LinuxScopeLimiter.product(...)`, which admits no process, opens no bus and reports
