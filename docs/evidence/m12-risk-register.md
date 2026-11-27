@@ -96,7 +96,7 @@ Fixed, each with its own commit and tests, and reviewed by an independent native
 | D12 | CLOSED | The user-facing reason no longer names K16 |
 | D14 | CLOSED | `LimitService` asks for the memory boundary the limiter offers: `NATIVE_SOFT` (Linux `memory.high`) throttles, anything else is hard |
 
-Fixed later the same day, with tests, and reviewed by an independent review on 2026-11-28, whose findings (S1, S2, C1 to C4, below) are addressed; run on Windows only (the Linux code paths only against the fakes of the unit tests); K16 stays in force:
+Fixed later the same day, with tests, and reviewed by an independent review on 2026-11-28, whose findings (S1, S2, C1 to C4, below) are addressed; run at `3c986c1` on Windows 11 (full gate, 2519 tests, 0 failures) and on the Ubuntu 24.04 desktop VM (full gate, 2508 tests, 0 failures; the native suites on real systemd, 11 of 11 and 1 of 1, no scope left); K16 stays in force:
 
 | # | Status | How |
 |---|---|---|
@@ -105,7 +105,7 @@ Fixed later the same day, with tests, and reviewed by an independent review on 2
 
 Still open before K16 can be lifted:
 
-- **D6 and D13**: closed above and reviewed; a run on Linux is still to come.
+- **D6 and D13**: closed above, reviewed, and run on Windows and on Linux.
 - **D8's wording**, above.
 - **D3, D4, D5, D7, D10** to be fixed or accepted again, each with a written reason.
 - **What the product does not have yet:** an eligibility policy for desktop processes (today only `none()` and the
