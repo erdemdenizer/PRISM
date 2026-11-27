@@ -22,7 +22,7 @@ something outside this work. DEFERRED is not part of this milestone's closure.
 | Removing a limit reads back as none; nothing is moved back, no scope stopped, no other unit changed, no unit left after its processes exit | `LinuxNativeLimitIntegrationTest` in native-15 to 17. After each VM run: no PRISM scope 3 s later, no Java process of the run left. User units: 257 before and 257 after in each native run. In verify-9, 249 before and 257 after: a loop device and a mount for `snap-store` revision 1468 appeared, which points to a snapd refresh during the run. None of the eight is a PRISM unit, and the suite's own check inside that run found 249, 249 and no change | PASS |
 | The CPU limit is converted with the online logical processor count | `LinuxScopeLimiterTest.theProcessorCountIsTheKernelsOnlineListNotTheJvmsShare` and `theCpuEdgesAreExactQuotas`; measured on 2 vCPUs in native-15: 0.020 cores at 1 %, 0.401 at 20 % (quota 0.400), one busy worker at 0.991 at 100 % | PASS |
 | The `memory.max` and `memory.high` text matches the kernel's documented behaviour | Not met. The text of `LimitMessages` covers Windows semantics only (register D8) and is unreachable on Linux under K16. The [acceptance decision](m12-acceptance-decision.md) states the scope and accepts the deferral as exception 1 | DEFERRED until K16 lifts |
-| The full gate passes on Windows, Linux and macOS at the final commit | At this commit: Windows, Linux and the macOS test machine (local user: kerem), each `./mvnw -B clean verify`, see [Results at f0f4279](#results-at-f0f4279). Hosted `verify` passed on all three as well | PASS |
+| The full gate passes on Windows, Linux and macOS at the final commit | At this commit: Windows, Linux and the macOS test machine, each `./mvnw -B clean verify`, see [Results at f0f4279](#results-at-f0f4279). Hosted `verify` passed on all three as well | PASS |
 
 ## Manual verification under K16
 
@@ -70,7 +70,7 @@ the same line from the same script. Their Surefire reports are not in the packag
 **Linux** (the Hyper-V VM, Ubuntu's OpenJDK 25.0.4.1, not Temurin): `verify-9` PASS, 347 s, 2287 / 0 / 0 / 64; `native-15` to `native-17`
 PASS, 12 / 0 / 0 / 0 each. Details in [m12-hyperv-validation.md](m12-hyperv-validation.md).
 
-**macOS test machine (local user: kerem)** (macOS 26.6.2, Darwin 25.6.0, Apple M2, 16 GiB, Temurin 25.0.5+8, Maven 3.10.0, locale `tr_TR`), one run:
+**macOS test machine** (macOS 26.6.2, Darwin 25.6.0, Apple M2, 16 GiB, Temurin 25.0.5+8, Maven 3.10.0, locale `tr_TR`), one run:
 
 | Check | Result |
 |---|---|
@@ -128,7 +128,7 @@ themselves and the check refuses that. The local path C run stands in for it, th
 a whole therefore stays red. This is an open, documented exception, not a PASS: the check was neither removed nor relaxed. See exception 3 of
 the [acceptance decision](m12-acceptance-decision.md).
 
-A hosted macOS `verify` does not replace the run on the macOS test machine (local user: kerem), which is recorded above.
+A hosted macOS `verify` does not replace the run on the macOS test machine, which is recorded above.
 
 ## After 3b3475b
 

@@ -69,7 +69,7 @@ reachable only through a native memory limit, and K16 admits none. Text for `mem
 
 ## macOS run: accepted procedure deviations
 
-The run was on the macOS test machine (local user: kerem). The owner accepted these two deviations from the procedure.
+The run was on the macOS test machine. The owner accepted these two deviations from the procedure.
 
 | The procedure asked for | What happened | Evidence |
 |---|---|---|
@@ -81,7 +81,7 @@ checked independently. The enforcer stops a build on a wrong JDK, so at most the
 
 ## Authorship and records
 
-- The macOS evidence comes from the macOS test machine (local user: kerem). The local account name is recorded as it stands; no
+- The macOS evidence comes from the macOS test machine. Its local account name is not recorded here; no
   owner or contributor is inferred from it.
 - A draft of this acceptance, commit `8af9e3f`, was prepared on that machine. It is not in this repository and was not applied: it
   stated an acceptance that had not been given, with a fixed date. These documents were written anew on `f0f4279` from the evidence.

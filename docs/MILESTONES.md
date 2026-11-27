@@ -1756,7 +1756,7 @@ invocation id, and the `linux-native-validation` CI job. Evidence by criterion i
 [acceptance matrix](evidence/m12-acceptance-matrix.md), the Linux runs in
 [m12-hyperv-validation.md](evidence/m12-hyperv-validation.md), the open risks in the
 [risk register](evidence/m12-risk-register.md). The full gate passed at commit `f0f4279` on Windows, on Linux and on the
-macOS test machine (local user: kerem). The product owner accepted the milestone on 2026-11-07:
+macOS test machine. The product owner accepted the milestone on 2026-11-07:
 [acceptance decision](evidence/m12-acceptance-decision.md). One written criterion stays open as deferred, the text for
 `memory.max` and `memory.high`, because K16 keeps that text unreachable on Linux. The other two exceptions are the OOM kill, not
 observed at the final candidate, and the hosted `native-validation` check, which fails and stays visible.
