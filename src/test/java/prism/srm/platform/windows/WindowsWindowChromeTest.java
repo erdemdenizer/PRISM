@@ -134,16 +134,44 @@ class WindowsWindowChromeTest {
         assertThat(dwm.calls).isEmpty();
     }
 
+    /** Half a set of colors is worse than none: after a refused color the system's own are asked back. */
     @Test
-    void theFirstRefusedValueEndsTheAttempt() {
+    void aRefusedColorEndsTheAttemptAndAsksTheSystemColorsBack() {
         FakeDwm dwm = new FakeDwm(true, List.of(new ThreadWindow(7, STAGE, "PRISM")));
         dwm.refuse = 35;
         WindowsWindowChrome chrome = new WindowsWindowChrome(dwm);
 
         assertThat(chrome.apply("PRISM", DARK)).isEqualTo(Result.FAILED);
 
-        assertThat(dwm.calls).containsExactly("7:20=1", "7:35=1d1816");
+        assertThat(dwm.calls)
+                .containsExactly("7:20=1", "7:35=1d1816", "7:20=0", "7:35=ffffffff", "7:36=ffffffff", "7:34=ffffffff");
         assertThat(chrome.detail()).contains("35").contains("80070057");
+    }
+
+    /** Under high contrast no custom color may stay because an earlier value was refused. */
+    @Test
+    void aResetTriesEveryValueAndReportsTheFirstRefusal() {
+        FakeDwm dwm = new FakeDwm(true, List.of(new ThreadWindow(7, STAGE, "PRISM")));
+        dwm.refuse = 20;
+        WindowsWindowChrome chrome = new WindowsWindowChrome(dwm);
+
+        assertThat(chrome.reset("PRISM")).isEqualTo(Result.FAILED);
+
+        assertThat(dwm.calls).containsExactly("7:20=0", "7:35=ffffffff", "7:36=ffffffff", "7:34=ffffffff");
+        assertThat(chrome.detail()).contains("(20)");
+    }
+
+    /** JNA may be unable to load its native library: the title bar is unavailable, PRISM still starts. */
+    @Test
+    void aBindingThatCannotBeLoadedIsUnavailableNotAnError() {
+        FakeDwm dwm = new FakeDwm(true, List.of(new ThreadWindow(7, STAGE, "PRISM")));
+        dwm.unloadable = true;
+        WindowsWindowChrome chrome = new WindowsWindowChrome(dwm);
+
+        assertThat(chrome.available()).isFalse();
+        assertThat(chrome.detail()).contains("could not be loaded").contains("jnidispatch");
+        assertThat(chrome.apply("PRISM", DARK)).isEqualTo(Result.UNAVAILABLE);
+        assertThat(dwm.calls).isEmpty();
     }
 
     @Test
@@ -163,6 +191,7 @@ class WindowsWindowChromeTest {
         private int lookups;
         private int refuse = -1;
         private boolean broken;
+        private boolean unloadable;
 
         FakeDwm(boolean newEnough, List<ThreadWindow> windows) {
             this.newEnough = newEnough;
@@ -173,6 +202,9 @@ class WindowsWindowChromeTest {
         public boolean buildAtLeast(int build) {
             askedBuild = build;
             buildChecks++;
+            if (unloadable) {
+                throw new UnsatisfiedLinkError("Unable to load library 'jnidispatch'");
+            }
             return newEnough;
         }
 

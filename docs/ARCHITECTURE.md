@@ -437,6 +437,10 @@ see in a thread dump, not one to hide.
 
 The JavaFX Application Thread only renders and handles input. It never performs process
 enumeration, disk or network queries, native calls, blocking waits, or cgroup operations.
+The one exception is the Windows title bar: the lookup of a stage's own window and
+`DwmSetWindowAttribute` run there, because the window belongs to that thread
+([ADR-0019](adr/0019-title-bar-colors-on-windows.md)). Its libraries are loaded and the
+Windows build is read before the first window, in `App.init()`.
 
 - Background work runs on executors that are created, named, and shut down by one
   owner, constructed in `app` and passed to the services that use them.
@@ -475,6 +479,7 @@ The threads PRISM creates, all named:
 | `srm-recovery` | yes | from start-up on; it works only while a journal of an ended session waits for its lock | looks at the journals of earlier sessions again, at most seven times in about two minutes, and lists what it reads; nothing is resumed, and the shutdown calls it off within its bound |
 | `srm-shutdown` | no | during shutdown | the controlled shutdown sequence |
 | `srm-exit-hook` | no | when the JVM exits | the shutdown hook: stops the limits, releases what the limiter holds, clears the native limits and lets the jobs go |
+| `srm-title-bar-log` | yes | at most once per run of the title-bar tint | writes the one report of the title bar's tint to the log, so that the file write is not made on the JavaFX Application Thread (ADR-0019) |
 | `srm-linux-release` | yes | one per `releaseAll` of the Linux scope limiter that holds a scope (test harness only under K16: the product holds no scope, so it starts one only if another limiter call holds the lock at that moment, and that one finds nothing) | clears the held scopes under the limiter's lock, checking the release's deadline before every send; the caller waits at most the bound, and the thread ends after its last bounded bus call |
 
 Each sampling executor is a single-thread `ScheduledThreadPoolExecutor` holding one

@@ -43,7 +43,13 @@ import prism.srm.platform.WindowChrome;
  * before that build ({@link Result#UNAVAILABLE}). The build is checked once with {@code
  * VerifyVersionInfoW}, which a process without a manifest that declares Windows 10 sees as Windows 8:
  * there the check fails and the frame stays as it is, which is the safe side. Every call's HRESULT is
- * checked; the first that is not {@code S_OK} ends the attempt with {@link Result#FAILED}.
+ * checked. A refused value ends {@link #apply} with {@link Result#FAILED}, and the system's own colors are
+ * then asked back, best-effort; {@link #reset} tries every value whatever the others answer, so that no
+ * custom color stays under a high-contrast theme because an earlier value was refused.
+ *
+ * <p>The first {@link #available} loads the native libraries and checks the build. It is meant to run
+ * before the first window is shown, off the JavaFX Application Thread (ADR-0019); a binding that cannot
+ * be loaded, {@link LinkageError} included, answers {@code false} with the reason and never throws.
  *
  * <p>Sources:
  *
@@ -82,8 +88,16 @@ public final class WindowsWindowChrome implements WindowChrome {
     /** The native calls, behind a seam so that the decisions are tested without them. */
     interface Dwm {
 
-        /** Whether the running system is at least this build. */
+        /**
+         * Loads what the other calls need, then whether the running system is at least this build. May
+         * throw when the native binding cannot be loaded.
+         */
         boolean buildAtLeast(int build);
+
+        /** Why the last {@link #buildAtLeast} answered {@code false}. */
+        default String notAtLeast(int build) {
+            return "Windows before build " + build + ", or the build could not be read";
+        }
 
         /** The windows of the calling thread, with their class names and texts. */
         List<ThreadWindow> threadWindows();
@@ -95,8 +109,17 @@ public final class WindowsWindowChrome implements WindowChrome {
     /** A window of the calling thread. */
     record ThreadWindow(long hwnd, String className, String text) {}
 
+    /** The values {@link #reset} sets: the documented defaults, and the dark mode off. */
+    private static final int[][] SYSTEM_COLORS = {
+        {DWMWA_USE_IMMERSIVE_DARK_MODE, 0},
+        {DWMWA_CAPTION_COLOR, DWMWA_COLOR_DEFAULT},
+        {DWMWA_TEXT_COLOR, DWMWA_COLOR_DEFAULT},
+        {DWMWA_BORDER_COLOR, DWMWA_COLOR_DEFAULT}
+    };
+
     private final Dwm dwm;
     private Boolean supported;
+    private String refusal = "";
     private String detail = "";
 
     public WindowsWindowChrome() {
@@ -110,10 +133,18 @@ public final class WindowsWindowChrome implements WindowChrome {
     @Override
     public boolean available() {
         if (supported == null) {
-            supported = dwm.buildAtLeast(FIRST_BUILD);
+            try {
+                supported = dwm.buildAtLeast(FIRST_BUILD);
+                refusal = supported ? "" : dwm.notAtLeast(FIRST_BUILD);
+            } catch (RuntimeException | LinkageError failed) {
+                // A cosmetic feature must not keep PRISM from starting: JNA may be unable to unpack or
+                // load its native library (a policy on the temporary folder, a scanner).
+                supported = false;
+                refusal = "the native binding could not be loaded: " + failed;
+            }
         }
         if (!supported) {
-            detail = "Windows before build " + FIRST_BUILD + ", or the build could not be read";
+            detail = refusal;
         }
         return supported;
     }
@@ -121,26 +152,24 @@ public final class WindowsWindowChrome implements WindowChrome {
     @Override
     public Result apply(String title, ChromeColors colors) {
         Objects.requireNonNull(colors, "colors");
-        return set(title, new int[][] {
-            {DWMWA_USE_IMMERSIVE_DARK_MODE, colors.dark() ? 1 : 0},
-            {DWMWA_CAPTION_COLOR, colorref(colors.caption())},
-            {DWMWA_TEXT_COLOR, colorref(colors.text())},
-            {DWMWA_BORDER_COLOR, colorref(colors.border())}
-        });
+        return set(
+                title,
+                new int[][] {
+                    {DWMWA_USE_IMMERSIVE_DARK_MODE, colors.dark() ? 1 : 0},
+                    {DWMWA_CAPTION_COLOR, colorref(colors.caption())},
+                    {DWMWA_TEXT_COLOR, colorref(colors.text())},
+                    {DWMWA_BORDER_COLOR, colorref(colors.border())}
+                },
+                false);
     }
 
-    /** The documented default for caption, text and border, and the dark mode off. */
+    /** The documented default for caption, text and border, and the dark mode off; every value is tried. */
     @Override
     public Result reset(String title) {
-        return set(title, new int[][] {
-            {DWMWA_USE_IMMERSIVE_DARK_MODE, 0},
-            {DWMWA_CAPTION_COLOR, DWMWA_COLOR_DEFAULT},
-            {DWMWA_TEXT_COLOR, DWMWA_COLOR_DEFAULT},
-            {DWMWA_BORDER_COLOR, DWMWA_COLOR_DEFAULT}
-        });
+        return set(title, SYSTEM_COLORS, true);
     }
 
-    private Result set(String title, int[][] steps) {
+    private Result set(String title, int[][] steps, boolean everyValue) {
         Objects.requireNonNull(title, "title");
         if (title.isEmpty()) {
             throw new IllegalArgumentException("A window without a title cannot be found by it.");
@@ -149,16 +178,18 @@ public final class WindowsWindowChrome implements WindowChrome {
             return Result.UNAVAILABLE;
         }
         try {
-            return setOn(title, steps);
-        } catch (RuntimeException failure) {
+            return setOn(title, steps, everyValue);
+        } catch (RuntimeException | LinkageError failure) {
             // A failure of the native binding (JNA) is a result like any other, not an exception for the
-            // JavaFX listener that called; an Error is not caught.
+            // JavaFX listener that called. An exception inside the enumeration callback does not arrive
+            // here: JNA hands it to its callback exception handler, the enumeration ends, and the window
+            // is not found.
             detail = "the native call failed: " + failure;
             return Result.FAILED;
         }
     }
 
-    private Result setOn(String title, int[][] steps) {
+    private Result setOn(String title, int[][] steps, boolean everyValue) {
         List<ThreadWindow> matches = select(dwm.threadWindows(), title);
         if (matches.isEmpty()) {
             detail = "no window of this thread is titled \"" + title + "\"";
@@ -169,15 +200,32 @@ public final class WindowsWindowChrome implements WindowChrome {
             return Result.AMBIGUOUS;
         }
         long hwnd = matches.get(0).hwnd();
+        String refused = setAll(hwnd, steps, everyValue);
+        if (refused.isEmpty()) {
+            detail = "";
+            return Result.APPLIED;
+        }
+        if (!everyValue) {
+            // Half a set of colors is worse than none: the system's own are asked back.
+            setAll(hwnd, SYSTEM_COLORS, true);
+        }
+        detail = refused;
+        return Result.FAILED;
+    }
+
+    /** Sets the values in order; empty when all were taken, otherwise the first refusal. */
+    private String setAll(long hwnd, int[][] steps, boolean everyValue) {
+        String refused = "";
         for (int[] step : steps) {
             int hresult = dwm.setAttribute(hwnd, step[0], step[1]);
-            if (hresult != S_OK) {
-                detail = "DwmSetWindowAttribute(" + step[0] + ") returned HRESULT 0x" + Integer.toHexString(hresult);
-                return Result.FAILED;
+            if (hresult != S_OK && refused.isEmpty()) {
+                refused = "DwmSetWindowAttribute(" + step[0] + ") returned HRESULT 0x" + Integer.toHexString(hresult);
+                if (!everyValue) {
+                    break;
+                }
             }
         }
-        detail = "";
-        return Result.APPLIED;
+        return refused;
     }
 
     @Override
@@ -229,10 +277,17 @@ public final class WindowsWindowChrome implements WindowChrome {
         /** The longest class name a window class may have, and its terminating null. */
         private static final int CLASS_CHARACTERS = 257;
 
-        private DwmApi api;
+        /** {@code ERROR_OLD_WIN_VERSION}: the system is older than asked (VerifyVersionInfoW). */
+        private static final int ERROR_OLD_WIN_VERSION = 1150;
+
+        private volatile DwmApi api;
+        private volatile int lastError;
 
         @Override
         public boolean buildAtLeast(int build) {
+            // Loaded here, before the first window, so that no window's turn loads a library.
+            api = Native.load("dwmapi", DwmApi.class, W32APIOptions.DEFAULT_OPTIONS);
+            Objects.requireNonNull(User32.INSTANCE, "user32");
             WinNT.OSVERSIONINFOEX wanted = new WinNT.OSVERSIONINFOEX();
             wanted.dwBuildNumber = new DWORD(build);
             long condition =
@@ -241,8 +296,16 @@ public final class WindowsWindowChrome implements WindowChrome {
                 return true;
             }
             // ERROR_OLD_WIN_VERSION when the system is older; any other error leaves the build unknown, and
-            // an unknown build is treated as too old.
+            // an unknown build is treated as too old. JNA keeps the last error of the call it made.
+            lastError = Native.getLastError();
             return false;
+        }
+
+        @Override
+        public String notAtLeast(int build) {
+            return lastError == ERROR_OLD_WIN_VERSION
+                    ? "Windows before build " + build + " (as this program's manifest lets it see the version)"
+                    : "the Windows build could not be read (error " + lastError + ")";
         }
 
         @Override
@@ -273,10 +336,11 @@ public final class WindowsWindowChrome implements WindowChrome {
 
         @Override
         public int setAttribute(long hwnd, int attribute, int value) {
-            if (api == null) {
-                api = Native.load("dwmapi", DwmApi.class, W32APIOptions.DEFAULT_OPTIONS);
+            DwmApi loaded = api;
+            if (loaded == null) {
+                throw new IllegalStateException("dwmapi is loaded by the build check, which did not run");
             }
-            return api.DwmSetWindowAttribute(new HWND(new Pointer(hwnd)), attribute, new IntByReference(value), 4);
+            return loaded.DwmSetWindowAttribute(new HWND(new Pointer(hwnd)), attribute, new IntByReference(value), 4);
         }
     }
 }

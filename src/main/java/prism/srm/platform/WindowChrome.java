@@ -6,8 +6,9 @@ package prism.srm.platform;
  * else {@link #UNAVAILABLE} answers and the frame stays as the system draws it.
  *
  * <p>An implementation finds the native window by its exact title among the windows the calling thread
- * owns, so it must be called on the thread that created the window: the JavaFX Application Thread. The
- * calls it makes there are short and do not wait on anything.
+ * owns, so it must be called on the thread that created the window: the JavaFX Application Thread
+ * (ADR-0019). {@link #available} is the exception: it loads what the implementation needs and should be
+ * called once before the first window, off that thread.
  */
 public interface WindowChrome {
 
@@ -24,7 +25,10 @@ public interface WindowChrome {
         AMBIGUOUS,
         /** The system cannot color the frame (another system, or Windows before build 22000). */
         UNAVAILABLE,
-        /** The system refused a value; what was set before stays, the rest is not tried. */
+        /**
+         * The system refused a value, or the native binding failed. After a refused color the system's own
+         * colors are asked back, best-effort.
+         */
         FAILED
     }
 
