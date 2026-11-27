@@ -1634,7 +1634,8 @@ which amends §3 of ADR-0004.
 - **The memory signal.** It is validated on Windows only. On Linux, macOS and any other system
   it is not, so there every automatic switch is unavailable and no memory limit is offered (O17,
   O17b a). Linux fails closed until its evidence is reviewed (external review, 2026-10-12;
-  ADR-0015 §7 names that evidence).
+  ADR-0015 §7 names that evidence). *Later:* that evidence was reviewed and Linux validated on
+  2026-11-27 (ADR-0015 §7).
 - **The memory limit (LIM-9)** is the watched resident memory.
   - On a validated Linux it would be set directly; until then it is not offered there.
   - On Windows it is offered with the user's consent after a native cap was not applied.
@@ -1663,7 +1664,8 @@ milestone 10.
   rerun for `3d6e4eb`. The check is not hidden or disabled.
 
 Linux is reported as not validated: it monitors, warns and logs,
-and makes no automatic intervention, until the evidence named in ADR-0015 §7 is reviewed. An
+and makes no automatic intervention, until the evidence named in ADR-0015 §7 is reviewed (it was,
+and Linux was validated on 2026-11-27). An
 intervention cannot begin after OOM Guard stops (ADR-0015 §6, `OomGuardLifecycleTest`).
 The mandatory Windows acceptance tests (runbook 1–6 and 7A) were run on 2026-10-12, automated
 through UI Automation on the real application with disposable demo processes, and not observed
@@ -1680,7 +1682,8 @@ for commit `3d6e4eb`:
 - the hosted `native-validation` check stays red, as in milestone 10, and path C was run again
   for `3d6e4eb`.
 
-Linux and macOS stay not validated for OOM interventions. The evidence is in
+Linux and macOS stay not validated for OOM interventions (Linux was validated later, on 2026-11-27,
+ADR-0015 §7). The evidence is in
 [m11-ci-cross-platform-3d6e4eb.md](evidence/m11-ci-cross-platform-3d6e4eb.md). A confirmed P2
 of milestones 9/10 was left for a separate fix: the CPU and memory limit dialogs did not grow for
 their validation text, so their buttons were clipped. It was fixed afterwards in a

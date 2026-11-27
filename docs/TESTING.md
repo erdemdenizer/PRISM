@@ -557,9 +557,9 @@ a window of the tester's own making, never an application someone uses.
     - the reading of available memory falls by at least half of M while the demo holds M of
       touched memory, and rises again after it exits;
     - M is at most 512 MiB and at most a quarter of what is available;
-    - it fails, never skips, on Windows and Linux, and only reports on macOS. On Linux a pass is
-      evidence for ADR-0015 §7, not a switch: Linux stays not validated until that evidence is
-      reviewed.
+    - it fails, never skips, on Windows and Linux, and only reports on macOS. On Linux its passes
+      were the evidence of ADR-0015 §7, on which Linux was validated (2026-11-27); a pass is still
+      evidence, never a switch.
   - `OomResidentValidationTest` (O17b) checks that the listed resident memory of the demo is
     at least the 256 MiB it holds, and that its record leaves the listing when it exits.
   - Each prints an `oom-signal:` or `oom-resident:` line with what it measured.

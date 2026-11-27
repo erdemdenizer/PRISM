@@ -29,31 +29,79 @@ class EffectiveActionTest {
             Capability.of(CapabilityLevel.NATIVE_SOFT, ControlMechanism.NICE_VALUE));
 
     /**
-     * Linux before its evidence is reviewed (ADR-0015 §7): with every switch on and a healthy journal,
-     * no action is in effect, and the reason is the signal, not a switch.
+     * A system whose memory signal is not validated (ADR-0015 §7; Linux before its evidence was
+     * accepted): with every switch on and a healthy journal, no action is in effect, and the reason
+     * is the signal, not a switch.
+     * @ParameterizedTest
+     * @org.junit.jupiter.params.provider.EnumSource(
+     * value = EmergencyAction.class,
+     * names = {"LOWER_PRIORITY", "SUSPEND", "TERMINATE"})
+     * void withoutAValidatedSignalEveryActionFallsBackToNotify(EmergencyAction chosen) {
+     * EffectiveAction effective = EffectiveAction.of(
+     * new OomManagement(true, OomPriority.NORMAL, chosen),
+     * new OomSwitches(true, true, true, true),
+     * LINUX,
+     * true,
+     * Restorability.NOT_REVERSIBLE,
+     * OomSignalStatus.UNVALIDATED);
+     *
+     * org.assertj.core.api.Assertions.assertThat(effective.action()).isEqualTo(EmergencyAction.NOTIFY);
+     * org.assertj.core.api.Assertions.assertThat(effective.notInEffect())
+     * .contains("not available on this system: memory signals are not validated");
+     * org.assertj.core.api.Assertions.assertThat(EffectiveAction.whyNotLowering(
+     * new OomSwitches(true, true, true, true),
+     * LINUX,
+     * Restorability.NOT_REVERSIBLE,
+     * OomSignalStatus.UNVALIDATED))
+     * .isPresent();
+     * }
+     *
+     * /**
+     * Linux with its signal validated: suspending and terminating are in effect with their switches;
+     * lowering a priority is not, because a raised one cannot be restored there without privilege.
      */
-    @ParameterizedTest
-    @org.junit.jupiter.params.provider.EnumSource(
-            value = EmergencyAction.class,
-            names = {"LOWER_PRIORITY", "SUSPEND", "TERMINATE"})
-    void onLinuxBeforeValidationEveryActionFallsBackToNotify(EmergencyAction chosen) {
-        EffectiveAction effective = EffectiveAction.of(
-                new OomManagement(true, OomPriority.NORMAL, chosen),
-                new OomSwitches(true, true, true, true),
+    @org.junit.jupiter.api.Test
+    void onLinuxWithAValidatedSignalSuspendAndTerminateActAndLoweringDoesNot() {
+        OomSwitches all = new OomSwitches(true, true, true, true);
+
+        EffectiveAction suspend = EffectiveAction.of(
+                new OomManagement(true, OomPriority.NORMAL, EmergencyAction.SUSPEND),
+                all,
                 LINUX,
                 true,
                 Restorability.NOT_REVERSIBLE,
-                OomSignalStatus.UNVALIDATED);
+                OomSignalStatus.VALIDATED);
+        EffectiveAction terminate = EffectiveAction.of(
+                new OomManagement(true, OomPriority.NORMAL, EmergencyAction.TERMINATE),
+                all,
+                LINUX,
+                true,
+                Restorability.NOT_REVERSIBLE,
+                OomSignalStatus.VALIDATED);
+        EffectiveAction lower = EffectiveAction.of(
+                new OomManagement(true, OomPriority.NORMAL, EmergencyAction.LOWER_PRIORITY),
+                all,
+                LINUX,
+                true,
+                Restorability.NOT_REVERSIBLE,
+                OomSignalStatus.VALIDATED);
 
-        org.assertj.core.api.Assertions.assertThat(effective.action()).isEqualTo(EmergencyAction.NOTIFY);
-        org.assertj.core.api.Assertions.assertThat(effective.notInEffect())
-                .contains("not available on this system: memory signals are not validated");
-        org.assertj.core.api.Assertions.assertThat(EffectiveAction.whyNotLowering(
-                        new OomSwitches(true, true, true, true),
-                        LINUX,
-                        Restorability.NOT_REVERSIBLE,
-                        OomSignalStatus.UNVALIDATED))
-                .isPresent();
+        org.assertj.core.api.Assertions.assertThat(suspend.action()).isEqualTo(EmergencyAction.SUSPEND);
+        org.assertj.core.api.Assertions.assertThat(terminate.action()).isEqualTo(EmergencyAction.TERMINATE);
+        org.assertj.core.api.Assertions.assertThat(lower.action()).isEqualTo(EmergencyAction.NOTIFY);
+        org.assertj.core.api.Assertions.assertThat(lower.notInEffect()).isPresent();
+        org.assertj.core.api.Assertions.assertThat(lower.notInEffect().get())
+                .doesNotContain("memory signals are not validated");
+        // Off by default: nothing acts until the user turns a switch on (OOM-5, SET-2).
+        org.assertj.core.api.Assertions.assertThat(EffectiveAction.of(
+                                new OomManagement(true, OomPriority.NORMAL, EmergencyAction.SUSPEND),
+                                OomSwitches.DEFAULTS,
+                                LINUX,
+                                true,
+                                Restorability.NOT_REVERSIBLE,
+                                OomSignalStatus.VALIDATED)
+                        .action())
+                .isEqualTo(EmergencyAction.NOTIFY);
     }
 
     private static Map<ControlAction, Capability> capabilities(
