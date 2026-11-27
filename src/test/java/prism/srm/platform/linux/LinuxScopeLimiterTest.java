@@ -1740,7 +1740,11 @@ class LinuxScopeLimiterTest {
                 .isEqualTo(ReleaseResult.NOTHING);
     }
 
-    /** Past the bound nothing more is sent: a hold not reached keeps its scope as it is and is said so. */
+    /**
+     * Past the bound nothing more is sent: a hold not reached keeps its scope as it is and is said so. So is the one
+     * whose clearing was begun but reached the bound before its first send (review C3 of risk D13): nothing was sent
+     * to it, so both keep their descriptors, and the next release clears both.
+     */
     @Test
     void pastTheBoundNothingMoreIsSentAndUnreachedHoldsAreSaid() {
         ProcessIdentity second = secondDemo();
@@ -1754,18 +1758,43 @@ class LinuxScopeLimiterTest {
         ReleaseResult released = limiter.releaseAll(Duration.ofSeconds(1));
 
         assertThat(released.timedOut()).isTrue();
-        assertThat(released.cleared()).hasSize(1).containsValue(false);
-        assertThat(released.notReached()).hasSize(1);
+        assertThat(released.cleared()).as("nothing was sent to either").isEmpty();
+        assertThat(released.notReached()).containsExactlyInAnyOrder(DEMO, second);
         assertThat(systemd.setCalls()).as("nothing sent past the bound").isEqualTo(sets);
-        // Risk D13: the hold not reached keeps its descriptor, so that a later release can still clear its scope.
-        assertThat(limiter.heldDescriptors()).hasSize(1);
-        ProcessIdentity unreached = released.notReached().iterator().next();
+        // Risk D13: a hold nothing was sent to keeps its descriptor, so that a later release can still clear its scope.
+        assertThat(limiter.heldDescriptors()).hasSize(2);
         systemd.onUnitRead = () -> {};
 
         ReleaseResult later = limiter.releaseAll(Duration.ofSeconds(1));
 
         assertThat(later.complete()).isTrue();
-        assertThat(later.cleared()).containsOnlyKeys(unreached).containsEntry(unreached, true);
+        assertThat(later.cleared())
+                .containsOnlyKeys(DEMO, second)
+                .containsEntry(DEMO, true)
+                .containsEntry(second, true);
+        assertThat(limiter.heldDescriptors()).isEmpty();
+    }
+
+    /** Review C3 of risk D13: a scope the release cannot read gets nothing sent, and its hold stays for a later one. */
+    @Test
+    void aReleaseThatCannotReadTheScopeSendsNothingAndKeepsTheHold() {
+        apply(CPU20_THROTTLE256);
+        long sets = systemd.setCalls();
+        systemd.unitReadFails = true;
+
+        ReleaseResult released = limiter.releaseAll(Duration.ofSeconds(1));
+
+        assertThat(released.cleared()).containsEntry(DEMO, false);
+        assertThat(released.notCleared()).isEqualTo(1);
+        assertThat(systemd.setCalls()).isEqualTo(sets);
+        assertThat(limiter.heldDescriptors()).as("kept for a later release").hasSize(1);
+        assertThat(systemd.read(group(), "cpu.max")).isNotEqualTo("max 100000");
+        systemd.unitReadFails = false;
+
+        ReleaseResult later = limiter.releaseAll(Duration.ofSeconds(1));
+
+        assertThat(later.cleared()).containsEntry(DEMO, true);
+        assertThat(systemd.read(group(), "cpu.max")).isEqualTo("max 100000");
         assertThat(limiter.heldDescriptors()).isEmpty();
     }
 }

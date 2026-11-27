@@ -11,6 +11,8 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
 import java.util.Set;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
@@ -21,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import prism.srm.application.OomStateMachine.Transition.Kind;
 import prism.srm.domain.ControlOutcome;
+import prism.srm.domain.EffectiveLimits;
 import prism.srm.domain.EmergencyAction;
 import prism.srm.domain.LedgerState;
 import prism.srm.domain.LimitAction;
@@ -45,9 +48,11 @@ import prism.srm.domain.OomSwitches;
 import prism.srm.domain.OomView;
 import prism.srm.domain.OperationResult;
 import prism.srm.domain.ProcessIdentity;
+import prism.srm.domain.SuspensionReason;
 import prism.srm.domain.VersionedSettings;
 import prism.srm.platform.ApplyResult;
 import prism.srm.platform.ForgetResult;
+import prism.srm.platform.NativeHold;
 import prism.srm.platform.SuspendResult;
 
 /**
@@ -88,6 +93,10 @@ class LimitServiceNativeWorkTest {
     private SuspensionCoordinator coordinator;
     private NativeLimitLedger ledger;
     private SimulatedTarget target;
+    /** The limiter thread as OOM Guard sees it; the same one unless a test makes it fail. */
+    private LimiterScheduler guardThread = scheduler;
+
+    private final AtomicBoolean failOnce = new AtomicBoolean();
     private OomGuard guard;
     private LimitService service;
 
@@ -124,7 +133,7 @@ class LimitServiceNativeWorkTest {
                 new ProtectionRules(1),
                 coordinator,
                 activity,
-                scheduler,
+                guardThread,
                 scheduler.clock(),
                 () -> Instant.EPOCH,
                 settings::get,
@@ -487,7 +496,7 @@ class LimitServiceNativeWorkTest {
     // ----- What is shown meanwhile -----
 
     @Test
-    void whileInFlightTheRowShowsWhatWasInForceAndOomGuardWatchesNoMemory() {
+    void whileInFlightTheRowShowsWhatWasInForceAndOomGuardActsOnNoMemoryThatMayBeLanding() {
         // OTHER's native memory limit is refused, so its user chose the watched resident memory instead (O9).
         limiter.apply =
                 (identity, spec) -> identity.equals(OTHER) && spec.cpuPercent().isEmpty()
@@ -497,6 +506,7 @@ class LimitServiceNativeWorkTest {
         build();
         manage(DEMO);
         manage(OTHER);
+        suspendsWhenOverItsLimit(OTHER);
         ask(cpu(DEMO, 20));
         ask(LimitRequest.memoryLimit(OTHER, name(OTHER), 256 * MIB));
         assertThat(ask(LimitRequest.of(LimitAction.ACCEPT_RESIDENT_POLICY, OTHER, name(OTHER)))
@@ -506,23 +516,245 @@ class LimitServiceNativeWorkTest {
         assertThat(candidate(OTHER).orElseThrow().memoryLimitBytes()).hasValue(256 * MIB);
 
         send(cpu(DEMO, 30));
+        // OTHER's CPU limit carries its memory limit, which may land natively now.
         send(cpu(OTHER, 20));
+        listedAt(OTHER, 300 * MIB);
 
         assertThat(view(DEMO).cpu().status()).isEqualTo(LimitStatus.ACTIVE_ENFORCED);
         assertThat(view(DEMO).cpu().detail().orElseThrow())
                 .as("what is known to be in force, not what was asked")
                 .contains("enforced: CPU 20 %");
         assertThat(candidate(OTHER).orElseThrow().memoryLimitBytes())
-                .as("a native memory limit may be landing: nothing is watched")
-                .isEmpty();
+                .as("the watch stays as it stands: neither dropped nor armed again")
+                .hasValue(256 * MIB);
+        assertThat(crossings(OTHER))
+                .as("a native memory limit may be landing: nothing crosses")
+                .isZero();
+        assertThat(controller.calls).doesNotContain("suspend 5151");
 
         settle();
+        listedAt(OTHER, 300 * MIB);
 
         assertThat(view(DEMO).cpu().detail().orElseThrow()).contains("enforced: CPU 30 %");
         assertThat(view(OTHER).memory().status()).isEqualTo(LimitStatus.ACTIVE_ENFORCED);
         assertThat(candidate(OTHER).orElseThrow().memoryLimitBytes())
-                .as("the native memory limit is in force now")
+                .as("the native memory limit is in force now: the watch ends")
                 .isEmpty();
+        assertThat(crossings(OTHER)).isZero();
+        assertThat(controller.calls).doesNotContain("suspend 5151");
+    }
+
+    /**
+     * Review S1: a native step that sets no memory limit leaves OOM Guard's watch alone. A process over its watched
+     * limit was acted on once and resumed by the user; its CPU limit then goes through the worker, and on Linux the
+     * adoption shows an uncertain hold midway, while the limiter thread tells OOM Guard about another request. No
+     * second warning and no second action follow: only a new crossing acts again.
+     */
+    @Test
+    void aNativeStepThatSetsNoMemoryNeitherDropsNorArmsTheWatchAgain() {
+        systemWithoutNativeMemory();
+        build();
+        manage(THIRD);
+        suspendsWhenOverItsLimit(THIRD);
+        assertThat(ask(LimitRequest.memoryLimit(THIRD, name(THIRD), 100 * MIB))
+                        .outcome()
+                        .succeeded())
+                .isTrue();
+        listedAt(THIRD, 101 * MIB);
+        assertThat(suspends(THIRD)).isEqualTo(1);
+        assertThat(crossings(THIRD)).isEqualTo(1);
+        guard.releaseHold(THIRD);
+        scheduler.advance(Duration.ofMillis(1));
+        listedAt(THIRD, 101 * MIB);
+        assertThat(suspends(THIRD)).as("the user resumed it; no new crossing").isEqualTo(1);
+        limiter.apply = (identity, spec) -> {
+            // Midway through an adoption, as the Linux limiter shows it without its lock: uncertain.
+            limiter.holds.put(identity, new NativeHold(NativeHold.State.UNCERTAIN, Optional.empty()));
+            service.request(LimitRequest.of(LimitAction.MANAGE, OTHER, name(OTHER)));
+            listedAt(THIRD, 101 * MIB);
+            return enforce.apply(identity, spec);
+        };
+
+        send(cpu(THIRD, 30));
+        settle();
+        listedAt(THIRD, 101 * MIB);
+        listedAt(THIRD, 101 * MIB);
+
+        assertThat(results.stream()
+                        .filter(result -> result.request().action() == LimitAction.SET_CPU_LIMIT)
+                        .findFirst()
+                        .orElseThrow()
+                        .outcome()
+                        .succeeded())
+                .isTrue();
+        assertThat(service.snapshot().find(OTHER))
+                .as("the request midway was carried out")
+                .isPresent();
+        assertThat(candidate(THIRD).orElseThrow().memoryLimitBytes()).hasValue(100 * MIB);
+        assertThat(crossings(THIRD)).as("no second warning").isEqualTo(1);
+        assertThat(suspends(THIRD)).as("no second action").isEqualTo(1);
+    }
+
+    /**
+     * Review S2: OOM Guard suspends a process while its native CPU limit is on the worker. The barrier of plan D15 is
+     * checked again once the step has ended: the cap is withdrawn, through the worker, and the request is answered
+     * with the refusal, never as a success.
+     */
+    @Test
+    void aCapThatLandsWhileOomGuardTookTheProcessIsWithdrawnAndRefused() {
+        systemWithoutNativeMemory();
+        build();
+        manage(THIRD);
+        suspendsWhenOverItsLimit(THIRD);
+        ask(LimitRequest.memoryLimit(THIRD, name(THIRD), 100 * MIB));
+        int answered = results.size();
+        send(cpu(THIRD, 30));
+        assertThat(worker.waiting()).isEqualTo(1);
+
+        listedAt(THIRD, 101 * MIB);
+        assertThat(coordinator.heldFor(THIRD)).contains(SuspensionReason.OOM_GUARD);
+        settle();
+
+        assertThat(results).hasSize(answered + 1);
+        LimitResult refused = results.get(answered);
+        assertThat(refused.outcome().succeeded()).isFalse();
+        assertThat(refused.outcome().detail()).contains("held by OOM Guard");
+        assertThat(nativeCalls())
+                .as("set, then withdrawn to what was held before: nothing")
+                .containsExactly("apply 6262 CPU 30 %", "change 6262 no limit");
+        assertThat(limiter.holds.get(THIRD).inForce()).contains(EffectiveLimits.NONE);
+        assertThat(view(THIRD).process().settings().cpuLimitPercent())
+                .as("not stored as set")
+                .isEmpty();
+        assertThat(view(THIRD).cpu().status()).isNotEqualTo(LimitStatus.ACTIVE_ENFORCED);
+    }
+
+    /** Review S2: an assignment refused while OOM Guard took the process starts no emulated limit and offers none. */
+    @Test
+    void aRefusedAssignmentWhileOomGuardTookTheProcessStartsNothing() {
+        systemWithoutNativeMemory();
+        limiter.apply = FakeResourceLimiter.notAssigned(OperationResult.ACCESS_DENIED, "in another job", true);
+        build();
+        manage(THIRD);
+        suspendsWhenOverItsLimit(THIRD);
+        ask(LimitRequest.memoryLimit(THIRD, name(THIRD), 100 * MIB));
+        int answered = results.size();
+        send(cpu(THIRD, 30));
+        listedAt(THIRD, 101 * MIB);
+
+        settle();
+
+        LimitResult refused = results.get(answered);
+        assertThat(refused.outcome().detail()).contains("held by OOM Guard");
+        assertThat(refused.fallback()).as("no emulated limit offered").isEmpty();
+        assertThat(service.limiting(THIRD)).isFalse();
+        assertThat(view(THIRD).process().settings().cpuLimitPercent()).isEmpty();
+    }
+
+    /** Review C1: the journal fails while the assignment waits for the worker; nothing is recorded or asked. */
+    @Test
+    void aJournalThatFailsWhileTheStepWaitsKeepsItFromBeingAsked() {
+        build();
+        manage(DEMO);
+        int answered = results.size();
+        send(cpu(DEMO, 20));
+        assertThat(worker.waiting()).isEqualTo(1);
+        files.locksLost = true;
+        assertThat(coordinator.verifyJournal()).isFalse();
+        assertThat(coordinator.journalHealthy()).isFalse();
+
+        settle();
+
+        assertThat(results).hasSize(answered + 1);
+        assertThat(results.get(answered).outcome().succeeded()).isFalse();
+        assertThat(results.get(answered).outcome().detail().orElseThrow()).contains("suspension journal");
+        assertThat(nativeCalls()).isEmpty();
+        assertThat(ledger.find(DEMO)).isEmpty();
+    }
+
+    /**
+     * Review C2: a failure while an operation is concluded (here OOM Guard's thread refusing once, unexpectedly) is
+     * logged; its request is answered, what waited for it runs, and the next operation is handed over.
+     */
+    @Test
+    void aFailureWhileConcludingLosesNoWaitingWork() {
+        guardThread = new LimiterScheduler() {
+            @Override
+            public void execute(Runnable task) {
+                if (failOnce.getAndSet(false)) {
+                    throw new IllegalStateException("injected");
+                }
+                scheduler.execute(task);
+            }
+
+            @Override
+            public Future<?> schedule(Runnable task, Duration delay) {
+                return scheduler.schedule(task, delay);
+            }
+        };
+        build();
+        manage(DEMO);
+        manage(OTHER);
+        int answered = results.size();
+        send(cpu(DEMO, 20));
+        send(cpu(DEMO, 30));
+        send(cpu(OTHER, 40));
+        worker.runNext();
+        failOnce.set(true);
+
+        settle();
+
+        assertThat(failOnce).as("the failure was injected").isFalse();
+        assertThat(results).hasSize(answered + 3);
+        assertThat(results.subList(answered, answered + 3))
+                .allMatch(result -> result.outcome().succeeded());
+        assertThat(nativeCalls())
+                .containsExactlyInAnyOrder("apply 4242 CPU 20 %", "change 4242 CPU 30 %", "apply 5151 CPU 40 %");
+        assertThat(results.get(answered).request().percent()).hasValue(20);
+        // Nothing leaked: as many requests as ever may wait.
+        for (int i = 0; i < LimitService.MOST_PENDING; i++) {
+            service.request(LimitRequest.oom(OTHER, name(OTHER), OomManagement.ON));
+        }
+        settle();
+        assertThat(results.subList(answered + 3, results.size()))
+                .hasSize(LimitService.MOST_PENDING)
+                .allMatch(result -> result.outcome().succeeded());
+    }
+
+    private void suspendsWhenOverItsLimit(ProcessIdentity identity) {
+        ask(LimitRequest.oom(
+                identity, name(identity), new OomManagement(true, OomPriority.NORMAL, EmergencyAction.SUSPEND)));
+        settings.updateAndGet(previous -> new VersionedSettings(
+                previous.version() + 1, previous.settings().withSwitches(new OomSwitches(true, false, true, false))));
+        guard.settingsChanged();
+        scheduler.advance(Duration.ofMillis(1));
+    }
+
+    /** A memory sample in the normal state, then a listing that shows the process with this resident memory. */
+    private void listedAt(ProcessIdentity identity, long resident) {
+        guard.observed(new OomObservation(
+                OomState.NORMAL,
+                Optional.of(new OomReading(50, 100, scheduler.now())),
+                Kind.NONE,
+                true,
+                1,
+                settings.get().version(),
+                scheduler.now()));
+        guard.listed(Map.of(identity, new Listed(OptionalLong.of(resident), OptionalInt.of(20))));
+        scheduler.advance(Duration.ofMillis(1));
+    }
+
+    private long crossings(ProcessIdentity identity) {
+        return activity.entries().stream()
+                .filter(entry -> entry.message().startsWith(name(identity) + " (PID " + identity.pid() + ") uses")
+                        && entry.message().contains("above its watched limit"))
+                .count();
+    }
+
+    private long suspends(ProcessIdentity identity) {
+        return controller.calls.stream()
+                .filter(("suspend " + identity.pid())::equals)
+                .count();
     }
 
     // ----- Shutdown and failures -----

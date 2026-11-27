@@ -1220,7 +1220,10 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
         return clearScope(hold, OptionalLong.empty());
     }
 
-    /** {@link #clearScope(Hold)}, sending nothing more once {@code deadline} ({@link #nanoTime}) has passed. */
+    /**
+     * {@link #clearScope(Hold)}, sending nothing more once {@code deadline} ({@link #nanoTime}) has passed. Empty exactly
+     * when nothing was sent: the scope could not be read, or the deadline passed before the first send.
+     */
     private Optional<ForgetResult> clearScope(Hold hold, OptionalLong deadline) {
         ScopeManager manager = scopes.orElseThrow();
         SystemdUserBus.Reading<SystemdUserBus.UnitFacts> facts = manager.unit(hold.unit);
@@ -1539,7 +1542,8 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
      * {@code within} end to end: the work runs on its own thread ({@code srm-linux-release}) and the caller waits no
      * longer than the bound. The work sends no SetProperties once the bound has passed (each send checks it); a
      * hold it did not reach is reported in {@link ReleaseResult#notReached} with {@link ReleaseResult#timedOut}, and
-     * keeps its descriptor, so that a later release can still clear it (risk D13). A bus call in flight at the bound
+     * keeps its descriptor, so that a later release can still clear it (risk D13); so does a hold whose clearing sent
+     * nothing, because its scope could not be read. A bus call in flight at the bound
      * ends by its own call timeout. Nothing is ever stopped or killed: an unreached scope keeps its limits until its
      * processes exit or a later release clears them.
      */
@@ -1633,23 +1637,39 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
                     notReached.add(entry.getKey());
                     continue;
                 }
+                Optional<ForgetResult> result;
                 try {
-                    Optional<ForgetResult> result = clearScope(hold, until);
-                    cleared.put(
-                            entry.getKey(), result.isPresent() && result.get().released());
+                    result = clearScope(hold, until);
                 } catch (RuntimeException failed) {
                     LOG.warn("Clearing the scope {} ended unexpectedly; its limits may remain", hold.unit, failed);
                     cleared.put(entry.getKey(), false);
-                } finally {
-                    // A hold the release reached goes either way: a scope is not changed by closing its descriptor.
-                    close(hold.fd);
-                    holds.remove(entry.getKey());
+                    letGo(entry.getKey(), hold);
+                    continue;
                 }
+                if (result.isEmpty()) {
+                    // Nothing was sent (review C3 of risk D13): the deadline passed before the first send, or the
+                    // scope could not be read. As a hold not reached, it keeps its descriptor for a later release.
+                    if (past(until)) {
+                        notReached.add(entry.getKey());
+                    } else {
+                        cleared.put(entry.getKey(), false);
+                    }
+                    continue;
+                }
+                cleared.put(entry.getKey(), result.get().released());
+                // A hold the release cleared, or tried to, goes either way: a scope is not changed by closing its
+                // descriptor.
+                letGo(entry.getKey(), hold);
             }
             return new ReleaseResult(cleared, notReached, !notReached.isEmpty() || past(until));
         } finally {
             lock.unlock();
         }
+    }
+
+    private void letGo(ProcessIdentity target, Hold hold) {
+        close(hold.fd);
+        holds.remove(target);
     }
 
     private boolean past(OptionalLong deadline) {
