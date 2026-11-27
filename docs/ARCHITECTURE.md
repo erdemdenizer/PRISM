@@ -383,7 +383,8 @@ expires. A failing step is logged and the rest still run.
 2. Through the suspension coordinator, release every suspension held by the limiter or
    by OOM Guard. A process is resumed only when no reason remains, so one the user also
    suspended stays suspended, as does any process only the user suspended.
-3. Clear native limits PRISM applied. On Linux that sets a scope's limit properties to
+3. Clear native limits PRISM applied, once a native limit operation in flight has ended or
+   its own bound has passed (risk D6). On Linux that sets a scope's limit properties to
    `infinity`; no scope is removed and no process is moved (ADR-0016 decision 5).
 4. Release native handles.
 5. Shut down executors.
@@ -404,7 +405,12 @@ reading it back, every job handle is closed, each verified record leaves the nat
 ledger, and an empty ledger is deleted; a limit not verified as cleared stays in the ledger
 for the next start, which lists it. The shutdown hook does the same within its bound, after
 the limiter's suspensions: after a crash it is the only chance, because a job's name goes
-with its last handle ([ADR-0012](adr/0012-windows-native-limits-ledger-and-recovery.md)). Milestone 9 adds, after start-up has ended: refuse new suspensions
+with its last handle ([ADR-0012](adr/0012-windows-native-limits-ledger-and-recovery.md)). Risk D6 adds,
+just before the native limits are cleared: a native limit operation in flight on `srm-native-limit` is
+waited for at most 1.5 s, then interrupted (its waits end fail-closed), so that the release finds the
+limiter free; stopping the limits also stops that executor taking work, and an operation not yet
+handed to it is never asked, its request answered as refused. The shutdown hook stops that executor
+taking work too, after the limits. Milestone 9 adds, after start-up has ended: refuse new suspensions
 and new limits; stop every limit (each ends at its next step without touching its
 process) and the limiter thread, waiting at most a second; and, last, close the
 suspension journal (an empty one is deleted, one that names suspensions the user left or
@@ -447,7 +453,9 @@ Windows build is read before the first window, in `App.init()`.
 - Executors are bounded: fixed thread counts and bounded or coalescing queues. A
   scheduled executor holds a fixed set of periodic tasks, except `srm-limiter`, which holds
   at most one pending step per limit (at most 16 limits), one look at the journal, and the
-  requests of the user, of which at most 32 wait. `srm-journal` takes at most 64 waiting
+  requests of the user, of which at most 32 wait (a request waiting for a native operation of its process
+  still counts). `srm-native-limit` holds at most one waiting operation: the limit service hands them over one at a
+  time and keeps the others in order. `srm-journal` takes at most 64 waiting
   tasks and refuses more; its writer coalesces, so at most one write waits, and a refusal
   fails the journal rather than writing on the caller's thread. `srm-recovery` holds at
   most one pending look. Resume and cleanup work
@@ -474,7 +482,8 @@ The threads PRISM creates, all named:
 | `srm-process-monitor` | yes | while monitoring runs | the process listing, every 2 seconds; its own executor, so a slow listing never delays a system sample. It starts with the first system snapshot that has the number of logical processors, against which the CPU share of a process is computed |
 | `srm-process-details` | yes | from the first request for details on | reads the path and the command line of one process when the Processes page asks (PROC-5); one read at a time, and only the newest request waits |
 | `srm-process-control` | yes | from the first process action or check on | runs the process actions one at a time, and the checks of whether a process PRISM holds suspended is still there; during the shutdown `srm-shutdown` releases and finalizes the suspensions, nothing else touches a process |
-| `srm-limiter` | yes | from the start of process monitoring on | managed processes and limits: the requests of the user, the steps of every emulated limit, the native assignments and changes (a few calls each, no periodic work), the exit of a natively limited process, and a look at the suspension journal about once a second while limits run; OOM Guard's evaluations, one queued at a time, after a sample, a listing or a change, and every intervention it makes; a task that ends with an `Error` is handed to the handler for uncaught failures |
+| `srm-limiter` | yes | from the start of process monitoring on | managed processes and limits: the requests of the user, the steps of every emulated limit, the checks before every native limit operation and what its answer means (the native part runs on `srm-native-limit`), the exit of a natively limited process, and a look at the suspension journal about once a second while limits run; OOM Guard's evaluations, one queued at a time, after a sample, a listing or a change, and every intervention it makes; a task that ends with an `Error` is handed to the handler for uncaught failures |
+| `srm-native-limit` | yes | from the first native limit operation on | the native part of every native limit operation: an assignment (on Linux the adoption into a scope, which waits for the systemd user manager), a change, letting go of the job of an exited process and retrying a residue; one at a time in the order `srm-limiter` handed them over, which takes each answer back (risk D6). Whatever else comes for a process meanwhile waits for its operation; other processes, emulated steps and OOM Guard do not. Queue of 2, refusing when full; the limit service keeps the rest itself and hands over one at a time, so it is never full |
 | `srm-journal` | yes | from start-up on (the recovery of earlier sessions writes first) | writes the suspension journal, the native-limit ledger and the settings file (each only the newest of what was handed over) and runs their checks, retries and close, one at a time; nothing waits for it under a lock, and a wait for it is bounded by 2 s |
 | `srm-recovery` | yes | from start-up on; it works only while a journal of an ended session waits for its lock | looks at the journals of earlier sessions again, at most seven times in about two minutes, and lists what it reads; nothing is resumed, and the shutdown calls it off within its bound |
 | `srm-shutdown` | no | during shutdown | the controlled shutdown sequence |

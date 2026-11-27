@@ -65,6 +65,7 @@ final class OomRig implements AutoCloseable {
     private final Map<ProcessIdentity, ManagedProcess> managed = new java.util.LinkedHashMap<>();
     private final Map<ProcessIdentity, OptionalLong> watched = new HashMap<>();
     private final Map<ProcessIdentity, Long> generations = new HashMap<>();
+    private final java.util.Set<ProcessIdentity> pausedWatches = new java.util.HashSet<>();
     final OomGuard guard;
 
     OomRig(Path folder) {
@@ -144,6 +145,16 @@ final class OomRig implements AutoCloseable {
         push();
     }
 
+    /** A native limit operation that may set a native memory limit is in flight for the process, or no longer. */
+    void paused(ProcessIdentity identity, boolean paused) {
+        if (paused) {
+            pausedWatches.add(identity);
+        } else {
+            pausedWatches.remove(identity);
+        }
+        push();
+    }
+
     void unwatch(ProcessIdentity identity) {
         watched.remove(identity);
         push();
@@ -161,7 +172,8 @@ final class OomRig implements AutoCloseable {
             list.add(new OomGuard.Managed(
                     process,
                     watched.getOrDefault(process.identity(), OptionalLong.empty()),
-                    generations.getOrDefault(process.identity(), 0L)));
+                    generations.getOrDefault(process.identity(), 0L),
+                    pausedWatches.contains(process.identity())));
         }
         guard.managedChanged(list);
     }

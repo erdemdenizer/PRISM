@@ -177,6 +177,45 @@ class OomGuardPolicyTest {
         assertThat(rig.actions()).containsExactly("suspend 100");
     }
 
+    /**
+     * Risk D6, review S1: while a native memory limit may be landing, the watch stays as it stands, holding what it
+     * holds, and nothing crosses or is acted on; once the operation has ended it goes on as before, so a process the
+     * user resumed is not acted on again without a new crossing, and a crossing seen meanwhile still counts after.
+     */
+    @Test
+    void aPausedWatchNeitherCrossesNorActsAndGoesOnAsItStood() {
+        rig(EmergencyAction.SUSPEND, OomSignalStatus.VALIDATED);
+        listed(LIMIT + 1);
+        rig.guard.releaseHold(P);
+        rig.run();
+        assertThat(rig.actions()).containsExactly("suspend 100", "resume 100");
+
+        rig.paused(P, true);
+        rig.sample(50);
+        listed(LIMIT + 1);
+        rig.paused(P, false);
+        rig.sample(50);
+        listed(LIMIT + 1);
+
+        assertThat(rig.count("suspend 100"))
+                .as("no second action without a new crossing")
+                .isEqualTo(1);
+
+        rig.sample(50);
+        listed(CLEAR - 1);
+        rig.paused(P, true);
+        rig.sample(50);
+        listed(LIMIT + 1);
+        assertThat(rig.count("suspend 100")).as("nothing acts while paused").isEqualTo(1);
+        rig.paused(P, false);
+        rig.sample(50);
+        listed(LIMIT + 1);
+
+        assertThat(rig.count("suspend 100"))
+                .as("the crossing made meanwhile is seen once the pause ends")
+                .isEqualTo(2);
+    }
+
     @Test
     void afterTheGuardReleasesAProcessStillOverItsLimitThePolicyWaitsForANewCrossing() {
         rig(EmergencyAction.SUSPEND, OomSignalStatus.VALIDATED);

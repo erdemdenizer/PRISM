@@ -2,6 +2,7 @@ package prism.srm.application;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashMap;
@@ -16,12 +17,15 @@ import java.util.OptionalInt;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.LongSupplier;
+import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import prism.srm.application.ControlMessages.Wording;
@@ -75,6 +79,24 @@ import prism.srm.platform.UnavailableResourceLimiter;
  * request refused at once (shutting down, too many waiting), which is answered on the caller's
  * thread; listeners must return quickly and never call back into the service.
  *
+ * <p><b>Native operations (risk D6).</b> A native assignment, change or forget can block for
+ * seconds (a Linux adoption waits for the systemd user manager), and the limiter thread also runs
+ * the emulated steps and OOM Guard. So the native part alone runs on the native-limit worker
+ * ({@code srm-native-limit} in the product), one operation at a time in the order handed over, and
+ * its answer comes back to the limiter thread, which keeps all of this service's state. Everything
+ * before the native part (the checks, the journal and the ledger's health) and after it (what the
+ * answer means, the result) stays on the limiter thread. While an operation for a process is in
+ * flight, whatever else comes for that process (a request, its exit, a run that ended with it) waits
+ * for it in order, and its requests stay counted among the pending ones; requests for other
+ * processes are carried out meanwhile. The Limits page shows what was held before the operation,
+ * and an emulated limit treats the process as possibly capped. OOM Guard's watch of resident memory
+ * stays as it was before the operation, neither dropped nor armed again; where the operation may set
+ * a native memory limit it is paused, acting on nothing until the operation has ended. Once a step
+ * that may set a CPU cap has ended, the barrier against OOM Guard's hold and an incomplete release is
+ * checked again, and a cap set meanwhile is withdrawn (review S2); a first assignment checks the
+ * journal again on the worker, right before it is recorded and asked. At shutdown an operation not
+ * yet handed to the worker is never asked, and its request is answered as refused.
+ *
  * <p><b>Which limit (LIM-3, milestone 10).</b> Where the system offers native limits (Job Objects on
  * Windows) a CPU limit is native first. The emulated duty cycle runs instead only where the system
  * offers no native CPU limit (unchanged from milestone 9, plan D11), or where the native one was
@@ -121,6 +143,8 @@ public final class LimitService {
     private final NativeLimitController natives;
     /** OOM Guard, which this service tells about the managed processes (milestone 11); empty in tests of earlier milestones. */
     private final Optional<OomGuard> guard;
+    /** Runs the native part of every native operation, one at a time (risk D6); inline in tests of earlier milestones. */
+    private final Executor nativeWork;
 
     private final Consumer<LimitResult> results;
     private final Consumer<LimitsSnapshot> snapshots;
@@ -149,6 +173,12 @@ public final class LimitService {
     private final Set<ProcessIdentity> residentApproved = new HashSet<>();
     /** One more each time the user sets a watched memory limit again: a new watch for OOM Guard (LIM-9). */
     private final Map<ProcessIdentity, Long> watchGenerations = new HashMap<>();
+    /** The native operation in flight, or waiting for the worker, of each process: at most one per process (D6). */
+    private final Map<ProcessIdentity, InFlight> inFlight = new HashMap<>();
+    /** The native operations waiting for the worker, oldest first. */
+    private final ArrayDeque<InFlight> nativeQueue = new ArrayDeque<>();
+    /** Whether the worker has an operation of this service, handed over and not yet concluded. */
+    private boolean nativeBusy;
 
     /** Written on the limiter thread, cancelled from the shutdown's. */
     private volatile Future<?> watch;
@@ -291,9 +321,51 @@ public final class LimitService {
                 scheduler,
                 nanoClock,
                 processors,
+                limiter,
+                ledger,
+                earlier,
+                guard,
+                Runnable::run,
+                results,
+                snapshots);
+    }
+
+    /**
+     * As the product runs it (risk D6): the native part of every native operation on {@code nativeWork}, a worker of
+     * its own, so that an operation that blocks never holds up the limiter thread.
+     *
+     * @param nativeWork runs one native operation at a time, handed over in order; it may refuse only once the
+     *     service is shutting down
+     */
+    public LimitService(
+            ProcessController controller,
+            ProtectionRules rules,
+            SuspensionCoordinator coordinator,
+            ProcessSource source,
+            ActivityLog activity,
+            LimiterScheduler scheduler,
+            LongSupplier nanoClock,
+            int processors,
+            ResourceLimiter limiter,
+            NativeLimitLedger ledger,
+            EarlierLimits earlier,
+            OomGuard guard,
+            Executor nativeWork,
+            Consumer<LimitResult> results,
+            Consumer<LimitsSnapshot> snapshots) {
+        this(
+                controller,
+                rules,
+                coordinator,
+                source,
+                activity,
+                scheduler,
+                nanoClock,
+                processors,
                 DutyCycleController.Tuning.DEFAULTS,
                 new NativeLimitController(limiter, ledger, earlier),
                 Optional.of(guard),
+                nativeWork,
                 results,
                 snapshots);
     }
@@ -369,6 +441,38 @@ public final class LimitService {
             Optional<OomGuard> guard,
             Consumer<LimitResult> results,
             Consumer<LimitsSnapshot> snapshots) {
+        this(
+                controller,
+                rules,
+                coordinator,
+                source,
+                activity,
+                scheduler,
+                nanoClock,
+                processors,
+                tuning,
+                natives,
+                guard,
+                Runnable::run,
+                results,
+                snapshots);
+    }
+
+    LimitService(
+            ProcessController controller,
+            ProtectionRules rules,
+            SuspensionCoordinator coordinator,
+            ProcessSource source,
+            ActivityLog activity,
+            LimiterScheduler scheduler,
+            LongSupplier nanoClock,
+            int processors,
+            DutyCycleController.Tuning tuning,
+            NativeLimitController natives,
+            Optional<OomGuard> guard,
+            Executor nativeWork,
+            Consumer<LimitResult> results,
+            Consumer<LimitsSnapshot> snapshots) {
         this.controller = Objects.requireNonNull(controller, "controller");
         this.rules = Objects.requireNonNull(rules, "rules");
         this.coordinator = Objects.requireNonNull(coordinator, "coordinator");
@@ -383,6 +487,7 @@ public final class LimitService {
         this.tuning = Objects.requireNonNull(tuning, "tuning");
         this.natives = Objects.requireNonNull(natives, "natives");
         this.guard = Objects.requireNonNull(guard, "guard");
+        this.nativeWork = Objects.requireNonNull(nativeWork, "nativeWork");
         this.results = Objects.requireNonNull(results, "results");
         this.snapshots = Objects.requireNonNull(snapshots, "snapshots");
     }
@@ -607,22 +712,18 @@ public final class LimitService {
         try {
             scheduler.execute(() -> {
                 for (RecoveredLimit limit : copy) {
-                    if (limit.blocksAnotherLimiter()) {
-                        ProcessIdentity identity = limit.record().identity();
-                        priorSession.put(identity, limit);
-                        offered.remove(identity);
-                        if (stopLimit(identity)) {
-                            // Found late (audit item 2): the emulated limit stops through its own path,
-                            // which releases only what it holds; a process the user suspended stays so.
-                            failures.put(identity, "an earlier PRISM session may still cap it natively");
-                            failureNotes.put(identity, LimitNote.PRIOR_SESSION);
-                            activity.record(
-                                    ActivitySeverity.WARNING,
-                                    "The emulated CPU limit of "
-                                            + limit.record().name() + " (PID " + identity.pid()
-                                            + ") was stopped: an earlier PRISM session may still cap it natively ("
-                                            + limit.record().describe() + "). PRISM runs no second limiter on it.");
-                        }
+                    if (!limit.blocksAnotherLimiter()) {
+                        continue;
+                    }
+                    InFlight busy = inFlight.get(limit.record().identity());
+                    if (busy == null) {
+                        priorSessionFound(limit);
+                    } else {
+                        // After the native operation in flight for the process, as if it had come after it (D6).
+                        busy.deferred.add(() -> {
+                            priorSessionFound(limit);
+                            watched.set(watchedCount());
+                        });
                     }
                 }
                 watched.set(watchedCount());
@@ -630,6 +731,24 @@ public final class LimitService {
             });
         } catch (RejectedExecutionException shutDown) {
             // Nothing to show any more.
+        }
+    }
+
+    private void priorSessionFound(RecoveredLimit limit) {
+        ProcessIdentity identity = limit.record().identity();
+        priorSession.put(identity, limit);
+        offered.remove(identity);
+        if (stopLimit(identity)) {
+            // Found late (audit item 2): the emulated limit stops through its own path,
+            // which releases only what it holds; a process the user suspended stays so.
+            failures.put(identity, "an earlier PRISM session may still cap it natively");
+            failureNotes.put(identity, LimitNote.PRIOR_SESSION);
+            activity.record(
+                    ActivitySeverity.WARNING,
+                    "The emulated CPU limit of "
+                            + limit.record().name() + " (PID " + identity.pid()
+                            + ") was stopped: an earlier PRISM session may still cap it natively ("
+                            + limit.record().describe() + "). PRISM runs no second limiter on it.");
         }
     }
 
@@ -707,39 +826,73 @@ public final class LimitService {
 
     // ----- On the limiter thread -----
 
+    /**
+     * One native operation per process at a time (risk D6): a request for a process whose operation is in flight
+     * waits for it, in order, and stays counted among the pending ones.
+     */
     private void run(LimitRequest request) {
+        whenFree(request.identity(), () -> carryOutAndAnswer(request));
+    }
+
+    private void carryOutAndAnswer(LimitRequest request) {
         LimitResult result = LimitMessages.result(
                 request,
                 ControlOutcome.of(OperationResult.NATIVE_ERROR, "the request ended without a result"),
                 LimitMessages.failed(request));
         boolean concluded = false;
+        boolean handed = false;
         try {
-            result = carryOut(request);
+            Carried carried = carryOut(request);
+            handed = carried.result().isEmpty();
+            result = carried.result().orElse(result);
             concluded = true;
         } catch (RuntimeException e) {
-            warnOnce(LimitMessages.actionName(request.action()), e);
-            result = LimitMessages.result(
-                    request,
-                    ControlOutcome.of(OperationResult.NATIVE_ERROR, e.toString()),
-                    LimitMessages.failed(request));
+            result = failure(request, e);
             concluded = true;
         } finally {
-            pending.decrementAndGet();
-            if (concluded) {
-                record(result);
+            if (handed) {
+                // Answered once its native step has ended; meanwhile the page and OOM Guard see it as in flight.
+                pushToGuard();
+                publish();
+            } else {
+                pending.decrementAndGet();
+                if (concluded) {
+                    record(result);
+                }
+                pushToGuard();
+                deliver(result);
+                publish();
             }
+        }
+    }
+
+    /** A request that ended with an unexpected failure: never a success. */
+    private LimitResult failure(LimitRequest request, RuntimeException e) {
+        warnOnce(LimitMessages.actionName(request.action()), e);
+        return LimitMessages.result(
+                request, ControlOutcome.of(OperationResult.NATIVE_ERROR, e.toString()), LimitMessages.failed(request));
+    }
+
+    /** The end of a request that was carried out: counted, logged, told to OOM Guard and answered. */
+    private void finish(LimitResult result) {
+        pending.decrementAndGet();
+        try {
+            record(result);
             pushToGuard();
+        } finally {
+            // Answered whatever went wrong before (review C2): a request never goes unanswered.
             deliver(result);
             publish();
         }
     }
 
-    private LimitResult carryOut(LimitRequest request) {
+    private Carried carryOut(LimitRequest request) {
         if (refusing) {
-            return answer(request, OperationResult.UNSUPPORTED, "shutting down", LimitMessages.shuttingDown(request));
+            return Carried.answered(
+                    answer(request, OperationResult.UNSUPPORTED, "shutting down", LimitMessages.shuttingDown(request)));
         }
         return switch (request.action()) {
-            case MANAGE -> manage(request);
+            case MANAGE -> Carried.answered(manage(request));
             case UNMANAGE -> unmanage(request);
             case SET_CPU_LIMIT -> setCpuLimit(request);
             case REMOVE_CPU_LIMIT -> removeCpuLimit(request);
@@ -747,9 +900,9 @@ public final class LimitService {
             case DISABLE -> disable(request);
             case SET_MEMORY_LIMIT -> setMemoryLimit(request);
             case REMOVE_MEMORY_LIMIT -> removeMemoryLimit(request);
-            case ACCEPT_EMULATED_CPU -> acceptEmulated(request);
-            case SET_OOM -> setOom(request);
-            case ACCEPT_RESIDENT_POLICY -> acceptResidentPolicy(request);
+            case ACCEPT_EMULATED_CPU -> Carried.answered(acceptEmulated(request));
+            case SET_OOM -> Carried.answered(setOom(request));
+            case ACCEPT_RESIDENT_POLICY -> Carried.answered(acceptResidentPolicy(request));
         };
     }
 
@@ -798,33 +951,36 @@ public final class LimitService {
         return found;
     }
 
-    private LimitResult unmanage(LimitRequest request) {
+    private Carried unmanage(LimitRequest request) {
         ProcessIdentity identity = request.identity();
         Optional<ManagedProcess> removed = registry.find(identity);
         if (removed.isEmpty()) {
-            return answer(request, OperationResult.INVALID_ARGUMENT, "not managed", LimitMessages.notManaged(request));
+            return Carried.answered(answer(
+                    request, OperationResult.INVALID_ARGUMENT, "not managed", LimitMessages.notManaged(request)));
         }
         boolean hadLimit = stopLimit(identity);
         if (natives.hold(identity).isPresent()) {
-            NativeStep cleared = nativeChange(request, LimitSpec.NONE);
-            if (cleared.kind() == NativeStep.Kind.GONE) {
-                return goneNow(request, cleared);
-            }
-            if (cleared.kind() != NativeStep.Kind.DONE) {
-                // Its limits stay visible: a process whose job still carries them stays managed (plan D19).
-                failures.put(identity, "its native limits could not be cleared: " + describe(cleared));
-                failureNotes.put(identity, LimitNote.NATIVE_UNSETTLED);
-                return LimitMessages.result(
-                        request,
-                        ControlOutcome.of(OperationResult.INVALID_ARGUMENT, describe(cleared)),
-                        LimitMessages.cannotClear(request, inForce(cleared)));
-            }
-            unmanagedHolds.put(identity, removed.get().name());
-            forgetManaged(identity);
-            return LimitMessages.result(request, ControlOutcome.success(), LimitMessages.unmanagedNative(request));
+            return nativeChange(request, LimitSpec.NONE, cleared -> {
+                if (cleared.kind() == NativeStep.Kind.GONE) {
+                    return goneNow(request, cleared);
+                }
+                if (cleared.kind() != NativeStep.Kind.DONE) {
+                    // Its limits stay visible: a process whose job still carries them stays managed (plan D19).
+                    failures.put(identity, "its native limits could not be cleared: " + describe(cleared));
+                    failureNotes.put(identity, LimitNote.NATIVE_UNSETTLED);
+                    return LimitMessages.result(
+                            request,
+                            ControlOutcome.of(OperationResult.INVALID_ARGUMENT, describe(cleared)),
+                            LimitMessages.cannotClear(request, inForce(cleared)));
+                }
+                unmanagedHolds.put(identity, removed.get().name());
+                forgetManaged(identity);
+                return LimitMessages.result(request, ControlOutcome.success(), LimitMessages.unmanagedNative(request));
+            });
         }
         forgetManaged(identity);
-        return LimitMessages.result(request, ControlOutcome.success(), LimitMessages.unmanaged(request, hadLimit));
+        return Carried.answered(
+                LimitMessages.result(request, ControlOutcome.success(), LimitMessages.unmanaged(request, hadLimit)));
     }
 
     private void forgetManaged(ProcessIdentity identity) {
@@ -840,22 +996,23 @@ public final class LimitService {
         watched.set(watchedCount());
     }
 
-    private LimitResult setCpuLimit(LimitRequest request) {
+    private Carried setCpuLimit(LimitRequest request) {
         int percent = request.percent().orElseThrow();
         if (!ManagedSettings.validCpuPercent(percent)) {
-            return answer(
-                    request, OperationResult.INVALID_ARGUMENT, "out of range", LimitMessages.invalidPercent(request));
+            return Carried.answered(answer(
+                    request, OperationResult.INVALID_ARGUMENT, "out of range", LimitMessages.invalidPercent(request)));
         }
         Optional<ManagedProcess> process = registry.find(request.identity());
         if (process.isEmpty()) {
-            return answer(request, OperationResult.INVALID_ARGUMENT, "not managed", LimitMessages.notManaged(request));
+            return Carried.answered(answer(
+                    request, OperationResult.INVALID_ARGUMENT, "not managed", LimitMessages.notManaged(request)));
         }
         Optional<LimitResult> earlier = priorSessionRefusal(request);
         if (earlier.isPresent()) {
-            return earlier.get();
+            return Carried.answered(earlier.get());
         }
         if (!nativeCpuSystem()) {
-            return setEmulatedCpuLimit(request, process.get(), percent);
+            return Carried.answered(setEmulatedCpuLimit(request, process.get(), percent));
         }
         ProcessIdentity identity = request.identity();
         ManagedSettings settings = process.get().settings();
@@ -863,28 +1020,36 @@ public final class LimitService {
             stopLimit(identity);
             registry.update(identity, settings.withCpuLimit(OptionalInt.of(percent)));
             clearCpuFailure(identity);
-            return LimitMessages.result(request, ControlOutcome.success(), LimitMessages.limitStored(request, percent));
+            return Carried.answered(LimitMessages.result(
+                    request, ControlOutcome.success(), LimitMessages.limitStored(request, percent)));
         }
         // Barrier (plan D15): the emulated limit stops first and must have released everything.
         stopLimit(identity);
         Optional<LimitResult> barrier = barrier(request);
         if (barrier.isPresent()) {
-            return barrier.get();
+            return Carried.answered(barrier.get());
         }
         LimitSpec spec = nativeSpec(identity, settings.withCpuLimit(OptionalInt.of(percent)));
-        NativeStep step = nativeStep(request, spec);
-        return switch (step.kind()) {
-            case DONE -> {
-                registry.update(identity, settings.withCpuLimit(OptionalInt.of(percent)));
-                clearCpuFailure(identity);
-                yield LimitMessages.result(
-                        request,
-                        ControlOutcome.success(),
-                        LimitMessages.limitedNatively(request, percent, nativeCapability(LimitKind.CPU)));
+        Optional<NativeHold> before = natives.hold(identity);
+        return nativeStep(request, spec, step -> {
+            Optional<Carried> barred = barrierAfter(request, step, asFound(before));
+            if (barred.isPresent()) {
+                return barred.get();
             }
-            case NOT_APPLIED -> notApplied(request, process.get(), percent, step);
-            default -> failedNatively(request, step);
-        };
+            return Carried.answered(
+                    switch (step.kind()) {
+                        case DONE -> {
+                            registry.update(identity, settings.withCpuLimit(OptionalInt.of(percent)));
+                            clearCpuFailure(identity);
+                            yield LimitMessages.result(
+                                    request,
+                                    ControlOutcome.success(),
+                                    LimitMessages.limitedNatively(request, percent, nativeCapability(LimitKind.CPU)));
+                        }
+                        case NOT_APPLIED -> notApplied(request, process.get(), percent, step);
+                        default -> failedNatively(request, step);
+                    });
+        });
     }
 
     /** Milestone 9: on a system without a native CPU limit, the emulated duty cycle, unchanged. */
@@ -1039,77 +1204,96 @@ public final class LimitService {
                 LimitMessages.journalFailed(request, problem));
     }
 
-    private LimitResult removeCpuLimit(LimitRequest request) {
+    private Carried removeCpuLimit(LimitRequest request) {
         ProcessIdentity identity = request.identity();
         Optional<ManagedProcess> process = registry.find(identity);
         if (process.isEmpty()) {
-            return answer(request, OperationResult.INVALID_ARGUMENT, "not managed", LimitMessages.notManaged(request));
+            return Carried.answered(answer(
+                    request, OperationResult.INVALID_ARGUMENT, "not managed", LimitMessages.notManaged(request)));
         }
         if (process.get().settings().cpuLimitPercent().isEmpty() && !nativeCpuMayBeInForce(identity)) {
-            return answer(request, OperationResult.INVALID_ARGUMENT, "no limit", LimitMessages.noLimit(request));
+            return Carried.answered(
+                    answer(request, OperationResult.INVALID_ARGUMENT, "no limit", LimitMessages.noLimit(request)));
         }
         stopLimit(identity);
         offered.remove(identity);
         Optional<NativeHold> hold = natives.hold(identity);
         if (hold.isPresent() && hold.get().mayCapCpu()) {
             LimitSpec spec = nativeSpec(identity, process.get().settings().withCpuLimit(OptionalInt.empty()));
-            NativeStep step = nativeChange(request, spec);
-            if (step.kind() == NativeStep.Kind.GONE) {
-                return goneNow(request, step);
-            }
-            if (step.kind() != NativeStep.Kind.DONE) {
-                failures.put(identity, "the CPU limit could not be removed: " + describe(step));
-                failureNotes.put(identity, LimitNote.NATIVE_UNSETTLED);
-                return LimitMessages.result(request, step.outcome(), LimitMessages.cannotClear(request, inForce(step)));
-            }
+            return nativeChange(request, spec, step -> {
+                if (step.kind() == NativeStep.Kind.GONE) {
+                    return goneNow(request, step);
+                }
+                if (step.kind() != NativeStep.Kind.DONE) {
+                    failures.put(identity, "the CPU limit could not be removed: " + describe(step));
+                    failureNotes.put(identity, LimitNote.NATIVE_UNSETTLED);
+                    return LimitMessages.result(
+                            request, step.outcome(), LimitMessages.cannotClear(request, inForce(step)));
+                }
+                return cpuLimitRemoved(request, process.get());
+            });
         }
-        clearCpuFailure(identity);
-        registry.update(identity, process.get().settings().withCpuLimit(OptionalInt.empty()));
+        return Carried.answered(cpuLimitRemoved(request, process.get()));
+    }
+
+    private LimitResult cpuLimitRemoved(LimitRequest request, ManagedProcess process) {
+        clearCpuFailure(process.identity());
+        registry.update(process.identity(), process.settings().withCpuLimit(OptionalInt.empty()));
         return LimitMessages.result(request, ControlOutcome.success(), LimitMessages.limitRemoved(request));
     }
 
-    private LimitResult setMemoryLimit(LimitRequest request) {
+    private Carried setMemoryLimit(LimitRequest request) {
         long bytes = request.bytes().orElseThrow();
         if (!ManagedSettings.validMemoryBytes(bytes)) {
-            return answer(
-                    request, OperationResult.INVALID_ARGUMENT, "out of range", LimitMessages.invalidBytes(request));
+            return Carried.answered(answer(
+                    request, OperationResult.INVALID_ARGUMENT, "out of range", LimitMessages.invalidBytes(request)));
         }
         ProcessIdentity identity = request.identity();
         Optional<ManagedProcess> process = registry.find(identity);
         if (process.isEmpty()) {
-            return answer(request, OperationResult.INVALID_ARGUMENT, "not managed", LimitMessages.notManaged(request));
+            return Carried.answered(answer(
+                    request, OperationResult.INVALID_ARGUMENT, "not managed", LimitMessages.notManaged(request)));
         }
         Optional<LimitResult> earlier = priorSessionRefusal(request);
         if (earlier.isPresent()) {
-            return earlier.get();
+            return Carried.answered(earlier.get());
         }
         String text = EffectiveLimits.bytes(bytes);
         if (!nativeMemorySystem()) {
             if (!policyAvailable()) {
                 String reason = memoryCapability().reason().orElse("no native memory limit here");
-                return answer(
-                        request, OperationResult.UNSUPPORTED, reason, LimitMessages.memoryUnavailable(request, reason));
+                return Carried.answered(answer(
+                        request,
+                        OperationResult.UNSUPPORTED,
+                        reason,
+                        LimitMessages.memoryUnavailable(request, reason)));
             }
             // LIM-9: the resident memory is watched, never capped; consent is setting the limit (plan O9).
             ManagedSettings current = process.get().settings();
             registry.update(identity, current.withMemoryLimit(OptionalLong.of(bytes)));
             memoryFailures.remove(identity);
             newWatch(identity);
-            return LimitMessages.result(
+            return Carried.answered(LimitMessages.result(
                     request,
                     ControlOutcome.success("watched, not capped"),
                     current.enabled()
                             ? LimitMessages.memoryWatched(request, text)
-                            : LimitMessages.memoryStored(request, text));
+                            : LimitMessages.memoryStored(request, text)));
         }
         ManagedSettings settings = process.get().settings();
         if (!settings.enabled()) {
             registry.update(identity, settings.withMemoryLimit(OptionalLong.of(bytes)));
             memoryFailures.remove(identity);
-            return LimitMessages.result(request, ControlOutcome.success(), LimitMessages.memoryStored(request, text));
+            return Carried.answered(
+                    LimitMessages.result(request, ControlOutcome.success(), LimitMessages.memoryStored(request, text)));
         }
         LimitSpec spec = nativeSpec(identity, settings.withMemoryLimit(OptionalLong.of(bytes)));
-        NativeStep step = nativeStep(request, spec);
+        return nativeStep(request, spec, step -> Carried.answered(memoryStepEnded(request, settings, bytes, step)));
+    }
+
+    private LimitResult memoryStepEnded(LimitRequest request, ManagedSettings settings, long bytes, NativeStep step) {
+        ProcessIdentity identity = request.identity();
+        String text = EffectiveLimits.bytes(bytes);
         return switch (step.kind()) {
             case DONE -> {
                 registry.update(identity, settings.withMemoryLimit(OptionalLong.of(bytes)));
@@ -1157,72 +1341,94 @@ public final class LimitService {
         };
     }
 
-    private LimitResult removeMemoryLimit(LimitRequest request) {
+    private Carried removeMemoryLimit(LimitRequest request) {
         ProcessIdentity identity = request.identity();
         Optional<ManagedProcess> process = registry.find(identity);
         if (process.isEmpty()) {
-            return answer(request, OperationResult.INVALID_ARGUMENT, "not managed", LimitMessages.notManaged(request));
+            return Carried.answered(answer(
+                    request, OperationResult.INVALID_ARGUMENT, "not managed", LimitMessages.notManaged(request)));
         }
-        Optional<NativeHold> hold = natives.hold(identity);
+        Optional<NativeHold> hold = mayHold(identity);
         boolean inForce = hold.isPresent()
                 && (!hold.get().settled()
                         || hold.get().inForce().orElseThrow().memoryBytes().isPresent());
         if (process.get().settings().memoryLimitBytes().isEmpty() && !inForce) {
-            return answer(request, OperationResult.INVALID_ARGUMENT, "no limit", LimitMessages.noMemoryLimit(request));
+            return Carried.answered(answer(
+                    request, OperationResult.INVALID_ARGUMENT, "no limit", LimitMessages.noMemoryLimit(request)));
         }
         if (inForce) {
             LimitSpec spec = nativeSpec(identity, process.get().settings().withMemoryLimit(OptionalLong.empty()));
-            NativeStep step = nativeChange(request, spec);
-            if (step.kind() == NativeStep.Kind.GONE) {
-                return goneNow(request, step);
-            }
-            if (step.kind() != NativeStep.Kind.DONE) {
-                memoryFailures.put(identity, "the memory limit could not be removed: " + describe(step));
-                return LimitMessages.result(request, step.outcome(), LimitMessages.cannotClear(request, inForce(step)));
-            }
+            return nativeChange(request, spec, step -> {
+                if (step.kind() == NativeStep.Kind.GONE) {
+                    return goneNow(request, step);
+                }
+                if (step.kind() != NativeStep.Kind.DONE) {
+                    memoryFailures.put(identity, "the memory limit could not be removed: " + describe(step));
+                    return LimitMessages.result(
+                            request, step.outcome(), LimitMessages.cannotClear(request, inForce(step)));
+                }
+                return memoryLimitRemoved(request, process.get());
+            });
         }
-        boolean wasWatched = watchedLimit(process.get()).isPresent();
+        return Carried.answered(memoryLimitRemoved(request, process.get()));
+    }
+
+    private LimitResult memoryLimitRemoved(LimitRequest request, ManagedProcess process) {
+        ProcessIdentity identity = process.identity();
+        boolean wasWatched = watchedLimit(process).isPresent();
         memoryFailures.remove(identity);
         residentOffered.remove(identity);
-        registry.update(identity, process.get().settings().withMemoryLimit(OptionalLong.empty()));
+        registry.update(identity, process.settings().withMemoryLimit(OptionalLong.empty()));
         return LimitMessages.result(
                 request,
                 ControlOutcome.success(),
                 wasWatched ? LimitMessages.memoryNoLongerWatched(request) : LimitMessages.memoryRemoved(request));
     }
 
-    private LimitResult enable(LimitRequest request) {
+    private Carried enable(LimitRequest request) {
         ProcessIdentity identity = request.identity();
         Optional<ManagedProcess> process = registry.find(identity);
         if (process.isEmpty()) {
-            return answer(request, OperationResult.INVALID_ARGUMENT, "not managed", LimitMessages.notManaged(request));
+            return Carried.answered(answer(
+                    request, OperationResult.INVALID_ARGUMENT, "not managed", LimitMessages.notManaged(request)));
         }
         // A watched memory limit that is enabled again is a new watch (LIM-9).
         newWatch(identity);
         ManagedSettings settings = process.get().settings();
         if (!nativeCpuSystem() && !nativeMemorySystem()) {
-            return enableEmulated(request, process.get());
+            return Carried.answered(enableEmulated(request, process.get()));
         }
         Optional<LimitResult> earlier = settings.nativeSpec().none() ? Optional.empty() : priorSessionRefusal(request);
         if (earlier.isPresent()) {
-            return earlier.get();
+            return Carried.answered(earlier.get());
         }
         OptionalInt percent = settings.cpuLimitPercent();
         LimitSpec spec = nativeSpec(identity, settings);
         if (spec.none()) {
             if (percent.isPresent()) {
                 // A CPU limit on a system whose native CPU limit is unavailable: the emulated one, as in milestone 9.
-                return enableEmulated(request, process.get());
+                return Carried.answered(enableEmulated(request, process.get()));
             }
             registry.update(identity, settings.withEnabled(true));
             clearCpuFailure(identity);
-            return LimitMessages.result(request, ControlOutcome.success(), LimitMessages.enabled(request, false));
+            return Carried.answered(
+                    LimitMessages.result(request, ControlOutcome.success(), LimitMessages.enabled(request, false)));
         }
         Optional<LimitResult> barrier = barrier(request);
         if (barrier.isPresent()) {
-            return barrier.get();
+            return Carried.answered(barrier.get());
         }
-        NativeStep step = nativeStep(request, spec);
+        Optional<NativeHold> before = natives.hold(identity);
+        return nativeStep(request, spec, step -> {
+            // A refused Enable leaves the process disabled, as it was.
+            Optional<Carried> barred = barrierAfter(request, step, asFound(before));
+            return barred.orElseGet(() -> Carried.answered(enableStepEnded(request, settings, step)));
+        });
+    }
+
+    private LimitResult enableStepEnded(LimitRequest request, ManagedSettings settings, NativeStep step) {
+        ProcessIdentity identity = request.identity();
+        OptionalInt percent = settings.cpuLimitPercent();
         return switch (step.kind()) {
             case DONE -> {
                 registry.update(identity, settings.withEnabled(true));
@@ -1291,34 +1497,38 @@ public final class LimitService {
                 : started;
     }
 
-    private LimitResult disable(LimitRequest request) {
+    private Carried disable(LimitRequest request) {
         ProcessIdentity identity = request.identity();
         Optional<ManagedProcess> process = registry.find(identity);
         if (process.isEmpty()) {
-            return answer(request, OperationResult.INVALID_ARGUMENT, "not managed", LimitMessages.notManaged(request));
+            return Carried.answered(answer(
+                    request, OperationResult.INVALID_ARGUMENT, "not managed", LimitMessages.notManaged(request)));
         }
         boolean hadLimit = stopLimit(identity);
         offered.remove(identity);
         if (natives.hold(identity).isPresent()) {
-            NativeStep step = nativeChange(request, LimitSpec.NONE);
-            if (step.kind() == NativeStep.Kind.GONE) {
-                return goneNow(request, step);
-            }
-            if (step.kind() != NativeStep.Kind.DONE) {
-                // Enabled stays: the limits are still, or may still be, in force (plan D19).
-                failures.put(identity, "could not disable: " + describe(step));
-                failureNotes.put(identity, LimitNote.NATIVE_UNSETTLED);
-                return LimitMessages.result(request, step.outcome(), LimitMessages.cannotClear(request, inForce(step)));
-            }
-            clearCpuFailure(identity);
-            memoryFailures.remove(identity);
-            registry.update(identity, process.get().settings().withEnabled(false));
-            return LimitMessages.result(request, ControlOutcome.success(), LimitMessages.disabledNative(request));
+            return nativeChange(request, LimitSpec.NONE, step -> {
+                if (step.kind() == NativeStep.Kind.GONE) {
+                    return goneNow(request, step);
+                }
+                if (step.kind() != NativeStep.Kind.DONE) {
+                    // Enabled stays: the limits are still, or may still be, in force (plan D19).
+                    failures.put(identity, "could not disable: " + describe(step));
+                    failureNotes.put(identity, LimitNote.NATIVE_UNSETTLED);
+                    return LimitMessages.result(
+                            request, step.outcome(), LimitMessages.cannotClear(request, inForce(step)));
+                }
+                clearCpuFailure(identity);
+                memoryFailures.remove(identity);
+                registry.update(identity, process.get().settings().withEnabled(false));
+                return LimitMessages.result(request, ControlOutcome.success(), LimitMessages.disabledNative(request));
+            });
         }
         clearCpuFailure(identity);
         memoryFailures.remove(identity);
         registry.update(identity, process.get().settings().withEnabled(false));
-        return LimitMessages.result(request, ControlOutcome.success(), LimitMessages.disabled(request, hadLimit));
+        return Carried.answered(
+                LimitMessages.result(request, ControlOutcome.success(), LimitMessages.disabled(request, hadLimit)));
     }
 
     /** The user accepts the emulated CPU limit offered after the native one was not applied. */
@@ -1429,11 +1639,25 @@ public final class LimitService {
         if (nativeMemorySystem() && !residentApproved.contains(identity)) {
             return OptionalLong.empty();
         }
-        Optional<NativeHold> hold = natives.hold(identity);
+        // While a native operation is in flight, what was held before it (D6): the watch neither drops nor comes back
+        // because of the operation, which would arm it again (a new crossing out of nothing). Only its answer changes
+        // the watch. Never the limiter's live view of a hold mid-operation either. Whether the watch acts meanwhile
+        // is watchPaused's.
+        Optional<NativeHold> hold = shownHold(identity);
         boolean nativeMemory = hold.isPresent()
                 && (!hold.get().settled()
                         || hold.get().inForce().orElseThrow().memoryBytes().isPresent());
         return nativeMemory ? OptionalLong.empty() : settings.memoryLimitBytes();
+    }
+
+    /**
+     * Whether a native operation in flight for the process may set a native memory limit (D6, CAP-3): then OOM Guard
+     * keeps the watch as it stands, armed or not, but acts on it only once the operation has ended.
+     */
+    private boolean mayLandMemory(ProcessIdentity identity) {
+        InFlight busy = inFlight.get(identity);
+        return busy != null
+                && busy.spec.filter(spec -> spec.memoryBytes().isPresent()).isPresent();
     }
 
     /** Tells OOM Guard the managed processes as they are now. Limiter thread. */
@@ -1443,8 +1667,12 @@ public final class LimitService {
         }
         List<OomGuard.Managed> managed = new ArrayList<>();
         for (ManagedProcess process : registry.all()) {
+            OptionalLong watchedLimit = watchedLimit(process);
             managed.add(new OomGuard.Managed(
-                    process, watchedLimit(process), watchGenerations.getOrDefault(process.identity(), 0L)));
+                    process,
+                    watchedLimit,
+                    watchGenerations.getOrDefault(process.identity(), 0L),
+                    watchedLimit.isPresent() && mayLandMemory(process.identity())));
         }
         guard.get().managedChanged(managed);
     }
@@ -1513,42 +1741,142 @@ public final class LimitService {
                 : MemoryBoundary.HARD;
     }
 
-    /** A first assignment or a change of the job PRISM holds, whichever applies (plan S0a). */
-    private NativeStep nativeStep(LimitRequest request, LimitSpec spec) {
+    /**
+     * A first assignment or a change of the job PRISM holds, whichever applies (plan S0a). The checks before the
+     * system is asked run here, on the limiter thread; the native part runs on the worker, and {@code then} turns
+     * what it came to into the request's result once it is back on the limiter thread (risk D6).
+     */
+    private Carried nativeStep(LimitRequest request, LimitSpec spec, Function<NativeStep, Carried> then) {
         ProcessIdentity identity = request.identity();
         if (natives.hold(identity).isPresent()) {
-            NativeStep changed = nativeChange(request, spec);
-            if (changed.phase() != NativeStep.Phase.NO_HOLD) {
-                return changed;
-            }
-            // An uncertain assignment proven not to have happened: a first assignment now.
+            return handOver(request, spec, () -> {
+                Optional<ChangeResult> changed = natives.change(identity, request.name(), spec);
+                return () -> {
+                    NativeStep step = changeStep(spec, changed);
+                    if (step.phase() != NativeStep.Phase.NO_HOLD) {
+                        return then.apply(step);
+                    }
+                    // An uncertain assignment proven not to have happened: a first assignment now.
+                    return firstAssignment(request, spec, then);
+                };
+            });
         }
+        return firstAssignment(request, spec, then);
+    }
+
+    private Carried firstAssignment(LimitRequest request, LimitSpec spec, Function<NativeStep, Carried> then) {
+        ProcessIdentity identity = request.identity();
         if (spec.none()) {
-            return new NativeStep(
+            return then.apply(new NativeStep(
                     NativeStep.Kind.DONE,
                     NativeStep.Phase.NONE,
                     ControlOutcome.success(),
                     Optional.of(EffectiveLimits.NONE),
-                    false);
+                    false));
         }
         if (!natives.ledger().healthy()) {
-            return new NativeStep(
-                    NativeStep.Kind.LEDGER, NativeStep.Phase.LEDGER, natives.notRecorded(), Optional.empty(), false);
+            return then.apply(new NativeStep(
+                    NativeStep.Kind.LEDGER, NativeStep.Phase.LEDGER, natives.notRecorded(), Optional.empty(), false));
         }
         if (!coordinator.journalHealthy() && !coordinator.retryJournal()) {
             // Without a healthy journal this session holds no lock a later start could find it by,
             // so its ledger would never be read (plan section 6.4).
-            return new NativeStep(
-                    NativeStep.Kind.LEDGER,
-                    NativeStep.Phase.LEDGER,
-                    ControlOutcome.of(
-                            OperationResult.NATIVE_ERROR,
-                            "suspension journal: "
-                                    + coordinator.journalProblem().orElse("not available")),
-                    Optional.empty(),
-                    false);
+            return then.apply(journalStep());
         }
-        Optional<ApplyResult> recorded = natives.apply(identity, request.name(), spec);
+        return handOver(request, spec, () -> {
+            // Again on the worker, right before the record and the ask (review C1): the journal may have failed
+            // while the operation waited. The coordinator's health is safe to read from any thread; no retry is made
+            // here, as a retry writes.
+            if (!coordinator.journalHealthy()) {
+                return () -> then.apply(journalStep());
+            }
+            Optional<ApplyResult> recorded = natives.apply(identity, request.name(), spec);
+            return () -> then.apply(assignStep(identity, recorded));
+        });
+    }
+
+    /** A first assignment refused because the suspension journal is not healthy; nothing was asked. */
+    private NativeStep journalStep() {
+        return new NativeStep(
+                NativeStep.Kind.LEDGER,
+                NativeStep.Phase.LEDGER,
+                ControlOutcome.of(
+                        OperationResult.NATIVE_ERROR,
+                        "suspension journal: " + coordinator.journalProblem().orElse("not available")),
+                Optional.empty(),
+                false);
+    }
+
+    /**
+     * Review S2: the barrier of plan D15 again once a step that may set a CPU cap has ended, as OOM Guard may have
+     * suspended the process, or a release of it may have stayed incomplete, while the step waited or ran. OOM Guard
+     * keeps acting meanwhile: a process it must hold is not left alone for an adoption's seconds. Where the barrier
+     * now refuses, a cap that was set is withdrawn to what was held before ({@code asFound}), on the worker like any
+     * change, and the request is answered with the refusal; a cap that could not be withdrawn is said to be in force.
+     * A step that set nothing is answered with the refusal and starts nothing, no emulated limit either. Empty where
+     * the barrier lets the step stand, or where the step's own answer says what may be in force (uncertain,
+     * mismatched, not done).
+     */
+    private Optional<Carried> barrierAfter(LimitRequest request, NativeStep step, LimitSpec asFound) {
+        if (step.kind() != NativeStep.Kind.DONE && step.kind() != NativeStep.Kind.NOT_APPLIED) {
+            return Optional.empty();
+        }
+        Optional<LimitResult> refused = barrier(request);
+        if (refused.isEmpty()) {
+            return Optional.empty();
+        }
+        if (step.kind() == NativeStep.Kind.NOT_APPLIED) {
+            return refused.map(Carried::answered);
+        }
+        ProcessIdentity identity = request.identity();
+        LimitResult refusal = refused.get();
+        return Optional.of(nativeChange(request, asFound, withdrawn -> {
+            if (withdrawn.kind() == NativeStep.Kind.GONE) {
+                return goneNow(request, withdrawn);
+            }
+            if (withdrawn.kind() != NativeStep.Kind.DONE) {
+                failures.put(
+                        identity,
+                        "a CPU limit set while PRISM held the process could not be withdrawn: " + describe(withdrawn));
+                failureNotes.put(identity, LimitNote.NATIVE_UNSETTLED);
+                return LimitMessages.result(
+                        request, withdrawn.outcome(), LimitMessages.cannotClear(request, inForce(withdrawn)));
+            }
+            return refusal;
+        }));
+    }
+
+    /** What was known to be in force before a step, as limits to change back to; none of a kind not known. */
+    private LimitSpec asFound(Optional<NativeHold> before) {
+        MemoryBoundary boundary = before.filter(NativeHold::settled)
+                .flatMap(NativeHold::inForce)
+                .map(EffectiveLimits::memoryBoundary)
+                .orElse(MemoryBoundary.HARD);
+        return new LimitSpec(cpuHeld(before), memoryHeld(before), boundary);
+    }
+
+    /** The CPU cap known to be in force before a step, as a whole percentage; none when unknown or none. */
+    private static OptionalInt cpuHeld(Optional<NativeHold> before) {
+        OptionalInt cpu = before.filter(NativeHold::settled)
+                .flatMap(NativeHold::inForce)
+                .map(EffectiveLimits::cpuPercent)
+                .orElse(OptionalInt.empty());
+        return cpu.isPresent() && ManagedSettings.validCpuPercent(cpu.getAsInt()) ? cpu : OptionalInt.empty();
+    }
+
+    /** The memory limit known to be in force before a step; none when unknown or none. */
+    private static OptionalLong memoryHeld(Optional<NativeHold> before) {
+        OptionalLong memory = before.filter(NativeHold::settled)
+                .flatMap(NativeHold::inForce)
+                .map(EffectiveLimits::memoryBytes)
+                .orElse(OptionalLong.empty());
+        return memory.isPresent() && ManagedSettings.validMemoryBytes(memory.getAsLong())
+                ? memory
+                : OptionalLong.empty();
+    }
+
+    /** What a first assignment came to; on the limiter thread, once it has ended. */
+    private NativeStep assignStep(ProcessIdentity identity, Optional<ApplyResult> recorded) {
         if (recorded.isEmpty()) {
             return new NativeStep(
                     NativeStep.Kind.LEDGER, NativeStep.Phase.LEDGER, natives.notRecorded(), Optional.empty(), false);
@@ -1598,8 +1926,16 @@ public final class LimitService {
         };
     }
 
-    private NativeStep nativeChange(LimitRequest request, LimitSpec spec) {
-        Optional<ChangeResult> recorded = natives.change(request.identity(), request.name(), spec);
+    /** A change of the job PRISM holds, on the worker; {@code then} on the limiter thread once it has ended (D6). */
+    private Carried nativeChange(LimitRequest request, LimitSpec spec, Function<NativeStep, LimitResult> then) {
+        return handOver(request, spec, () -> {
+            Optional<ChangeResult> changed = natives.change(request.identity(), request.name(), spec);
+            return () -> Carried.answered(then.apply(changeStep(spec, changed)));
+        });
+    }
+
+    /** What a change came to, in the terms the requests answer by. */
+    private NativeStep changeStep(LimitSpec spec, Optional<ChangeResult> recorded) {
         if (recorded.isEmpty()) {
             return new NativeStep(
                     NativeStep.Kind.LEDGER, NativeStep.Phase.LEDGER, natives.notRecorded(), Optional.empty(), false);
@@ -1643,6 +1979,223 @@ public final class LimitService {
         };
     }
 
+    // ----- The native-limit worker (risk D6) -----
+
+    /**
+     * What carrying out a request came to on the limiter thread: its result, or none yet, because its native part was
+     * handed to the worker and the request is answered once that has ended. Empty, too, for work that answers nothing.
+     */
+    private record Carried(Optional<LimitResult> result) {
+        static final Carried HANDED = new Carried(Optional.empty());
+        static final Carried NOTHING = new Carried(Optional.empty());
+
+        static Carried answered(LimitResult result) {
+            return new Carried(Optional.of(result));
+        }
+    }
+
+    /**
+     * A native operation for one process, handed to the worker. Made, queued and concluded on the limiter thread; only
+     * {@link #work} runs on the worker, and it touches nothing of the service but the native controller.
+     */
+    private static final class InFlight {
+        final ProcessIdentity identity;
+        /** The request it answers; empty for the forget of an exited process and the retry of a residue. */
+        final Optional<LimitRequest> request;
+        /** The limits it asks for; empty for a forget. */
+        final Optional<LimitSpec> spec;
+        /** What PRISM held for the process when it was handed over: what the Limits page shows meanwhile. */
+        final Optional<NativeHold> before;
+        /** The native part, on the worker; it returns what the limiter thread then does with its answer. */
+        final Supplier<Supplier<Carried>> work;
+        /** What the limiter thread does when the native part threw. */
+        final Function<RuntimeException, Carried> failed;
+        /** What came for the process meanwhile, run in order once this has ended. */
+        final ArrayDeque<Runnable> deferred = new ArrayDeque<>();
+
+        InFlight(
+                ProcessIdentity identity,
+                Optional<LimitRequest> request,
+                Optional<LimitSpec> spec,
+                Optional<NativeHold> before,
+                Supplier<Supplier<Carried>> work,
+                Function<RuntimeException, Carried> failed) {
+            this.identity = identity;
+            this.request = request;
+            this.spec = spec;
+            this.before = before;
+            this.work = work;
+            this.failed = failed;
+        }
+    }
+
+    /** The hold of a process whose native operation is in flight, for what must not count on its limits. */
+    private static final NativeHold IN_FLIGHT = new NativeHold(NativeHold.State.UNCERTAIN, Optional.empty());
+
+    /**
+     * The hold the Limits page shows for a process: while a native operation for it is in flight, what was held
+     * before it, as the operation's answer is not known yet.
+     */
+    private Optional<NativeHold> shownHold(ProcessIdentity identity) {
+        InFlight busy = inFlight.get(identity);
+        return busy != null ? busy.before : natives.hold(identity);
+    }
+
+    /**
+     * The hold for what needs to know what may be in force (OOM Guard's watch, an emulated limit): while a native
+     * operation for the process is in flight, an uncertain one, as its limits may be landing.
+     */
+    private Optional<NativeHold> mayHold(ProcessIdentity identity) {
+        return inFlight.containsKey(identity) ? Optional.of(IN_FLIGHT) : natives.hold(identity);
+    }
+
+    /** Runs {@code work} now, or once the native operation in flight for the process has ended, in order. */
+    private void whenFree(ProcessIdentity identity, Runnable work) {
+        InFlight busy = inFlight.get(identity);
+        if (busy != null) {
+            busy.deferred.add(work);
+        } else {
+            work.run();
+        }
+    }
+
+    private Carried handOver(LimitRequest request, LimitSpec spec, Supplier<Supplier<Carried>> work) {
+        return handOver(new InFlight(
+                request.identity(),
+                Optional.of(request),
+                Optional.of(spec),
+                natives.hold(request.identity()),
+                work,
+                failed -> Carried.answered(failure(request, failed))));
+    }
+
+    /** Queues the operation for the worker; the process counts as in flight from now until it is concluded. */
+    private Carried handOver(InFlight operation) {
+        inFlight.put(operation.identity, operation);
+        nativeQueue.add(operation);
+        dispatchNext();
+        return Carried.HANDED;
+    }
+
+    /**
+     * Hands the oldest waiting operation to the worker when it has none of this service's: one at a time, in order.
+     * Once the service is shutting down, or the worker refuses, an operation waiting is never asked.
+     */
+    private void dispatchNext() {
+        while (!nativeBusy && !nativeQueue.isEmpty()) {
+            InFlight next = nativeQueue.poll();
+            if (refusing) {
+                abandon(next);
+                continue;
+            }
+            nativeBusy = true;
+            try {
+                nativeWork.execute(() -> runNative(next));
+            } catch (RejectedExecutionException stopped) {
+                nativeBusy = false;
+                abandon(next);
+            }
+        }
+    }
+
+    /**
+     * Shutdown: an operation the worker never had is not asked. Its request is answered as refused, and what waited
+     * for it runs (a request is refused the same way, as the service is shutting down); the shutdown's release clears
+     * what is held.
+     */
+    private void abandon(InFlight operation) {
+        inFlight.remove(operation.identity, operation);
+        try {
+            operation.request.ifPresent(request -> finish(answer(
+                    request, OperationResult.UNSUPPORTED, "shutting down", LimitMessages.shuttingDown(request))));
+        } catch (RuntimeException e) {
+            warnOnce("Refusing a native limit operation at shutdown", e);
+        } finally {
+            resume(operation);
+        }
+    }
+
+    /** On the worker: the native part, then what it came to handed back to the limiter thread. */
+    private void runNative(InFlight operation) {
+        Supplier<Carried> answered;
+        try {
+            answered = operation.work.get();
+        } catch (RuntimeException e) {
+            answered = () -> operation.failed.apply(e);
+        }
+        Supplier<Carried> conclusion = answered;
+        try {
+            scheduler.execute(() -> concluded(operation, conclusion));
+        } catch (RejectedExecutionException stopped) {
+            // The limiter has stopped (shutdown): what the operation did is in the native controller's limiter and
+            // ledger, and the shutdown's release clears it. Nobody is left to be answered.
+            LOG.info(
+                    "A native limit operation for PID {} ended after the limiter had stopped; the shutdown clears"
+                            + " what it left.",
+                    operation.identity.pid());
+        }
+    }
+
+    /** On the limiter thread: the operation has ended; its request is answered, and what waited for it runs. */
+    private void concluded(InFlight operation, Supplier<Carried> conclusion) {
+        inFlight.remove(operation.identity, operation);
+        nativeBusy = false;
+        boolean answered = false;
+        try {
+            Carried carried;
+            try {
+                carried = conclusion.get();
+            } catch (RuntimeException e) {
+                carried = operation.failed.apply(e);
+            }
+            Optional<LimitResult> result = operation.request.isPresent() ? carried.result() : Optional.empty();
+            if (result.isPresent()) {
+                answered = true;
+                finish(result.get());
+            } else {
+                pushToGuard();
+                publish();
+            }
+        } catch (RuntimeException e) {
+            // Review C2: logged, and what waited for the operation and the operations after it still run.
+            warnOnce("Concluding a native limit operation", e);
+            if (!answered && operation.request.isPresent() && !inFlight.containsKey(operation.identity)) {
+                // Neither its conclusion nor its failure could answer it: answered here, never left waiting.
+                pending.decrementAndGet();
+                deliver(failure(operation.request.get(), e));
+            }
+        } finally {
+            try {
+                resume(operation);
+            } finally {
+                dispatchNext();
+            }
+        }
+    }
+
+    /**
+     * What waited for an operation runs in order; once one hands over again, the rest wait for that one. One that
+     * fails is logged and the rest still run (review C2).
+     */
+    private void resume(InFlight operation) {
+        if (operation.deferred.isEmpty()) {
+            return;
+        }
+        while (!operation.deferred.isEmpty()) {
+            Runnable next = operation.deferred.poll();
+            try {
+                whenFree(operation.identity, next);
+            } catch (RuntimeException e) {
+                warnOnce("Work that waited for a native limit operation", e);
+            }
+        }
+        try {
+            pushToGuard();
+        } finally {
+            publish();
+        }
+    }
+
     /**
      * The barrier of plan D15: no native CPU cap over threads the emulated limit could not release,
      * nor while an automatic reason or a limit run still holds the process.
@@ -1678,7 +2231,7 @@ public final class LimitService {
         if (priorSession.containsKey(identity) || earlierBarrier(identity).isPresent()) {
             return false;
         }
-        return natives.hold(identity).map(hold -> !hold.mayCapCpu()).orElse(true);
+        return mayHold(identity).map(hold -> !hold.mayCapCpu()).orElse(true);
     }
 
     /**
@@ -1732,7 +2285,7 @@ public final class LimitService {
     }
 
     private boolean nativeCpuMayBeInForce(ProcessIdentity identity) {
-        return natives.hold(identity).map(NativeHold::mayCapCpu).orElse(false);
+        return mayHold(identity).map(NativeHold::mayCapCpu).orElse(false);
     }
 
     private Optional<LimitResult> priorSessionRefusal(LimitRequest request) {
@@ -1758,7 +2311,7 @@ public final class LimitService {
             return earlier.record().describe();
         }
         Optional<LimitRecord> record = natives.ledger().find(identity);
-        Optional<NativeHold> hold = natives.hold(identity);
+        Optional<NativeHold> hold = shownHold(identity);
         if (hold.flatMap(NativeHold::inForce).isPresent()) {
             return hold.get().inForce().get().describe();
         }
@@ -1804,6 +2357,10 @@ public final class LimitService {
             }
         }
         for (ProcessIdentity identity : candidates) {
+            if (inFlight.containsKey(identity)) {
+                // Its native operation ends first (D6); the next listing looks again.
+                continue;
+            }
             ControlOutcome alive = controller.liveness(identity);
             if (alive.result() != OperationResult.PROCESS_NOT_FOUND) {
                 continue;
@@ -1816,16 +2373,11 @@ public final class LimitService {
             processExited(identity);
             changed = true;
         }
-        // Jobs of exited processes that still carry limits: tried again with every listing.
+        // Jobs of exited processes that still carry limits: tried again with every listing, on the worker, one try
+        // per process at a time.
         for (ProcessIdentity identity : List.copyOf(residues.keySet())) {
-            ForgetResult retried = natives.forget(identity);
-            if (retried.released()) {
-                residues.remove(identity);
-                activity.record(
-                        ActivitySeverity.INFO,
-                        "PRISM cleared the limits the job of " + label(identity) + " still carried for the processes it"
-                                + " started.");
-                changed = true;
+            if (!inFlight.containsKey(identity)) {
+                retryResidue(identity);
             }
         }
         if (changed) {
@@ -1839,53 +2391,122 @@ public final class LimitService {
         }
     }
 
+    private void retryResidue(ProcessIdentity identity) {
+        handOver(new InFlight(
+                identity,
+                Optional.empty(),
+                Optional.empty(),
+                natives.hold(identity),
+                () -> {
+                    ForgetResult retried = natives.forget(identity);
+                    return () -> {
+                        if (retried.released() && residues.containsKey(identity)) {
+                            String label = label(identity);
+                            residues.remove(identity);
+                            watched.set(watchedCount());
+                            activity.record(
+                                    ActivitySeverity.INFO,
+                                    "PRISM cleared the limits the job of " + label
+                                            + " still carried for the processes it started.");
+                        }
+                        return Carried.NOTHING;
+                    };
+                },
+                failed -> {
+                    // The residue stays and is tried again with the next listing.
+                    warnOnce("Clearing the job of an exited process", failed);
+                    return Carried.NOTHING;
+                }));
+    }
+
     /**
      * The one exit path of a process (plan bulgu 2, §8.6): its job, if PRISM holds one, is cleared
      * and verified before it is let go; its record goes only then. A job that still carries limits
-     * stays a residue and is retried; nothing is discarded silently.
+     * stays a residue and is retried; nothing is discarded silently. What is not native is done at
+     * once; clearing the job runs on the worker (D6), and what it came to is kept once it has ended.
      */
     private void processExited(ProcessIdentity identity) {
         String name = registry.find(identity)
                 .map(ManagedProcess::name)
                 .orElse(unmanagedHolds.getOrDefault(identity, "PID " + identity.pid()));
-        if (natives.hold(identity).isPresent()) {
-            ForgetResult forgotten = natives.forget(identity);
-            if (!forgotten.released()) {
-                residues.put(
-                        identity,
-                        new Residue(
-                                identity,
-                                name,
-                                forgotten.inForce().orElse(EffectiveLimits.NONE),
-                                forgotten.survivors(),
-                                Instant.now()));
-                activity.record(
-                        ActivitySeverity.WARNING,
-                        "The job of " + name + " (PID " + identity.pid()
-                                + "), which has exited, still carries limits PRISM"
-                                + " could not clear ("
-                                + forgotten
-                                        .inForce()
-                                        .map(EffectiveLimits::describe)
-                                        .orElse("unknown")
-                                + "); the processes it started stay limited. PRISM keeps trying.");
-            } else if (forgotten.survivors() > 0) {
-                activity.record(
-                        ActivitySeverity.INFO,
-                        "The job of " + name + " (PID " + identity.pid() + ") still counted "
-                                + forgotten.survivors()
-                                + (forgotten.survivors() == 1 ? " process" : " processes")
-                                + " after it exited; PRISM cleared its limits for them.");
-            }
-        }
+        Optional<NativeHold> held = natives.hold(identity);
         unmanagedHolds.remove(identity);
-        if (priorSession.remove(identity) != null) {
-            // The record recovery carried into this session's ledger: the process it named has
-            // exited, so the next start has nothing to say about it (native-api review, Stage 4).
-            natives.forgetCarried(identity);
-        }
+        boolean carried = priorSession.remove(identity) != null;
         registry.remove(identity).ifPresent(this::recordExit);
         forgetManaged(identity);
+        if (held.isEmpty()) {
+            if (carried) {
+                carriedRecordExited(identity);
+            }
+            return;
+        }
+        handOver(new InFlight(
+                identity,
+                Optional.empty(),
+                Optional.empty(),
+                held,
+                () -> {
+                    ForgetResult forgotten = natives.forget(identity);
+                    return () -> {
+                        forgotten(identity, name, forgotten);
+                        if (carried) {
+                            carriedRecordExited(identity);
+                        }
+                        return Carried.NOTHING;
+                    };
+                },
+                failed -> {
+                    warnOnce("Clearing the job of an exited process", failed);
+                    forgotten(
+                            identity,
+                            name,
+                            new ForgetResult(
+                                    ForgetResult.Outcome.UNRESOLVED,
+                                    ControlOutcome.of(OperationResult.NATIVE_ERROR, failed.toString()),
+                                    -1,
+                                    Optional.empty()));
+                    if (carried) {
+                        carriedRecordExited(identity);
+                    }
+                    return Carried.NOTHING;
+                }));
+    }
+
+    /**
+     * The record recovery carried into this session's ledger: the process it named has exited, so the next start has
+     * nothing to say about it (native-api review, Stage 4).
+     */
+    private void carriedRecordExited(ProcessIdentity identity) {
+        natives.forgetCarried(identity);
+    }
+
+    /** What letting go of the job of an exited process came to: a job that still carries limits stays a residue. */
+    private void forgotten(ProcessIdentity identity, String name, ForgetResult forgotten) {
+        if (!forgotten.released()) {
+            residues.put(
+                    identity,
+                    new Residue(
+                            identity,
+                            name,
+                            forgotten.inForce().orElse(EffectiveLimits.NONE),
+                            forgotten.survivors(),
+                            Instant.now()));
+            watched.set(watchedCount());
+            activity.record(
+                    ActivitySeverity.WARNING,
+                    "The job of " + name + " (PID " + identity.pid()
+                            + "), which has exited, still carries limits PRISM"
+                            + " could not clear ("
+                            + forgotten.inForce().map(EffectiveLimits::describe).orElse("unknown")
+                            + "); the processes it started stay limited. PRISM keeps trying.");
+        } else if (forgotten.survivors() > 0) {
+            activity.record(
+                    ActivitySeverity.INFO,
+                    "The job of " + name + " (PID " + identity.pid() + ") still counted "
+                            + forgotten.survivors()
+                            + (forgotten.survivors() == 1 ? " process" : " processes")
+                            + " after it exited; PRISM cleared its limits for them.");
+        }
     }
 
     private String label(ProcessIdentity identity) {
@@ -1945,8 +2566,12 @@ public final class LimitService {
                 case CANCELLED -> coordinator.withdraw(identity, SuspensionReason.CPU_LIMITER);
                 case EXITED -> {
                     coordinator.withdraw(identity, SuspensionReason.CPU_LIMITER);
-                    // The one exit path: a native memory limit's job is let go here too.
-                    processExited(identity);
+                    // The one exit path: a native memory limit's job is let go here too, after a native
+                    // operation in flight for the process (D6).
+                    whenFree(identity, () -> {
+                        processExited(identity);
+                        watched.set(watchedCount());
+                    });
                 }
                 case FAILED -> {
                     coordinator.withdraw(identity, SuspensionReason.CPU_LIMITER);
@@ -2080,7 +2705,7 @@ public final class LimitService {
     private LimitReport cpuReport(ManagedProcess process, LimitCapability capability) {
         ProcessIdentity identity = process.identity();
         OptionalInt requested = process.settings().cpuLimitPercent();
-        Optional<NativeHold> hold = natives.hold(identity);
+        Optional<NativeHold> hold = shownHold(identity);
         boolean nativeCpu = hold.flatMap(NativeHold::inForce)
                 .flatMap(limits -> limits.cpuRate().isPresent() ? Optional.of(limits) : Optional.empty())
                 .isPresent();
@@ -2159,7 +2784,7 @@ public final class LimitService {
     private LimitReport memoryReport(ManagedProcess process, LimitCapability capability) {
         ProcessIdentity identity = process.identity();
         OptionalLong requested = process.settings().memoryLimitBytes();
-        Optional<NativeHold> hold = natives.hold(identity);
+        Optional<NativeHold> hold = shownHold(identity);
         Optional<EffectiveLimits> inForce = hold.flatMap(NativeHold::inForce);
         boolean nativeMemory =
                 inForce.filter(limits -> limits.memoryBytes().isPresent()).isPresent();
@@ -2245,7 +2870,7 @@ public final class LimitService {
         if (kind == LimitKind.MEMORY && !nativeMemorySystem()) {
             return system;
         }
-        if (natives.hold(identity).isPresent()) {
+        if (shownHold(identity).isPresent()) {
             return system.available() ? nativeCapability(kind) : system;
         }
         LimitCapability found = probed.getOrDefault(identity, Map.of()).get(kind);

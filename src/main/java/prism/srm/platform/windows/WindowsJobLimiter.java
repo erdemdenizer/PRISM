@@ -55,9 +55,11 @@ import prism.srm.platform.ResourceLimiter;
  * <p><b>Never used:</b> {@code JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE}, {@code TerminateJobObject},
  * {@code TerminateProcess}, nested assignment to a job of another program, breakaway flags.
  *
- * <p><b>Threads.</b> The limit service calls it on {@code srm-limiter}; the shutdown and the exit
- * hook call {@link #releaseAll}. One lock covers every call; each holds it for a few calls of the
- * system, well under a millisecond each.
+ * <p><b>Threads.</b> The limit service calls {@link #apply}, {@link #change} and {@link #forget} on
+ * its native-limit worker ({@code srm-native-limit}), one at a time, and the reads ({@link #hold},
+ * {@link #capabilitiesFor}) on {@code srm-limiter}; the shutdown and the exit hook call {@link
+ * #releaseAll}. One lock covers every call; each holds it for a few calls of the system, well under
+ * a millisecond each.
  */
 public final class WindowsJobLimiter implements ResourceLimiter {
 

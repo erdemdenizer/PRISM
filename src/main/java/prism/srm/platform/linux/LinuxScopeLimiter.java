@@ -73,7 +73,10 @@ import prism.srm.platform.ResourceLimiter;
  * its scope proves nothing. A scope with PRISM's name but no proof is never changed. {@link #scopeBarrier} keeps every process inside a PRISM scope this limiter does not hold from a second
  * limiter, native or emulated, whatever the ledger says.
  *
- * <p>One operation at a time under one lock; every system call is bounded. Never on the JavaFX Application Thread.
+ * <p>One operation at a time under one lock; every system call is bounded. Never on the JavaFX Application Thread. The
+ * limit service calls {@link #apply}, {@link #change} and {@link #forget} on its native-limit worker, one at a time, and
+ * reads {@link #hold} on its limiter thread without the lock (risk D6), so a read never waits for an adoption; the lock
+ * serializes that worker, recovery and the release.
  */
 public final class LinuxScopeLimiter implements ResourceLimiter {
 
@@ -99,7 +102,10 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
         void sleep(Duration duration) throws InterruptedException;
     }
 
-    /** A scope the limiter holds for a process. Guarded by {@link #lock}. */
+    /**
+     * A scope the limiter holds for a process. Changed only under {@link #lock}; {@link #view} is also read without it
+     * (risk D6), so it is replaced whole, never changed in part.
+     */
     private static final class Hold {
         final String unit;
         int fd;
@@ -107,16 +113,26 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
         /** The ownership evidence is on disk (A6); until then no limit is set in the scope. */
         boolean recorded;
 
-        NativeHold.State state = NativeHold.State.UNCERTAIN;
-        Optional<EffectiveLimits> inForce = Optional.empty();
+        /** Whether the process is known to be in the scope and what the scope is known to hold, as one value. */
+        volatile NativeHold view = new NativeHold(NativeHold.State.UNCERTAIN, Optional.empty());
 
         Hold(String unit, int fd) {
             this.unit = unit;
             this.fd = fd;
         }
 
-        NativeHold view() {
-            return new NativeHold(state, inForce);
+        /** Under the lock. */
+        void set(NativeHold.State state, Optional<EffectiveLimits> inForce) {
+            view = new NativeHold(state, inForce);
+        }
+
+        /** Under the lock: what the scope holds, its state unchanged. */
+        void inForce(Optional<EffectiveLimits> inForce) {
+            view = new NativeHold(view.state(), inForce);
+        }
+
+        Optional<EffectiveLimits> inForce() {
+            return view.inForce();
         }
     }
 
@@ -524,14 +540,9 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
 
     @Override
     public Optional<NativeHold> hold(ProcessIdentity target) {
-        return Optional.ofNullable(holds.get(target)).map(h -> {
-            lock.lock();
-            try {
-                return h.view();
-            } finally {
-                lock.unlock();
-            }
-        });
+        // Without the lock (risk D6): an adoption holds it for seconds, and the limit service reads the holds
+        // meanwhile.
+        return Optional.ofNullable(holds.get(target)).map(h -> h.view);
     }
 
     // ----- Adoption -----
@@ -725,8 +736,7 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
                         false);
             }
             hold.provenance = proven;
-            hold.state = NativeHold.State.ASSIGNED;
-            hold.inForce = Optional.of(EffectiveLimits.NONE);
+            hold.set(NativeHold.State.ASSIGNED, Optional.of(EffectiveLimits.NONE));
             // A6: the ownership evidence is on disk before any limit is set; without it none is ever set here.
             if (!ownership.recordDurably(proven.get())) {
                 return new ApplyResult(
@@ -751,8 +761,7 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
             if (sent.gone || (left.isPresent() && left.get().kind() != Outside.Kind.EXITED)) {
                 // Moved out, or the unit changed, while the limits were set: they are not known to be the target's
                 // (TOCTOU, see change()). An exit is not this: the scope is still PRISM's and holds what was set.
-                hold.inForce = Optional.empty();
-                hold.state = NativeHold.State.UNCERTAIN;
+                hold.set(NativeHold.State.UNCERTAIN, Optional.empty());
                 return new ApplyResult(
                         ApplyResult.Phase.UNCERTAIN,
                         fail(
@@ -763,13 +772,12 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
                         false);
             }
             if (observed.isPresent() && observed.get().equals(spec.effective())) {
-                hold.inForce = observed;
+                hold.inForce(observed);
                 return new ApplyResult(ApplyResult.Phase.ENFORCED, ControlOutcome.success(), observed, false);
             }
             if (observed.isEmpty() || mayStillLand(sent, observed)) {
                 // Unreadable, or a value systemd took may still be written: what the scope holds is not known (A8).
-                hold.inForce = Optional.empty();
-                hold.state = NativeHold.State.UNCERTAIN;
+                hold.set(NativeHold.State.UNCERTAIN, Optional.empty());
                 return new ApplyResult(
                         ApplyResult.Phase.UNCERTAIN,
                         fail(
@@ -781,7 +789,7 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
                         Optional.empty(),
                         false);
             }
-            hold.inForce = observed;
+            hold.inForce(observed);
             return new ApplyResult(
                     ApplyResult.Phase.ASSIGNED_MISMATCH,
                     fail(OperationResult.NATIVE_ERROR, sent.why("the scope holds other limits than asked")),
@@ -1115,15 +1123,14 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
                                 OperationResult.NATIVE_ERROR, outside.get().why() + "; nothing was changed");
                     }
                     default -> {
-                        hold.inForce = Optional.empty();
-                        hold.state = NativeHold.State.UNCERTAIN;
+                        hold.set(NativeHold.State.UNCERTAIN, Optional.empty());
                         return notDone(
                                 OperationResult.NATIVE_ERROR, outside.get().why() + "; nothing was changed");
                     }
                 }
             }
             String group = hold.provenance.get().cgroupPath().orElseThrow();
-            Optional<EffectiveLimits> before = hold.inForce;
+            Optional<EffectiveLimits> before = hold.inForce();
             Sent sent = new Sent(hold.provenance.get().invocationId().orElseThrow());
             setKinds(scopes.orElseThrow(), hold.unit, before, spec.effective(), consent.hardMemory(target), sent);
             Optional<EffectiveLimits> observed = settledReadBack(files.orElseThrow(), group, spec.effective());
@@ -1131,11 +1138,8 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
             if (sent.gone || (movedDuring.isPresent() && movedDuring.get().kind() != Outside.Kind.EXITED)) {
                 // Left, or the unit changed, between the check and the sends (a window systemd offers no way to close):
                 // what was set is not known to be the target's. A failed read leaves the state as it was.
-                hold.inForce = Optional.empty();
                 boolean notOurs = sent.gone || movedDuring.get().kind() == Outside.Kind.NOT_OURS;
-                if (notOurs) {
-                    hold.state = NativeHold.State.UNCERTAIN;
-                }
+                hold.set(notOurs ? NativeHold.State.UNCERTAIN : hold.view.state(), Optional.empty());
                 return new ChangeResult(
                         ChangeResult.Phase.UNVERIFIED,
                         fail(
@@ -1145,14 +1149,13 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
                         Optional.empty());
             }
             // Proven again: the scope is the invocation PRISM made, with the target in it (or the target has exited).
-            hold.state = NativeHold.State.ASSIGNED;
             if (observed.isPresent() && observed.get().equals(spec.effective())) {
-                hold.inForce = observed;
+                hold.set(NativeHold.State.ASSIGNED, observed);
                 return new ChangeResult(ChangeResult.Phase.APPLIED, ControlOutcome.success(), observed);
             }
             if (observed.isEmpty() || mayStillLand(sent, observed)) {
                 // Unknown until read again: the next change sends every kind.
-                hold.inForce = Optional.empty();
+                hold.set(NativeHold.State.ASSIGNED, Optional.empty());
                 return new ChangeResult(
                         ChangeResult.Phase.UNVERIFIED,
                         fail(
@@ -1163,7 +1166,7 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
                                                 : "a limit systemd accepted is not shown yet")),
                         Optional.empty());
             }
-            hold.inForce = observed;
+            hold.set(NativeHold.State.ASSIGNED, observed);
             String why = sent.why("the scope holds other limits than asked");
             if (before.isPresent() && observed.equals(before)) {
                 return new ChangeResult(ChangeResult.Phase.NOT_DONE, fail(OperationResult.NATIVE_ERROR, why), observed);
@@ -1191,7 +1194,7 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
                         ForgetResult.Outcome.STILL_RUNS,
                         fail(OperationResult.INVALID_ARGUMENT, "the process still runs"),
                         -1,
-                        hold.inForce);
+                        hold.inForce());
             }
             Optional<ForgetResult> done = clearScope(hold);
             if (done.isPresent() && done.get().released()) {
@@ -1202,7 +1205,7 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
                     ForgetResult.Outcome.UNRESOLVED,
                     fail(OperationResult.NATIVE_ERROR, "the scope could not be read"),
                     -1,
-                    hold.inForce));
+                    hold.inForce()));
         } finally {
             lock.unlock();
         }
@@ -1217,7 +1220,10 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
         return clearScope(hold, OptionalLong.empty());
     }
 
-    /** {@link #clearScope(Hold)}, sending nothing more once {@code deadline} ({@link #nanoTime}) has passed. */
+    /**
+     * {@link #clearScope(Hold)}, sending nothing more once {@code deadline} ({@link #nanoTime}) has passed. Empty exactly
+     * when nothing was sent: the scope could not be read, or the deadline passed before the first send.
+     */
     private Optional<ForgetResult> clearScope(Hold hold, OptionalLong deadline) {
         ScopeManager manager = scopes.orElseThrow();
         SystemdUserBus.Reading<SystemdUserBus.UnitFacts> facts = manager.unit(hold.unit);
@@ -1285,7 +1291,7 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
                 deadline.isEmpty()
                         ? SETTLE_BOUND.toNanos()
                         : Math.min(SETTLE_BOUND.toNanos(), Math.max(0, deadline.getAsLong() - nanoTime.getAsLong())));
-        hold.inForce = left;
+        hold.inForce(left);
         if (left.isEmpty()) {
             return Optional.of(new ForgetResult(
                     ForgetResult.Outcome.UNRESOLVED,
@@ -1535,9 +1541,11 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
      * Clears every scope this session holds and lets go of the descriptor of every hold it reaches, within
      * {@code within} end to end: the work runs on its own thread ({@code srm-linux-release}) and the caller waits no
      * longer than the bound. The work sends no SetProperties once the bound has passed (each send checks it); a
-     * hold it did not reach is reported in {@link ReleaseResult#notReached} with {@link ReleaseResult#timedOut}. A bus
-     * call in flight at the bound ends by its own call timeout. Nothing is ever stopped or killed: an unreached scope
-     * keeps its limits until its processes exit.
+     * hold it did not reach is reported in {@link ReleaseResult#notReached} with {@link ReleaseResult#timedOut}, and
+     * keeps its descriptor, so that a later release can still clear it (risk D13); so does a hold whose clearing sent
+     * nothing, because its scope could not be read. A bus call in flight at the bound
+     * ends by its own call timeout. Nothing is ever stopped or killed: an unreached scope keeps its limits until its
+     * processes exit or a later release clears them.
      */
     @Override
     public ReleaseResult releaseAll(Duration within) {
@@ -1561,7 +1569,7 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
         Thread worker = new Thread(
                 () -> {
                     try {
-                        done.complete(releaseUnderLock(bound, deadline, cleared));
+                        done.complete(releaseUnderLock(deadline, cleared));
                     } catch (RuntimeException failed) {
                         LOG.warn("Releasing the Linux scopes ended unexpectedly", failed);
                         done.completeExceptionally(failed);
@@ -1601,10 +1609,12 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
         return new ReleaseResult(reached, left, true);
     }
 
-    private ReleaseResult releaseUnderLock(long bound, long deadline, Map<ProcessIdentity, Boolean> cleared) {
+    private ReleaseResult releaseUnderLock(long deadline, Map<ProcessIdentity, Boolean> cleared) {
         boolean locked;
         try {
-            locked = lock.tryLock(bound, TimeUnit.NANOSECONDS);
+            // Risk D13: only what is left until the deadline, not the whole bound again, as this thread starts after it
+            // was set; a lock taken late finds the deadline passed and leaves every hold as it is (below).
+            locked = lock.tryLock(Math.max(0, deadline - nanoTime.getAsLong()), TimeUnit.NANOSECONDS);
         } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();
             locked = false;
@@ -1621,28 +1631,45 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
             java.util.Set<ProcessIdentity> notReached = new java.util.HashSet<>();
             for (Map.Entry<ProcessIdentity, Hold> entry : new ArrayList<>(holds.entrySet())) {
                 Hold hold = entry.getValue();
+                if (past(until)) {
+                    // Not reached (risk D13): the hold and its descriptor stay, so that a later release can still
+                    // clear the scope; letting go of it here would leave its limits beyond any release.
+                    notReached.add(entry.getKey());
+                    continue;
+                }
+                Optional<ForgetResult> result;
                 try {
-                    if (past(until)) {
-                        notReached.add(entry.getKey());
-                    } else {
-                        Optional<ForgetResult> result = clearScope(hold, until);
-                        cleared.put(
-                                entry.getKey(),
-                                result.isPresent() && result.get().released());
-                    }
+                    result = clearScope(hold, until);
                 } catch (RuntimeException failed) {
                     LOG.warn("Clearing the scope {} ended unexpectedly; its limits may remain", hold.unit, failed);
                     cleared.put(entry.getKey(), false);
-                } finally {
-                    // The descriptor goes either way: a scope is not changed by closing it.
-                    close(hold.fd);
-                    holds.remove(entry.getKey());
+                    letGo(entry.getKey(), hold);
+                    continue;
                 }
+                if (result.isEmpty()) {
+                    // Nothing was sent (review C3 of risk D13): the deadline passed before the first send, or the
+                    // scope could not be read. As a hold not reached, it keeps its descriptor for a later release.
+                    if (past(until)) {
+                        notReached.add(entry.getKey());
+                    } else {
+                        cleared.put(entry.getKey(), false);
+                    }
+                    continue;
+                }
+                cleared.put(entry.getKey(), result.get().released());
+                // A hold the release cleared, or tried to, goes either way: a scope is not changed by closing its
+                // descriptor.
+                letGo(entry.getKey(), hold);
             }
             return new ReleaseResult(cleared, notReached, !notReached.isEmpty() || past(until));
         } finally {
             lock.unlock();
         }
+    }
+
+    private void letGo(ProcessIdentity target, Hold hold) {
+        close(hold.fd);
+        holds.remove(target);
     }
 
     private boolean past(OptionalLong deadline) {

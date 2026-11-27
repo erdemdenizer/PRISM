@@ -23,7 +23,14 @@ import prism.srm.platform.ResourceLimiter;
  * recorded after, phase by phase. A record is removed only where nothing native can be left: an
  * assignment proven not to have happened, a job let go. Mechanism selection, the barrier and the
  * transitions of the Limits page stay in {@link LimitService}; this class only keeps the evidence
- * in step with the system. On the limiter thread, except {@link #releaseAll}.
+ * in step with the system.
+ *
+ * <p><b>Threads (risk D6).</b> {@link #apply}, {@link #change} and {@link #forget}, which may block
+ * on the system, run on the native-limit worker ({@code srm-native-limit} in the product), one at a
+ * time and never two for one process at once; the limit service hands each over and takes its answer
+ * back on the limiter thread. The rest runs on the limiter thread, {@link #forgetCarried} included,
+ * except {@link #releaseAll}, which the shutdown and the exit hook call. The limiter and the ledger
+ * are safe to use from these threads.
  */
 final class NativeLimitController {
 

@@ -12,7 +12,10 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
 import java.util.function.BooleanSupplier;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
@@ -31,11 +34,13 @@ import prism.srm.domain.EffectiveLimits;
 import prism.srm.domain.LimitAction;
 import prism.srm.domain.LimitRequest;
 import prism.srm.domain.LimitResult;
+import prism.srm.domain.LimitSpec;
 import prism.srm.domain.LimitsNotice;
 import prism.srm.domain.LimitsSnapshot;
 import prism.srm.domain.OperationResult;
 import prism.srm.domain.ProcessIdentity;
 import prism.srm.domain.SuspensionReason;
+import prism.srm.platform.ApplyResult;
 
 /**
  * The runtime of milestone 10 with its real executors, a fake native limiter and a real journal
@@ -224,6 +229,118 @@ class MonitoringRuntimeNativeLimitsTest {
         assertThat(limiter.holds).isEmpty();
         assertThat(controller.calls).hasSize(processCalls);
         assertThat(activity.entries()).hasSize(entries);
+    }
+
+    /**
+     * Risk D6: a native step that waits for the system (an adoption waits for the systemd user manager) runs on its own
+     * thread, and the limiter thread answers other requests meanwhile.
+     */
+    @Test
+    void nativeWorkRunsOnItsOwnThreadAndTheLimiterStaysFree() throws Exception {
+        CountDownLatch inside = new CountDownLatch(1);
+        CountDownLatch answer = new CountDownLatch(1);
+        AtomicReference<String> appliedOn = new AtomicReference<>();
+        BiFunction<ProcessIdentity, LimitSpec, ApplyResult> enforce = limiter.apply;
+        limiter.apply = (identity, spec) -> {
+            appliedOn.set(Thread.currentThread().getName());
+            inside.countDown();
+            try {
+                answer.await(PATIENCE_SECONDS, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            return enforce.apply(identity, spec);
+        };
+        try {
+            start();
+            manage(DEMO);
+            int before = limitResults.size();
+            runtime.requestLimit(LimitRequest.cpuLimit(DEMO, "demo", 20));
+            assertThat(inside.await(PATIENCE_SECONDS, TimeUnit.SECONDS)).isTrue();
+
+            LimitResult other = ask(LimitRequest.of(LimitAction.MANAGE, OTHER, "other"));
+
+            assertThat(appliedOn.get()).isEqualTo("srm-native-limit");
+            assertThat(other.request().identity()).isEqualTo(OTHER);
+            assertThat(other.outcome().succeeded())
+                    .as("answered while the step waits")
+                    .isTrue();
+            assertThat(limitResults.subList(before, limitResults.size()))
+                    .noneMatch(result -> result.request().identity().equals(DEMO));
+
+            answer.countDown();
+            await(() -> limitResults.stream()
+                    .anyMatch(result -> result.request().identity().equals(DEMO)
+                            && result.request().action() == LimitAction.SET_CPU_LIMIT));
+            assertThat(limitResults.stream()
+                            .filter(result -> result.request().action() == LimitAction.SET_CPU_LIMIT)
+                            .findFirst()
+                            .orElseThrow()
+                            .outcome()
+                            .succeeded())
+                    .isTrue();
+        } finally {
+            answer.countDown();
+        }
+    }
+
+    /**
+     * Risk D6: a native step still in flight at the shutdown is waited for within its own bound, then interrupted, and
+     * the shutdown ends within its time. What the step recorded before it asked the system stays in the ledger for the
+     * next start, as the release finds the limiter busy.
+     */
+    @Test
+    void aShutdownDuringANativeStepEndsInItsBoundAndKeepsTheRecord() throws Exception {
+        CountDownLatch inside = new CountDownLatch(1);
+        CountDownLatch never = new CountDownLatch(1);
+        limiter.apply = (identity, spec) -> {
+            inside.countDown();
+            // A call that does not answer the interrupt, as a native call does not.
+            boolean interrupted = false;
+            while (true) {
+                try {
+                    if (never.await(PATIENCE_SECONDS, TimeUnit.SECONDS)) {
+                        break;
+                    }
+                } catch (InterruptedException e) {
+                    interrupted = true;
+                    continue;
+                }
+                break;
+            }
+            if (interrupted) {
+                Thread.currentThread().interrupt();
+            }
+            return FakeResourceLimiter.notAssigned(OperationResult.NATIVE_ERROR, "never answered", false)
+                    .apply(identity, spec);
+        };
+        try {
+            start();
+            manage(DEMO);
+            runtime.requestLimit(LimitRequest.cpuLimit(DEMO, "demo", 20));
+            assertThat(inside.await(PATIENCE_SECONDS, TimeUnit.SECONDS)).isTrue();
+            // As a limiter whose lock the step in flight holds past the release's bound.
+            limiter.busy = true;
+
+            long began = System.nanoTime();
+            runtime.shutdown();
+            assertThat(runtime.awaitStopped(PATIENCE_SECONDS, TimeUnit.SECONDS)).isTrue();
+            long took = System.nanoTime() - began;
+
+            assertThat(took)
+                    .as("within the shutdown's bound, with room for what is not bounded")
+                    .isLessThan(Duration.ofSeconds(5).plusSeconds(2).toNanos());
+            assertThat(activity.entries())
+                    .anySatisfy(entry -> assertThat(entry.message())
+                            .contains("A native limit operation did not end within the shutdown time")
+                            .contains("srm-native-limit"));
+            assertThat(NativeLimitLedger.readDead(journalFolder.path(), INSTANCE, SuspensionJournal.onDisk()))
+                    .as("the intent recorded before the system was asked stays for the next start")
+                    .singleElement()
+                    .satisfies(record -> assertThat(record.identity()).isEqualTo(DEMO));
+        } finally {
+            never.countDown();
+        }
     }
 
     /** A limit the shutdown cannot verify as cleared stays on disk for the next start, which lists it. */

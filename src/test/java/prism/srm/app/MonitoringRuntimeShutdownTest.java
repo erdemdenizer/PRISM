@@ -57,6 +57,7 @@ class MonitoringRuntimeShutdownTest {
             "release automatic suspensions",
             "restore priorities OOM Guard lowered",
             "finalize suspensions",
+            "finish native limit operations in flight",
             "clear native limits",
             "close the suspension journal",
             "wait for system monitoring in flight",

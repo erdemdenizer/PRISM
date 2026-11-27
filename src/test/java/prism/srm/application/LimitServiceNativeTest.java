@@ -115,9 +115,19 @@ class LimitServiceNativeTest {
                 PROCESSORS,
                 DutyCycleController.Tuning.DEFAULTS,
                 new NativeLimitController(limiter, theLedger, earlier),
+                Optional.empty(),
+                nativeWork(scheduler),
                 results::add,
                 snapshots::add);
         coordinator.setJournalListener(service::journalFailed);
+    }
+
+    /**
+     * Where the native part of each native operation runs: inline here, as before risk D6 was closed; {@link
+     * LimitServiceNativeOnWorkerTest} runs every test of this class again with it handed over and answered later.
+     */
+    java.util.concurrent.Executor nativeWork(VirtualScheduler limiterThread) {
+        return Runnable::run;
     }
 
     @AfterEach

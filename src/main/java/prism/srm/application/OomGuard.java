@@ -134,14 +134,23 @@ public final class OomGuard {
      *     watches none for the process
      * @param watchGeneration one more each time the user sets the watched limit again: a new watch,
      *     whose first listing above the limit counts as a crossing
+     * @param watchPaused a native limit operation in flight may set a native memory limit on the process
+     *     (risk D6, CAP-3): the watch stays as it stands, armed or not, with what it holds, but nothing
+     *     crosses, clears or is acted on until the operation has ended
      */
-    public record Managed(ManagedProcess process, OptionalLong watchedLimit, long watchGeneration) {
+    public record Managed(
+            ManagedProcess process, OptionalLong watchedLimit, long watchGeneration, boolean watchPaused) {
         public Managed {
             Objects.requireNonNull(process, "process");
             Objects.requireNonNull(watchedLimit, "watchedLimit");
             if (watchedLimit.isPresent() && !ManagedSettings.validMemoryBytes(watchedLimit.getAsLong())) {
                 throw new IllegalArgumentException("Not a memory limit: " + watchedLimit);
             }
+        }
+
+        /** A watch no native limit operation pauses. */
+        public Managed(ManagedProcess process, OptionalLong watchedLimit, long watchGeneration) {
+            this(process, watchedLimit, watchGeneration, false);
         }
 
         public ProcessIdentity identity() {
@@ -189,6 +198,8 @@ public final class OomGuard {
         boolean policyCleared;
         boolean exceededPending;
         boolean policyActed;
+        /** A native memory limit may be landing (risk D6): the policy neither moves nor acts meanwhile. */
+        boolean watchPaused;
 
         final EnumSet<Claim> suspendClaims = EnumSet.noneOf(Claim.class);
         OomHold.Physical physical = OomHold.Physical.NONE;
@@ -520,8 +531,10 @@ public final class OomGuard {
             seen.add(process.identity());
             Entry entry = entries.computeIfAbsent(process.identity(), unused -> new Entry(process.process()));
             entry.process = process.process();
-            if (!entry.watchedLimit.equals(process.watchedLimit())
-                    || entry.watchGeneration != process.watchGeneration()) {
+            entry.watchPaused = process.watchPaused();
+            if (!process.watchPaused()
+                    && (!entry.watchedLimit.equals(process.watchedLimit())
+                            || entry.watchGeneration != process.watchGeneration())) {
                 rewatch(entry, process.watchedLimit(), process.watchGeneration());
             }
         }
@@ -971,6 +984,7 @@ public final class OomGuard {
         for (Entry entry : entries.values()) {
             entry.last = listing.get(entry.identity());
             if (entry.watchedLimit.isEmpty()
+                    || entry.watchPaused
                     || entry.last == null
                     || entry.last.residentBytes().isEmpty()) {
                 // Without a reading of the resident memory nothing crosses and nothing clears.
@@ -1008,6 +1022,10 @@ public final class OomGuard {
         boolean acted = nativeDone;
         for (Entry entry : ordered(now)) {
             if (!entry.exceededPending) {
+                continue;
+            }
+            if (entry.watchPaused) {
+                entry.notNow = notNow("a native memory limit may be landing");
                 continue;
             }
             EffectiveAction effective = effective(entry, now);
