@@ -36,6 +36,7 @@ import prism.srm.domain.SuspendedProcess;
 import prism.srm.domain.SystemSnapshot;
 import prism.srm.domain.ThemeMode;
 import prism.srm.platform.HostPlatform;
+import prism.srm.platform.WindowChrome;
 import prism.srm.ui.HighContrast;
 import prism.srm.ui.LatestValueRelay;
 import prism.srm.ui.Typefaces;
@@ -79,6 +80,9 @@ public final class App extends Application {
     private Typefaces typefaces;
     private ThemeController theme;
     private TitleBarTint titleBar;
+    /** Prepared in {@link #init}, off the JavaFX Application Thread (ADR-0019). */
+    private WindowChrome windowChrome;
+
     private HighContrast highContrast;
     private MonitoringRuntime runtime;
     private InstanceLock instance;
@@ -122,6 +126,13 @@ public final class App extends Application {
                 InstantSource.system(),
                 this::onJournalThread);
         settings = settingsStore.load();
+
+        // The title bar's native binding is loaded and the Windows build read here, not on the JavaFX
+        // Application Thread: only the per-window calls belong there (ADR-0019).
+        windowChrome = HostPlatform.windowChrome();
+        if (!windowChrome.available()) {
+            log.info("The title bar keeps the system's colors: {}", windowChrome.detail());
+        }
 
         // The third and last process-wide setting: the typeface, registered with the toolkit.
         typefaces = Typefaces.load();
@@ -290,7 +301,7 @@ public final class App extends Application {
         // The appearance of the settings file, chosen on the Settings page (UI-7).
         theme.modeProperty().set(settings.appearance());
         // UI redesign: the system's caption and border in the colors of the theme, where the system allows it.
-        titleBar = new TitleBarTint(HostPlatform.windowChrome(), theme.modeProperty(), log);
+        titleBar = new TitleBarTint(windowChrome, theme.modeProperty(), log);
         // The content in the colors of a Windows high-contrast theme while one is on.
         highContrast = new HighContrast();
         stage.show();

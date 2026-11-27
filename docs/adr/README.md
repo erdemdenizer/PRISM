@@ -29,3 +29,5 @@ enforced on an operating system, a coverage threshold.
 | [0015](0015-oom-guard-interventions.md) | OOM Guard interventions | Accepted (2026-10-13, with milestone 11; amends 0004 §3; Linux validated 2026-11-27, macOS not validated) |
 | [0016](0016-linux-native-limits-through-systemd-scopes.md) | Linux native limits through systemd transient scopes | Accepted (milestone 12; run on disposable processes in CI and on a local Ubuntu VM; not enabled in the product, K16) |
 | [0017](0017-windows-application-image.md) | The Windows application image, its launchers and what guards them | Proposed (milestone 13) |
+| [0018](0018-linux-application-image.md) | The Linux application image | Accepted (2026-11-27; verified on Ubuntu 24.04 desktop) |
+| [0019](0019-title-bar-colors-on-windows.md) | Title bar colors on Windows 11, set on the JavaFX Application Thread | Accepted (2026-11-27; run on Windows 11) |
