@@ -21,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.CleanupMode;
 import org.junit.jupiter.api.io.TempDir;
 import prism.srm.domain.EffectiveLimits;
 import prism.srm.domain.LimitKind;
@@ -55,7 +56,9 @@ class LinuxScopeLimiterTest {
     private static final LimitSpec CPU20_THROTTLE256 =
             new LimitSpec(OptionalInt.of(20), OptionalLong.of(256L << 20), MemoryBoundary.THROTTLE);
 
-    @TempDir
+    // Deleted by the test itself, with retries (TempFolders): JUnit's single try fails on Windows
+    // while a scanner holds a new file open with delete sharing.
+    @TempDir(cleanup = CleanupMode.NEVER)
     Path temp;
 
     private FakeProc proc;
@@ -81,11 +84,15 @@ class LinuxScopeLimiterTest {
 
     @AfterEach
     void noDescriptorLeaks() {
-        assertThat(linux.doubleCloses()).as("no descriptor closed twice").isZero();
-        Set<Integer> held = Set.copyOf(limiter.heldDescriptors());
-        assertThat(linux.openFds())
-                .as("every open descriptor belongs to a hold")
-                .isEqualTo(held);
+        try {
+            assertThat(linux.doubleCloses()).as("no descriptor closed twice").isZero();
+            Set<Integer> held = Set.copyOf(limiter.heldDescriptors());
+            assertThat(linux.openFds())
+                    .as("every open descriptor belongs to a hold")
+                    .isEqualTo(held);
+        } finally {
+            TempFolders.delete(temp);
+        }
     }
 
     private static LinuxNativeReadiness.SystemReadiness ready() {
