@@ -71,7 +71,6 @@ final class FakeSdBus implements SdBusApi {
     final Map<String, Answer> script = new HashMap<>();
     final List<String> sent = new ArrayList<>();
     int openCode = 1;
-    int timeoutCode = 1;
     final List<Long> callTimeouts = new ArrayList<>();
     int opened;
     int closed;
@@ -106,7 +105,9 @@ final class FakeSdBus implements SdBusApi {
     }
 
     @Override
-    public Handle openUser() {
+    public Handle openUser(long methodCallTimeoutUsec) {
+        // Every connection is opened with its call timeout already set (risk D1).
+        callTimeouts.add(methodCallTimeoutUsec);
         if (openCode < 0) {
             return new Handle(openCode, 0);
         }
@@ -114,13 +115,6 @@ final class FakeSdBus implements SdBusApi {
         buses.add(bus);
         opened++;
         return new Handle(openCode, bus);
-    }
-
-    @Override
-    public int setMethodCallTimeout(long bus, long usec) {
-        requireBus(bus);
-        callTimeouts.add(usec);
-        return timeoutCode;
     }
 
     @Override

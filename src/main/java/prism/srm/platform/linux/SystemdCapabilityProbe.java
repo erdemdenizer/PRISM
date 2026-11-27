@@ -65,7 +65,8 @@ final class SystemdCapabilityProbe {
     }
 
     static final String PRODUCT_POLICY =
-            "every process UNAVAILABLE: Linux native limits are not validated for desktop applications (K16)";
+            "every process UNAVAILABLE: Linux native limits are not validated for desktop applications"
+                    + " (not enabled in this release)";
 
     private final LibsystemdCheck.Outcome library;
     private final Function<SdBusApi, SystemdUserBus> busFactory;

@@ -111,6 +111,16 @@ class LibsystemdCheckTest {
         assertThat(JnaSystemLibraries.mapsGlibc(List.of())).isFalse();
     }
 
+    /** The list the symbol check uses is exactly what is bound: JNA binds lazily, so a method missing from it would pass. */
+    @Test
+    void theCheckedSymbolsAreExactlyTheBoundFunctions() {
+        java.util.Set<String> bound = java.util.Arrays.stream(JnaSdBusApi.LibSystemd.class.getDeclaredMethods())
+                .map(java.lang.reflect.Method::getName)
+                .collect(java.util.stream.Collectors.toSet());
+
+        assertThat(bound).isEqualTo(java.util.Set.copyOf(SdBusApi.SYMBOLS));
+    }
+
     @Test
     void theBindingHasNoSignalOrEventLoopFunction() {
         // Containers are built for the two state-changing calls (S3B); signals are never subscribed to: the start job

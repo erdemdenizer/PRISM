@@ -21,12 +21,11 @@ import java.util.regex.Pattern;
  *
  * <p>Each inspection opens its own connection, uses it on the calling thread only and closes it before returning;
  * every message is released on every path. One inspection at a time (sd-bus objects are not thread-safe). Every method
- * call PRISM makes is bounded by {@link #CALL_TIMEOUT_USEC}. The {@code Hello} call that brings the connection up is
- * not: {@code sd_bus_open_user} queues it inside {@code sd_bus_start}, sealed with libsystemd's default method-call
- * timeout ({@code SYSTEMD_BUS_TIMEOUT}, else 25 s; v255 sd-bus.c {@code bus_send_hello}, {@code bus_seal_message}),
- * before PRISM can set its own; the first call waits for it. The SASL authentication before it is bounded only by
- * libsystemd's own authentication timeout. So a hung bus broker can block an inspection for longer (final review,
- * 2026-10-16). It must never run on the JavaFX Application Thread.
+ * call PRISM makes is bounded by {@link #CALL_TIMEOUT_USEC}, the {@code Hello} call that brings the connection up
+ * included: {@link SdBusApi#openUser} sets the timeout before {@code sd_bus_start} seals that call (risk D1;
+ * {@code sd_bus_open_user} sealed it with libsystemd's default of 25 s before PRISM could set its own, final review,
+ * 2026-10-16). The SASL authentication before it is still bounded only by libsystemd's own authentication timeout.
+ * It must never run on the JavaFX Application Thread.
  *
  * <p>Interfaces, methods, properties and types: org.freedesktop.systemd1(5) of systemd v255 (Manager {@code Version},
  * {@code Features}, {@code ControlGroup}, {@code SystemState}, {@code DefaultOOMPolicy}: {@code s}; {@code GetUnit(in s
@@ -237,16 +236,12 @@ final class SystemdUserBus {
     private <T> Reading<T> inspect(Step<T> step) {
         lock.lock();
         try {
-            SdBusApi.Handle opened = api.openUser();
+            SdBusApi.Handle opened = api.openUser(CALL_TIMEOUT_USEC);
             if (opened.code() < 0 || opened.handle() == 0) {
                 api.closeUnref(opened.handle());
                 return Reading.not(Status.NO_BUS, "the user bus cannot be reached: " + errno(opened.code()));
             }
             try {
-                int bounded = api.setMethodCallTimeout(opened.handle(), CALL_TIMEOUT_USEC);
-                if (bounded < 0) {
-                    return Reading.not(Status.FAILED, "the call timeout could not be set: " + errno(bounded));
-                }
                 return Reading.ok(step.on(opened.handle()));
             } catch (Failure failure) {
                 return Reading.not(failure.status, failure.getMessage());

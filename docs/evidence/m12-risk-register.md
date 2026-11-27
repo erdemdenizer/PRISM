@@ -82,3 +82,29 @@ packaged classpath does not exist yet (M13).
 1. D1, D2, D6, D8, D11 and D14 closed; D3, D4, D5, D7, D10 and D13 fixed or accepted again.
 2. The manual verification listed under milestone 12 in [MILESTONES.md](../MILESTONES.md), on a real Linux desktop.
 3. A separate, explicit product-owner decision.
+
+## Progress, 2026-11-27
+
+Fixed, each with its own commit and tests, and reviewed by an independent native-API review; K16 stays in force:
+
+| # | Status | How |
+|---|---|---|
+| D1 | PARTLY CLOSED | The connection is built with the steps of `sd_bus_open_user` (v255: `sd_bus_new`, the same address, `sd_bus_set_bus_client`, `sd_bus_set_trusted`) and its method-call timeout set before `sd_bus_start`, which seals the `Hello()` with it (`bus_seal_message` takes the connection's timeout for a 0 one). No event-loop function is bound, as `LibsystemdCheckTest` requires; a first version that drove the connection with `sd_bus_process` and `sd_bus_wait` broke that rule and was replaced. **Left:** a broker that hangs before SASL completes still holds an open for libsystemd's authentication timeout (`BUS_AUTH_TIMEOUT` = `DEFAULT_TIMEOUT_USEC`, 90 s upstream; Ubuntu's build value not confirmed), and so the limiter lock; only moving bus work off the lock (D6) bounds that |
+| D2 | MITIGATED | The cgroup rule runs again after the pidfd is open, and the liveness and identity checks follow it, so they prove the read was the target's; a process moved out of the user's manager is not adopted. **Left:** a privileged move, an exit and a PID reuse between these checks and systemd's by-PID fallback; systemd has no conditional request, so the window cannot be closed (as D9) |
+| D8 | PARTLY CLOSED | Code: a set-group-ID program whose four group IDs differ is refused (one that made them equal itself with `setresgid` is not caught); a zombie counts as exited only with a single thread left and its start time still the target's, because a thread-group leader that exits before its threads shows 'Z' while the process runs (kernel/exit.c, pidfd_poll in kernel/fork.c). Open: the wording (memory charged before adoption stays with the old cgroup; the cpu controller does not limit real-time processes; `LimitMessages` and `NativeRecovery` texts written for Windows or for the K16 product) |
+| D11 | CLOSED | A record proves ownership only when its unit is the name PRISM gives the identity and the live invocation has exactly the recorded cgroup, which is also where a clearing reads back. **Residual:** the ledger has no integrity protection, so the same user can read a unit's invocation id and cgroup from the bus and write a matching record; the harm stays within a unit of PRISM's name for that identity |
+| D12 | CLOSED | The user-facing reason no longer names K16 |
+| D14 | CLOSED | `LimitService` asks for the memory boundary the limiter offers: `NATIVE_SOFT` (Linux `memory.high`) throttles, anything else is hard |
+
+Still open before K16 can be lifted:
+
+- **D6, must be solved.** Adoption runs on `srm-limiter` and holds it for seconds. The fix needs the native operations
+  on a thread of their own, with their results handed back to `srm-limiter`, and `LimitService` taking one native
+  operation per process at a time. That changes `LimitService`'s state handling and is a stage of its own.
+- **D8's wording**, above.
+- **D3, D4, D5, D7, D10, D13** to be fixed or accepted again, each with a written reason.
+- **What the product does not have yet:** an eligibility policy for desktop processes (today only `none()` and the
+  test harness's), and a consent in the window for the one-way move into a scope (`NativeConsent` is `none()` in the
+  product, which refuses every adoption).
+- The manual verification of milestone 12 on a real Linux desktop (a Hyper-V Ubuntu 24.04.5 desktop is available for
+  it since 2026-11-26), and the product owner's decision.

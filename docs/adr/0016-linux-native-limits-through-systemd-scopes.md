@@ -328,7 +328,7 @@ documentation (the planning evidence, doc-facts, of plan Rev 2.2):
   record on 2026-11-07.
 - **K16.** `HostPlatform` builds `LinuxScopeLimiter.product(...)`, which admits no process, opens no bus and reports
   every process `UNAVAILABLE` ("Linux native limits are not validated for desktop applications"; the system-wide report
-  adds "(implemented, not enabled: K16)"). There is no
+  adds "(implemented, not enabled in this release)"; until 2026-11-27 it said "K16", an internal label, risk D12). There is no
   setting, property or environment variable that changes this; only the test harness composes an admitting limiter,
   for identities it started itself. K16 is an active safety restriction in the current product. It can be lifted later only
   after separate validation and with the product owner's explicit approval; accepting this ADR does not lift it.

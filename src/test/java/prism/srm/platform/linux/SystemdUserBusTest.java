@@ -202,12 +202,20 @@ class SystemdUserBusTest {
                 .isEqualTo(SystemdUserBus.Status.ACCESS_DENIED);
     }
 
+    /**
+     * Risk D1: the connection is opened with the call bound already set, so that the Hello call is sealed with it; a
+     * connection that cannot be opened that way (a timeout that cannot be set included) sends nothing.
+     */
     @Test
-    void aTimeoutThatCannotBeSetEndsTheInspectionBeforeAnyCall() {
-        fake.timeoutCode = -22;
+    void theConnectionIsOpenedWithTheCallBoundAndOneThatCannotBeSendsNothing() {
+        bus.manager();
+        assertThat(fake.callTimeouts).containsOnly(SystemdUserBus.CALL_TIMEOUT_USEC);
+        int sentBefore = fake.sent.size();
 
-        assertThat(bus.manager().status()).isEqualTo(SystemdUserBus.Status.FAILED);
-        assertThat(fake.sent).isEmpty();
+        fake.openCode = -22;
+
+        assertThat(bus.manager().status()).isEqualTo(SystemdUserBus.Status.NO_BUS);
+        assertThat(fake.sent).hasSize(sentBefore);
     }
 
     @Test

@@ -225,7 +225,7 @@ final class SystemdScopeManager implements ScopeManager {
     private Outcome send(WriteMethod method, String path, Body body) {
         lock.lock();
         try {
-            SdBusApi.Handle opened = api.openUser();
+            SdBusApi.Handle opened = api.openUser(SystemdUserBus.CALL_TIMEOUT_USEC);
             if (opened.code() < 0 || opened.handle() == 0) {
                 api.closeUnref(opened.handle());
                 return new Outcome(
@@ -235,10 +235,6 @@ final class SystemdScopeManager implements ScopeManager {
             }
             long bus = opened.handle();
             try {
-                int bounded = api.setMethodCallTimeout(bus, SystemdUserBus.CALL_TIMEOUT_USEC);
-                if (bounded < 0) {
-                    return new Outcome(Outcome.Kind.REFUSED, "", "the call timeout could not be set");
-                }
                 SdBusApi.Handle created =
                         api.newMethodCall(bus, SystemdUserBus.DESTINATION, path, method.iface, method.member);
                 if (created.code() < 0 || created.handle() == 0) {

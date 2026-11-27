@@ -208,6 +208,55 @@ class LinuxScopeLimiterTest {
         assertThat(systemd.calls).isEmpty();
     }
 
+    /** Risk D8: a set-group-ID program runs with a group the user did not start it with; it is not adopted. */
+    @Test
+    void aSetGroupIdProgramIsNotEligible() {
+        proc.gids(PID, 1000, 5, 5, 5);
+
+        assertThat(limiter.capabilitiesFor(DEMO).get(LimitKind.CPU).reason().orElseThrow())
+                .contains("set-group-ID");
+        ApplyResult result = limiter.apply(DEMO, CPU20_THROTTLE256, p -> true);
+        assertThat(result.phase()).isEqualTo(ApplyResult.Phase.NOT_ASSIGNED);
+        assertThat(systemd.calls).noneMatch(call -> call.startsWith("start"));
+    }
+
+    /**
+     * A leader that exited before its other threads shows 'Z' while they run: the process lives, its limits stay
+     * (native-API review of risk D8).
+     */
+    @Test
+    void aZombieLeaderWithLiveThreadsStillRuns() {
+        proc.process(PID, "demo", TICKS, 2072, 2073);
+        apply(CPU20_THROTTLE256);
+        proc.state(PID, 'Z');
+
+        assertThat(limiter.forget(DEMO).result()).isEqualTo(ForgetResult.Outcome.STILL_RUNS);
+        assertThat(systemd.read(group(), "cpu.max")).isEqualTo("80000 100000");
+    }
+
+    /** Risk D8: a zombie has exited, though signal 0 still reaches it; it is not "moved" out of its scope. */
+    @Test
+    void aZombieHasExitedAlthoughSignalZeroStillReachesIt() {
+        apply(CPU20_THROTTLE256);
+        proc.state(PID, 'Z');
+        systemd.writeMembers(group());
+
+        assertThat(limiter.forget(DEMO).result()).isEqualTo(ForgetResult.Outcome.NOTHING_TO_RELEASE);
+    }
+
+    /** Risk D2: the cgroup is read again once the pidfd pins the process; moved out meanwhile, nothing is asked for. */
+    @Test
+    void aProcessMovedOutOfTheManagerAfterTheOpenIsNotAdopted() {
+        linux.afterOpen = () -> systemd.placeProcess(PID, "/system.slice/other.service");
+
+        ApplyResult result = limiter.apply(DEMO, CPU20_THROTTLE256, p -> true);
+
+        assertThat(result.phase()).isEqualTo(ApplyResult.Phase.NOT_ASSIGNED);
+        assertThat(result.outcome().detail().orElseThrow()).contains("outside your session manager");
+        assertThat(systemd.calls).noneMatch(call -> call.startsWith("start"));
+        assertThat(linux.openFds()).as("the pidfd is closed").isEmpty();
+    }
+
     // ----- Adoption -----
 
     @Test
@@ -1203,6 +1252,37 @@ class LinuxScopeLimiterTest {
 
         assertThat(systemd.setCalls()).as("recovery only reads").isZero();
         assertThat(systemd.calls).noneMatch(c -> c.startsWith("start "));
+    }
+
+    /** Risk D11: a record proves only its own scope: the name PRISM gives the process and the recorded cgroup. */
+    @Test
+    void aRecordWithAnotherScopeNameOrCgroupProvesNothingAndClearsNothing() {
+        FakeScopeManager.Unit unit = systemd.addUnit(UNIT, INV, PID);
+        systemd.writeLimits(unit.group, "80000 100000", String.valueOf(256L << 20), "max");
+        LimitRecord base = LimitRecord.intended(DEMO, "demo", CPU20_THROTTLE256.effective(), "1-1")
+                .applied(CPU20_THROTTLE256.effective());
+
+        // A unit of another name, even one whose invocation and cgroup match the live unit.
+        LimitRecord otherName = base.withProvenance(
+                new ScopeProvenance("prism-srm-limit-9999-1.scope", Optional.of(INV), Optional.of(group())));
+        RecoveredLimit named = limiter.recover(otherName);
+        assertThat(named.verdict()).isEqualTo(RecoveredLimit.Verdict.UNPROVEN_SCOPE);
+        assertThat(named.detail()).contains("does not give this process");
+        // Another cgroup recorded for the right unit and invocation.
+        LimitRecord otherGroup = base.withProvenance(
+                new ScopeProvenance(UNIT, Optional.of(INV), Optional.of(MANAGER + "/app.slice/somewhere-else.scope")));
+        assertThat(limiter.recover(otherGroup).verdict()).isEqualTo(RecoveredLimit.Verdict.UNPROVEN_SCOPE);
+        // No cgroup recorded at all.
+        LimitRecord noGroup = base.withProvenance(new ScopeProvenance(UNIT, Optional.of(INV), Optional.empty()));
+        assertThat(limiter.recover(noGroup).detail()).contains("never recorded");
+
+        for (LimitRecord crafted : List.of(otherName, otherGroup, noGroup)) {
+            assertThat(limiter.clearOwned(crafted).result()).isEqualTo(ClearResult.Outcome.NOT_OWNED);
+        }
+        assertThat(systemd.setCalls())
+                .as("nothing is cleared on an unproven record")
+                .isZero();
+        assertThat(systemd.read(unit.group, "cpu.max")).isEqualTo("80000 100000");
     }
 
     @Test
