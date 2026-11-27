@@ -493,6 +493,11 @@ class CpuLimitIntegrationTest {
                 .as("the user's suspension: %s", suspended)
                 .isEqualTo(SuspensionCoordinator.Change.SUSPENDED);
         assertThat(suspended.recorded()).isTrue();
+        // A stop signal takes hold asynchronously: each thread stops when it next handles signals, so the
+        // kernel can still report the process running for a moment. The next session read it 2 ms after
+        // the "crash", found it running and rightly closed the entry (hosted Ubuntu, 2026-11-26). A real
+        // restart comes much later; this test starts from the process actually stopped.
+        await(this::heldBySystem, Duration.ofSeconds(5));
         // What a kill of PRISM leaves: the entry on disk, the process stopped, nothing held by a live session.
         limits.stopForShutdown();
         coordinator.refuseFurtherSuspensions();
@@ -662,6 +667,12 @@ class CpuLimitIntegrationTest {
                     .isEqualTo("held");
             // From outside: the workload is stopped, by the only thing that suspends it, the child's limiter.
             if (!perThread) {
+                // The child says "held" once its SIGSTOP is sent; each thread stops when it next handles
+                // signals, so the kernel shows the stop a moment later (Ubuntu VM, 2026-11-27). Nothing
+                // continues the workload after "held", so waiting for it is safe.
+                await(
+                        () -> host.processController().stopState(demo.identity()) == StopState.STOPPED,
+                        Duration.ofSeconds(5));
                 assertThat(host.processController().stopState(demo.identity()))
                         .as("the kernel's state of the workload")
                         .isEqualTo(StopState.STOPPED);
@@ -869,7 +880,12 @@ class CpuLimitIntegrationTest {
     @EnabledOnOs({OS.LINUX, OS.MAC})
     void aProcessStoppedByAnotherProgramIsNeitherHeldNorContinuedByTheLimiter() throws Exception {
         demo = busy(Math.min(2, PROCESSORS), "60s");
-        manageAndLimit(10);
+        // A stop seen by the limiter lands in its run phase; one that lands while the limiter holds the process, or
+        // before the kernel shows the stop, ends with the limiter's continue (ADR-0011, residual risks). At 10 % the
+        // run
+        // phase was so short that five stops in a row went unseen on a hosted macOS runner (2026-11-26); at 25 % it is
+        // several times longer, and a limiter that never notices still fails.
+        manageAndLimit(25);
         Thread.sleep(3_000);
         ProcessController other = HostPlatform.create().processController();
         SuspendResult outside = stopFromOutsideUntilTheLimiterWaits(other);
@@ -891,7 +907,7 @@ class CpuLimitIntegrationTest {
      * program then stops it again. A limiter that never notices still fails here.
      */
     private SuspendResult stopFromOutsideUntilTheLimiterWaits(ProcessController other) throws InterruptedException {
-        for (int attempt = 1; attempt <= 5; attempt++) {
+        for (int attempt = 1; attempt <= 8; attempt++) {
             SuspendResult outside = other.suspend(demo.identity());
             for (int tries = 0; !outside.outcome().succeeded() && tries < 100; tries++) {
                 // The limiter held it at that moment: the other program tries again a moment later.
