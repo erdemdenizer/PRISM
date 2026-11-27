@@ -1498,6 +1498,115 @@ class LinuxScopeLimiterTest {
         }
     }
 
+    /**
+     * Risk D6: the limit service reads the holds on its limiter thread while its worker adopts, so a read must not wait
+     * for the lock an adoption holds for as long as the manager takes.
+     */
+    @Test
+    void holdIsReadWithoutTheLockWhileAnAdoptionWaitsForTheManager() throws Exception {
+        CountDownLatch inside = new CountDownLatch(1);
+        CountDownLatch answer = new CountDownLatch(1);
+        systemd.afterStart = () -> {
+            inside.countDown();
+            try {
+                answer.await(10, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        };
+        ExecutorService pool = Executors.newFixedThreadPool(2);
+        try {
+            Future<ApplyResult> adoption = pool.submit(() -> apply(CPU20_THROTTLE256));
+            assertThat(inside.await(10, TimeUnit.SECONDS)).isTrue();
+
+            Optional<NativeHold> during = pool.submit(() -> limiter.hold(DEMO)).get(2, TimeUnit.SECONDS);
+
+            assertThat(adoption.isDone())
+                    .as("the adoption still waits for the manager")
+                    .isFalse();
+            assertThat(during)
+                    .as("held from the moment the start is asked, and uncertain until proven")
+                    .contains(new NativeHold(NativeHold.State.UNCERTAIN, Optional.empty()));
+            answer.countDown();
+            assertThat(adoption.get(10, TimeUnit.SECONDS).phase()).isEqualTo(ApplyResult.Phase.ENFORCED);
+            assertThat(limiter.hold(DEMO))
+                    .contains(new NativeHold(NativeHold.State.ASSIGNED, Optional.of(CPU20_THROTTLE256.effective())));
+        } finally {
+            answer.countDown();
+            pool.shutdownNow();
+        }
+    }
+
+    /**
+     * Risk D13: a release whose worker gets the lock only after its deadline, because an adoption held it, reaches no
+     * hold and lets go of none: the hold keeps its descriptor, and a later release clears its scope.
+     */
+    @Test
+    void aReleaseThatTakesTheLockPastItsDeadlineLeavesTheHoldForTheNextRelease() throws Exception {
+        CountDownLatch inside = new CountDownLatch(1);
+        CountDownLatch answer = new CountDownLatch(1);
+        systemd.afterStart = () -> {
+            inside.countDown();
+            try {
+                answer.await(10, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            // The adoption outlasts the release's deadline on the limiter's clock, still holding the lock; the release
+            // reads the clock once it has the lock, after this.
+            clock[0] += Duration.ofSeconds(10).toNanos();
+        };
+        ExecutorService pool = Executors.newFixedThreadPool(2);
+        try {
+            Future<ApplyResult> adoption = pool.submit(() -> apply(CPU20_THROTTLE256));
+            assertThat(inside.await(10, TimeUnit.SECONDS)).isTrue();
+            Set<Thread> earlier = releaseThreads();
+            Future<ReleaseResult> release = pool.submit(() -> limiter.releaseAll(Duration.ofSeconds(5)));
+            awaitReleaseThreadBeyond(earlier);
+
+            answer.countDown();
+            ReleaseResult late = release.get(10, TimeUnit.SECONDS);
+            adoption.get(10, TimeUnit.SECONDS);
+
+            assertThat(late.timedOut()).isTrue();
+            assertThat(late.notReached()).containsExactly(DEMO);
+            assertThat(late.cleared()).isEmpty();
+            assertThat(limiter.heldDescriptors())
+                    .as("the hold keeps its descriptor")
+                    .hasSize(1);
+            assertThat(systemd.read(group(), "cpu.max"))
+                    .as("its limit is still in force")
+                    .isNotEqualTo("max 100000");
+
+            ReleaseResult next = limiter.releaseAll(Duration.ofSeconds(1));
+
+            assertThat(next.complete()).isTrue();
+            assertThat(next.cleared()).containsEntry(DEMO, true);
+            assertThat(systemd.read(group(), "cpu.max")).isEqualTo("max 100000");
+            assertThat(limiter.heldDescriptors()).isEmpty();
+        } finally {
+            answer.countDown();
+            pool.shutdownNow();
+        }
+    }
+
+    private static Set<Thread> releaseThreads() {
+        return Thread.getAllStackTraces().keySet().stream()
+                .filter(thread -> thread.getName().equals("srm-linux-release"))
+                .collect(java.util.stream.Collectors.toSet());
+    }
+
+    /** Waits until the release has set its deadline and started its worker: one not among {@code earlier}. */
+    private static void awaitReleaseThreadBeyond(Set<Thread> earlier) throws InterruptedException {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+        while (earlier.containsAll(releaseThreads())) {
+            assertThat(System.nanoTime() - deadline)
+                    .as("the release worker starts")
+                    .isNegative();
+            Thread.sleep(5);
+        }
+    }
+
     private static void awaitNoReleaseThread() throws InterruptedException {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
         while (Thread.getAllStackTraces().keySet().stream()
@@ -1648,6 +1757,15 @@ class LinuxScopeLimiterTest {
         assertThat(released.cleared()).hasSize(1).containsValue(false);
         assertThat(released.notReached()).hasSize(1);
         assertThat(systemd.setCalls()).as("nothing sent past the bound").isEqualTo(sets);
+        // Risk D13: the hold not reached keeps its descriptor, so that a later release can still clear its scope.
+        assertThat(limiter.heldDescriptors()).hasSize(1);
+        ProcessIdentity unreached = released.notReached().iterator().next();
+        systemd.onUnitRead = () -> {};
+
+        ReleaseResult later = limiter.releaseAll(Duration.ofSeconds(1));
+
+        assertThat(later.complete()).isTrue();
+        assertThat(later.cleared()).containsOnlyKeys(unreached).containsEntry(unreached, true);
         assertThat(limiter.heldDescriptors()).isEmpty();
     }
 }

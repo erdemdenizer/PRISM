@@ -85,6 +85,10 @@ import prism.srm.domain.VersionedSettings;
  *       logical processors the limits are measured against. OOM Guard's interventions run here
  *       too (ADR-0015): one evaluation per memory sample and per listing at most, never more than
  *       one waiting.
+ *   <li>{@code srm-native-limit}: the native part of every native limit operation (an assignment,
+ *       a change, letting go of an exited process's job), one at a time, handed over by the limiter
+ *       thread, which takes the answer back (risk D6): an operation that waits for the system never
+ *       holds up the steps of a limit or OOM Guard. It exists from the first such operation on.
  *   <li>{@code srm-shutdown}: the controlled shutdown.
  * </ul>
  *
@@ -144,6 +148,7 @@ final class MonitoringRuntime {
     private static final String DETAILS_THREAD = "srm-process-details";
     private static final String CONTROL_THREAD = "srm-process-control";
     private static final String LIMITER_THREAD = "srm-limiter";
+    private static final String NATIVE_LIMIT_THREAD = "srm-native-limit";
     private static final String JOURNAL_THREAD = "srm-journal";
     private static final String RECOVERY_THREAD = "srm-recovery";
 
@@ -167,6 +172,19 @@ final class MonitoringRuntime {
 
     /** The longest the shutdown waits for a step of a CPU limit to end. */
     static final Duration LIMITER_STOP_BOUND = Duration.ofSeconds(1);
+
+    /**
+     * The longest the shutdown waits for a native limit operation in flight (risk D6), before it clears the native
+     * limits. Each call in it is bounded on its own (a bus call by its 2 s timeout); one that outlasts this is
+     * interrupted, and what it leaves the release reports as not reached.
+     */
+    static final Duration NATIVE_STOP_BOUND = Duration.ofMillis(1_500);
+
+    /**
+     * Native limit operations that may wait for their worker. The limit service hands over one at a time and keeps
+     * the others itself, so at most one waits here, while the worker finishes the one before.
+     */
+    static final int NATIVE_QUEUE = 2;
 
     /**
      * The longest the release at an exit without the controlled shutdown takes in all (LIFE-5), every
@@ -302,6 +320,7 @@ final class MonitoringRuntime {
     private final ThreadPoolExecutor detailsExecutor;
     private final ThreadPoolExecutor controlExecutor;
     private final ScheduledThreadPoolExecutor limiterExecutor;
+    private final ThreadPoolExecutor nativeExecutor;
     private final ThreadPoolExecutor journalExecutor;
     private final ScheduledThreadPoolExecutor recoveryExecutor;
     private final List<Duration> recoveryRetries;
@@ -416,6 +435,14 @@ final class MonitoringRuntime {
         this.detailsExecutor = newDetailsExecutor();
         this.controlExecutor = newControlExecutor();
         this.limiterExecutor = newScheduledExecutor(LIMITER_THREAD);
+        this.nativeExecutor = new ThreadPoolExecutor(
+                1,
+                1,
+                0,
+                TimeUnit.SECONDS,
+                new ArrayBlockingQueue<>(NATIVE_QUEUE),
+                task -> newThread(task, NATIVE_LIMIT_THREAD, true),
+                new ThreadPoolExecutor.AbortPolicy());
         this.recoveryExecutor = newScheduledExecutor(RECOVERY_THREAD);
         this.journalExecutor = new ThreadPoolExecutor(
                 1,
@@ -643,6 +670,8 @@ final class MonitoringRuntime {
         if (limits != null) {
             limits.stopForShutdown();
         }
+        // A native operation in flight ends by its own bounds; none is begun from here on.
+        nativeExecutor.shutdown();
         if (suspensions != null) {
             suspensions.releaseForExit(Duration.ofNanos(Math.min(left(deadline), EXIT_SUSPENSIONS_BOUND.toNanos())));
         }
@@ -687,6 +716,7 @@ final class MonitoringRuntime {
                 && detailsExecutor.isTerminated()
                 && controlExecutor.isTerminated()
                 && limiterExecutor.isTerminated()
+                && nativeExecutor.isTerminated()
                 && journalExecutor.isTerminated()
                 && recoveryExecutor.isTerminated();
     }
@@ -1013,6 +1043,7 @@ final class MonitoringRuntime {
                 nativeLedger,
                 nativeRecovery == null ? EarlierLimits.NONE : nativeRecovery,
                 guard,
+                nativeExecutor,
                 listeners.limitResults(),
                 listeners.limits());
         NativeRecovery recovery = nativeRecovery;
@@ -1185,6 +1216,8 @@ final class MonitoringRuntime {
                     if (limits != null) {
                         limits.stopForShutdown();
                     }
+                    // No native operation is begun from here on; one in flight is waited for below (risk D6).
+                    nativeExecutor.shutdown();
                     limiterExecutor.shutdown();
                     long bound = Math.min(deadline, nanoClock.getAsLong() + LIMITER_STOP_BOUND.toNanos());
                     awaitExecutor(limiterExecutor, "A step of a CPU limit", LIMITER_THREAD, bound);
@@ -1233,6 +1266,13 @@ final class MonitoringRuntime {
                     if (suspensions != null) {
                         suspensions.finalizeForShutdown(Duration.ofNanos(remaining(deadline)));
                     }
+                })
+                // Risk D6: a native operation in flight ends first, within its own bound, so that the release
+                // finds the limiter free; one that outlasts it is interrupted (its waits end fail-closed).
+                .step("finish native limit operations in flight", () -> {
+                    nativeExecutor.shutdown();
+                    long bound = Math.min(deadline, nanoClock.getAsLong() + NATIVE_STOP_BOUND.toNanos());
+                    awaitExecutor(nativeExecutor, "A native limit operation", NATIVE_LIMIT_THREAD, bound);
                 })
                 // LIFE-1 step 3 (milestone 10): after the suspensions, every native limit is cleared and
                 // verified, every job let go, and the ledger written; an empty ledger goes.
