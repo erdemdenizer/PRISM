@@ -4,7 +4,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.LongSupplier;
 import java.util.regex.Pattern;
 
 /**
@@ -95,17 +94,11 @@ final class SystemdScopeManager implements ScopeManager {
 
     private final SdBusApi api;
     private final SystemdUserBus reads;
-    private final LongSupplier nanoTime;
     private final ReentrantLock lock = new ReentrantLock();
 
     SystemdScopeManager(SdBusApi api) {
-        this(api, System::nanoTime);
-    }
-
-    SystemdScopeManager(SdBusApi api, LongSupplier nanoTime) {
         this.api = Objects.requireNonNull(api, "api");
-        this.nanoTime = Objects.requireNonNull(nanoTime, "nanoTime");
-        this.reads = new SystemdUserBus(api, () -> ProcessHandle.current().pid(), nanoTime);
+        this.reads = new SystemdUserBus(api);
     }
 
     @FunctionalInterface
@@ -232,7 +225,7 @@ final class SystemdScopeManager implements ScopeManager {
     private Outcome send(WriteMethod method, String path, Body body) {
         lock.lock();
         try {
-            SdBusApi.Handle opened = api.openUser();
+            SdBusApi.Handle opened = api.openUser(SystemdUserBus.CALL_TIMEOUT_USEC);
             if (opened.code() < 0 || opened.handle() == 0) {
                 api.closeUnref(opened.handle());
                 return new Outcome(
@@ -242,15 +235,6 @@ final class SystemdScopeManager implements ScopeManager {
             }
             long bus = opened.handle();
             try {
-                int bounded = api.setMethodCallTimeout(bus, SystemdUserBus.CALL_TIMEOUT_USEC);
-                if (bounded < 0) {
-                    return new Outcome(Outcome.Kind.REFUSED, "", "the call timeout could not be set");
-                }
-                // Risk D1: nothing is sent until the connection is up within the same bound.
-                Optional<SystemdUserBus.NotReady> down = SystemdUserBus.awaitReady(api, bus, nanoTime);
-                if (down.isPresent()) {
-                    return new Outcome(Outcome.Kind.REFUSED, "", down.get().detail());
-                }
                 SdBusApi.Handle created =
                         api.newMethodCall(bus, SystemdUserBus.DESTINATION, path, method.iface, method.member);
                 if (created.code() < 0 || created.handle() == 0) {

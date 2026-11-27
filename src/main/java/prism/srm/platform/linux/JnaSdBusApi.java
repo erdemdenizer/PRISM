@@ -46,17 +46,19 @@ final class JnaSdBusApi implements SdBusApi {
     /** The mapped functions. */
     interface LibSystemd extends Library {
 
-        int sd_bus_open_user(PointerByReference ret);
+        int sd_bus_new(PointerByReference ret);
 
-        Pointer sd_bus_close_unref(Pointer bus);
+        int sd_bus_set_address(Pointer bus, String address);
+
+        int sd_bus_set_bus_client(Pointer bus, int b);
+
+        int sd_bus_set_trusted(Pointer bus, int b);
 
         int sd_bus_set_method_call_timeout(Pointer bus, long usec);
 
-        int sd_bus_is_ready(Pointer bus);
+        int sd_bus_start(Pointer bus);
 
-        int sd_bus_process(Pointer bus, PointerByReference ret);
-
-        int sd_bus_wait(Pointer bus, long timeoutUsec);
+        Pointer sd_bus_close_unref(Pointer bus);
 
         int sd_bus_message_new_method_call(
                 Pointer bus, PointerByReference m, String destination, String path, String iface, String member);
@@ -112,11 +114,68 @@ final class JnaSdBusApi implements SdBusApi {
         return pointer == null ? 0 : Pointer.nativeValue(pointer);
     }
 
+    /** {@code ENOMEDIUM}: what {@code bus_set_address_user} answers when {@code $XDG_RUNTIME_DIR} is not set. */
+    private static final int ENOMEDIUM = 123;
+
     @Override
-    public Handle openUser() {
-        PointerByReference bus = new PointerByReference();
-        int code = lib.sd_bus_open_user(bus);
-        return new Handle(code, code < 0 ? 0 : handle(bus.getValue()));
+    public Handle openUser(long methodCallTimeoutUsec) {
+        Optional<String> address = userBusAddress(System::getenv);
+        if (address.isEmpty()) {
+            return new Handle(-ENOMEDIUM, 0);
+        }
+        PointerByReference created = new PointerByReference();
+        int code = lib.sd_bus_new(created);
+        if (code < 0) {
+            return new Handle(code, 0);
+        }
+        Pointer bus = created.getValue();
+        code = lib.sd_bus_set_address(bus, address.get());
+        if (code >= 0) {
+            code = lib.sd_bus_set_bus_client(bus, 1);
+        }
+        if (code >= 0) {
+            // As sd_bus_open_user does: no per-method access control on the user bus (it exports no objects here).
+            code = lib.sd_bus_set_trusted(bus, 1);
+        }
+        if (code >= 0) {
+            code = lib.sd_bus_set_method_call_timeout(bus, methodCallTimeoutUsec);
+        }
+        if (code >= 0) {
+            code = lib.sd_bus_start(bus);
+        }
+        if (code < 0) {
+            lib.sd_bus_close_unref(bus);
+            return new Handle(code, 0);
+        }
+        return new Handle(code, handle(bus));
+    }
+
+    /**
+     * The address {@code bus_set_address_user} (systemd v255, sd-bus.c) gives the user bus: {@code
+     * $DBUS_SESSION_BUS_ADDRESS} when set, otherwise {@code unix:path=<$XDG_RUNTIME_DIR>/bus} with the directory
+     * escaped by {@code bus_address_escape} (bus-internal.c): ASCII letters, digits and {@code _-/.} kept, every other
+     * byte of its UTF-8 written {@code %xx} in lowercase hexadecimal. Empty when neither variable is set, where that
+     * function fails with {@code ENOMEDIUM}.
+     */
+    static Optional<String> userBusAddress(java.util.function.Function<String, String> environment) {
+        String session = environment.apply("DBUS_SESSION_BUS_ADDRESS");
+        if (session != null) {
+            return Optional.of(session);
+        }
+        String runtime = environment.apply("XDG_RUNTIME_DIR");
+        if (runtime == null) {
+            return Optional.empty();
+        }
+        StringBuilder escaped = new StringBuilder("unix:path=");
+        for (byte b : runtime.getBytes(StandardCharsets.UTF_8)) {
+            int c = b & 0xFF;
+            if ((c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || "_-/.".indexOf(c) >= 0) {
+                escaped.append((char) c);
+            } else {
+                escaped.append('%').append(Character.forDigit(c >> 4, 16)).append(Character.forDigit(c & 0xF, 16));
+            }
+        }
+        return Optional.of(escaped.append("/bus").toString());
     }
 
     @Override
@@ -124,27 +183,6 @@ final class JnaSdBusApi implements SdBusApi {
         if (bus != 0) {
             lib.sd_bus_close_unref(pointer(bus));
         }
-    }
-
-    @Override
-    public int setMethodCallTimeout(long bus, long usec) {
-        return lib.sd_bus_set_method_call_timeout(pointer(bus), usec);
-    }
-
-    @Override
-    public int isReady(long bus) {
-        return lib.sd_bus_is_ready(pointer(bus));
-    }
-
-    @Override
-    public int process(long bus) {
-        // ret NULL: no message is handed out, so there is nothing to release (sd_bus_process(3)).
-        return lib.sd_bus_process(pointer(bus), null);
-    }
-
-    @Override
-    public int waitFor(long bus, long usec) {
-        return lib.sd_bus_wait(pointer(bus), usec);
     }
 
     @Override

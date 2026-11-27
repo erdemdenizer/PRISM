@@ -202,61 +202,25 @@ class SystemdUserBusTest {
                 .isEqualTo(SystemdUserBus.Status.ACCESS_DENIED);
     }
 
+    /**
+     * Risk D1: the connection is opened with the call bound already set, so that the Hello call is sealed with it; a
+     * connection that cannot be opened that way (a timeout that cannot be set included) sends nothing.
+     */
     @Test
-    void aTimeoutThatCannotBeSetEndsTheInspectionBeforeAnyCall() {
-        fake.timeoutCode = -22;
+    void theConnectionIsOpenedWithTheCallBoundAndOneThatCannotBeSendsNothing() {
+        bus.manager();
+        assertThat(fake.callTimeouts).containsOnly(SystemdUserBus.CALL_TIMEOUT_USEC);
+        int sentBefore = fake.sent.size();
 
-        assertThat(bus.manager().status()).isEqualTo(SystemdUserBus.Status.FAILED);
-        assertThat(fake.sent).isEmpty();
+        fake.openCode = -22;
+
+        assertThat(bus.manager().status()).isEqualTo(SystemdUserBus.Status.NO_BUS);
+        assertThat(fake.sent).hasSize(sentBefore);
     }
 
     @Test
     void withoutAUserBusNothingIsSent() {
         fake.openCode = -SystemdUserBus.ENOMEDIUM;
-
-        SystemdUserBus.Reading<SystemdUserBus.ManagerFacts> read = bus.manager();
-
-        assertThat(read.status()).isEqualTo(SystemdUserBus.Status.NO_BUS);
-        assertThat(read.detail()).contains("ENOMEDIUM");
-        assertThat(fake.sent).isEmpty();
-    }
-
-    /** Risk D1: a broker that never answers Hello holds an inspection no longer than the call bound. */
-    @Test
-    void aConnectionThatNeverComesUpTimesOutWithinTheBoundAndSendsNothing() {
-        fake.readyCode = 0;
-        fake.processCode = 0;
-        long[] now = {0};
-        // Each look at the clock is half a second later, as if every wait had used up its time.
-        bus = new SystemdUserBus(fake, () -> 4242, () -> now[0] += 500_000_000L);
-
-        SystemdUserBus.Reading<SystemdUserBus.ManagerFacts> read = bus.manager();
-
-        assertThat(read.status()).isEqualTo(SystemdUserBus.Status.TIMEOUT);
-        assertThat(read.detail()).contains("did not come up within 2000 ms");
-        assertThat(fake.sent).isEmpty();
-        assertThat(fake.waits)
-                .isNotEmpty()
-                .allSatisfy(
-                        usec -> assertThat(usec).isPositive().isLessThanOrEqualTo(SystemdUserBus.CALL_TIMEOUT_USEC));
-        // It stops at the first look past the deadline: the first look plus the 2 s bound.
-        assertThat(now[0]).isLessThanOrEqualTo(500_000_000L + SystemdUserBus.CALL_TIMEOUT_USEC * 1_000L);
-    }
-
-    @Test
-    void aConnectionThatComesUpAfterSomeStepsIsUsed() {
-        fake.processStepsUntilReady = 3;
-
-        SystemdUserBus.Reading<SystemdUserBus.ManagerFacts> read = bus.manager();
-
-        assertThat(read.status()).isEqualTo(SystemdUserBus.Status.OK);
-        assertThat(fake.processCalls).isEqualTo(3);
-    }
-
-    @Test
-    void aConnectionThatFailsWhileComingUpIsNoBusAndSendsNothing() {
-        fake.readyCode = 0;
-        fake.processCode = -SystemdUserBus.ENOMEDIUM;
 
         SystemdUserBus.Reading<SystemdUserBus.ManagerFacts> read = bus.manager();
 

@@ -101,20 +101,6 @@ class SystemdScopeManagerTest {
         assertThat(opened).as("every container closed").isEqualTo(closed);
     }
 
-    /** Risk D1: no scope is asked for on a connection that did not come up within the bound. */
-    @Test
-    void aConnectionThatNeverComesUpSendsNoStartAndCreatesNothing() {
-        bus.readyCode = 0;
-        bus.processCode = 0;
-        long[] now = {0};
-        manager = new SystemdScopeManager(bus, () -> now[0] += 500_000_000L);
-
-        ScopeManager.Start start = manager.startScope(UNIT, 17, "PRISM limit for PID 2071");
-
-        assertThat(start.status()).isEqualTo(ScopeManager.StartStatus.REFUSED);
-        assertThat(bus.sent).isEmpty();
-    }
-
     @Test
     void eachStartAnswerIsARefusalOrAnUnknownOutcome() {
         expectStart(-17, "org.freedesktop.systemd1.UnitExists", "exists", ScopeManager.StartStatus.UNIT_EXISTS);

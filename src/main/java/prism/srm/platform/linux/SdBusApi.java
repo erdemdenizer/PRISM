@@ -19,12 +19,13 @@ interface SdBusApi {
 
     /** Every libsystemd symbol this interface binds; all must be found before the library is loaded (P2). */
     List<String> SYMBOLS = List.of(
-            "sd_bus_open_user",
-            "sd_bus_close_unref",
+            "sd_bus_new",
+            "sd_bus_set_address",
+            "sd_bus_set_bus_client",
+            "sd_bus_set_trusted",
             "sd_bus_set_method_call_timeout",
-            "sd_bus_is_ready",
-            "sd_bus_process",
-            "sd_bus_wait",
+            "sd_bus_start",
+            "sd_bus_close_unref",
             "sd_bus_message_new_method_call",
             "sd_bus_message_append_basic",
             "sd_bus_message_open_container",
@@ -61,41 +62,25 @@ interface SdBusApi {
         }
     }
 
-    /** {@code int sd_bus_open_user(sd_bus **ret)}: a new connection to the calling user's bus. */
-    Handle openUser();
+    /**
+     * A new connection to the calling user's bus whose method calls, the {@code Hello()} that brings it up included,
+     * are bounded by {@code methodCallTimeoutUsec} (risk D1). The steps of {@code sd_bus_open_user} in systemd v255
+     * ({@code sd_bus_open_user_with_description}, sd-bus.c), with the timeout set before the start: {@code sd_bus_new},
+     * {@code sd_bus_set_address} (the address {@code bus_set_address_user} computes), {@code sd_bus_set_bus_client} and
+     * {@code sd_bus_set_trusted} (the two flags that function sets; its {@code is_local} and runtime scope only change
+     * credential augmentation and {@code sd_bus_get_scope}, which PRISM does not use), then
+     * {@code sd_bus_set_method_call_timeout} and {@code sd_bus_start}. {@code sd_bus_start} sends the {@code Hello()}
+     * with a timeout of 0, which {@code bus_seal_message} replaces by the connection's method-call timeout, so the
+     * {@code Hello()} gets this one and not libsystemd's default of 25 s. On failure the handle is zero and the
+     * connection, if one was made, is already released.
+     */
+    Handle openUser(long methodCallTimeoutUsec);
 
     /**
      * {@code sd_bus *sd_bus_close_unref(sd_bus *bus)}: closes and releases the connection without flushing; every call
      * here is synchronous, so nothing is ever queued (a flush would first wait for the connection to come up).
      */
     void closeUnref(long bus);
-
-    /**
-     * {@code int sd_bus_set_method_call_timeout(sd_bus *bus, uint64_t usec)}: the default timeout of method calls on
-     * the connection (sd_bus_set_method_call_timeout(3)). Set after {@code sd_bus_open_user}, it does not reach the
-     * {@code Hello} call, which that function has already sealed with libsystemd's default (25 s).
-     */
-    int setMethodCallTimeout(long bus, long usec);
-
-    /**
-     * {@code int sd_bus_is_ready(sd_bus *bus)}: positive once the connection is fully established, that is
-     * authenticated and the {@code Hello()} reply received, and not being torn down; zero otherwise
-     * (sd_bus_is_open(3), added in version 237).
-     */
-    int isReady(long bus);
-
-    /**
-     * {@code int sd_bus_process(sd_bus *bus, sd_bus_message **ret)} with {@code ret} NULL: drives the connection one
-     * step (connecting, authentication, the {@code Hello()} reply). Positive when progress was made, zero when the
-     * caller should wait for I/O, negative on failure (sd_bus_process(3)).
-     */
-    int process(long bus);
-
-    /**
-     * {@code int sd_bus_wait(sd_bus *bus, uint64_t timeout_usec)}: waits at most {@code usec} for I/O on the
-     * connection. Positive when I/O was seen, zero on timeout, negative on failure (sd_bus_wait(3)).
-     */
-    int waitFor(long bus, long usec);
 
     /**
      * {@code int sd_bus_message_new_method_call(sd_bus *bus, sd_bus_message **m, const char *destination, const char

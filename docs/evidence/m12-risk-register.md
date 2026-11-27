@@ -89,7 +89,7 @@ Fixed, each with its own commit and tests; K16 stays in force:
 
 | # | Status | How |
 |---|---|---|
-| D1 | CLOSED | No method is sent until the connection is up: it is driven with `sd_bus_process` and `sd_bus_wait` until `sd_bus_is_ready`, within the same 2 s call bound, so the SASL authentication and the `Hello()` reply are bounded together (public calls since v237). `sd_bus_open_user` itself is unchanged |
+| D1 | CLOSED | The connection is built with the steps of `sd_bus_open_user` (v255: `sd_bus_new`, the same address, `sd_bus_set_bus_client`, `sd_bus_set_trusted`) and its method-call timeout set before `sd_bus_start`, which seals the `Hello()` with it (`bus_seal_message` takes the connection's timeout for a 0 one). No event-loop function is bound, as `LibsystemdCheckTest` requires; a first version that drove the connection with `sd_bus_process` and `sd_bus_wait` broke that rule and was replaced. SASL authentication keeps libsystemd's own bound |
 | D2 | CLOSED | The cgroup rule runs again after the pidfd is open and the identity proved on it; a process moved out of the user's manager is not adopted |
 | D8 | PARTLY CLOSED | Code: a set-group-ID program (four group IDs not equal) is refused; a zombie ('Z' in `/proc/<pid>/stat`) counts as exited although signal 0 reaches it. Open: the wording (memory charged before adoption stays with the old cgroup; the cpu controller does not limit real-time processes; `LimitMessages` and `NativeRecovery` texts written for Windows or for the K16 product) |
 | D11 | CLOSED | A record proves ownership only when its unit is the name PRISM gives the identity and the live invocation has exactly the recorded cgroup, which is also where a clearing reads back |

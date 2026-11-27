@@ -71,20 +71,7 @@ final class FakeSdBus implements SdBusApi {
     final Map<String, Answer> script = new HashMap<>();
     final List<String> sent = new ArrayList<>();
     int openCode = 1;
-    int timeoutCode = 1;
     final List<Long> callTimeouts = new ArrayList<>();
-    /**
-     * How the connection comes up: {@code sd_bus_is_ready} answers 0 for this many calls of {@code sd_bus_process}
-     * that made progress, then 1; negative for ever means it never comes up. A negative {@link #processCode} or
-     * {@link #waitCode} is a failure of that call.
-     */
-    int processStepsUntilReady;
-
-    int readyCode = 1;
-    int processCode = 1;
-    int waitCode = 0;
-    int processCalls;
-    final List<Long> waits = new ArrayList<>();
     int opened;
     int closed;
     private long next = 100;
@@ -118,7 +105,9 @@ final class FakeSdBus implements SdBusApi {
     }
 
     @Override
-    public Handle openUser() {
+    public Handle openUser(long methodCallTimeoutUsec) {
+        // Every connection is opened with its call timeout already set (risk D1).
+        callTimeouts.add(methodCallTimeoutUsec);
         if (openCode < 0) {
             return new Handle(openCode, 0);
         }
@@ -126,38 +115,6 @@ final class FakeSdBus implements SdBusApi {
         buses.add(bus);
         opened++;
         return new Handle(openCode, bus);
-    }
-
-    @Override
-    public int setMethodCallTimeout(long bus, long usec) {
-        requireBus(bus);
-        callTimeouts.add(usec);
-        return timeoutCode;
-    }
-
-    @Override
-    public int isReady(long bus) {
-        requireBus(bus);
-        if (readyCode <= 0) {
-            return readyCode;
-        }
-        return processCalls >= processStepsUntilReady ? 1 : 0;
-    }
-
-    @Override
-    public int process(long bus) {
-        requireBus(bus);
-        if (processCode > 0) {
-            processCalls++;
-        }
-        return processCode;
-    }
-
-    @Override
-    public int waitFor(long bus, long usec) {
-        requireBus(bus);
-        waits.add(usec);
-        return waitCode;
     }
 
     @Override
