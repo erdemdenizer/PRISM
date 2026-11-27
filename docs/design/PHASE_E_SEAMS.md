@@ -15,6 +15,6 @@ tokens and shared controls reach. What a page still needs, and where it plugs in
 | Performance / Overview | Per-metric data colors (spec §4.3): every graph is still in the accent | graph.css sets `-srm-graph-line: -srm-accent` for every graph; a per-panel class (e.g. `.metric-cpu`) can override it; tokens `-srm-data-*` do not exist yet. |
 | Overview | Key readout 24 px (spec: 30) | `.text-key-readout` in app.css; the minimum window height is the limit. |
 | All | Body text 13 px (spec: 13.5) | `.root` font size in app.css; 13.5 shifts every measured width (TextWidths, tables). |
-| All | 3:1 boundaries for buttons (see CONTRAST.md) | Outer background layer of `.button` in app.css. |
+| All | ~~3:1 boundaries for buttons~~ Done: the outer layer of `.button` is `-srm-control-edge`, 3.13 to 3.57 against its backgrounds ([CONTRAST.md](CONTRAST.md), 0 failures on 2026-11-27). | — |
 | Title bar | Native-API review of `WindowsWindowChrome` | Not done in Phase C/D. |
 | Title bar | ADR: DWM calls on the JavaFX Application Thread | The lookup must run on the thread that owns the windows; see the report of Phases C and D. |
