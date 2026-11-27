@@ -667,6 +667,12 @@ class CpuLimitIntegrationTest {
                     .isEqualTo("held");
             // From outside: the workload is stopped, by the only thing that suspends it, the child's limiter.
             if (!perThread) {
+                // The child says "held" once its SIGSTOP is sent; each thread stops when it next handles
+                // signals, so the kernel shows the stop a moment later (Ubuntu VM, 2026-11-27). Nothing
+                // continues the workload after "held", so waiting for it is safe.
+                await(
+                        () -> host.processController().stopState(demo.identity()) == StopState.STOPPED,
+                        Duration.ofSeconds(5));
                 assertThat(host.processController().stopState(demo.identity()))
                         .as("the kernel's state of the workload")
                         .isEqualTo(StopState.STOPPED);
