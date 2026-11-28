@@ -34,7 +34,7 @@ final class MainWindow {
     static final List<Integer> ICON_SIZES = List.of(16, 24, 32, 48, 64, 128, 256);
 
     /**
-     * The window icons, the cut prism on PRISM's indigo (packaging/icons/README.md). An icon that cannot be read is
+     * The window icons, the white prism on PRISM's indigo (packaging/icons/README.md). An icon that cannot be read is
      * left out: a missing icon must never keep the window from opening.
      */
     static List<Image> windowIcons() {
