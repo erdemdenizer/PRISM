@@ -13,8 +13,10 @@ a taskbar.
 | `prism.ico` | Windows (`jpackage --icon`): 16, 20, 24, 32, 40, 48, 64 and 256 px |
 | `prism.png` | Linux (`jpackage --icon`): 512 px |
 | `prism.icns` | macOS: 16 to 1024 px, from `prism-macos.svg` |
-| `prism-logotype.svg` | The lockup for light backgrounds: the icon, PRISM, and the descriptor below it |
-| `prism-logotype-dark.svg` | The same lockup for dark backgrounds (white and light grey text) |
+| `prism-logotype.svg` | The logotype for light backgrounds: the icon beside PRISM, on one line (the README's) |
+| `prism-logotype-dark.svg` | The same for dark backgrounds (white text) |
+| `prism-logotype-descriptor.svg` | The icon, PRISM, and the descriptor below it, for light backgrounds |
+| `prism-logotype-descriptor-dark.svg` | The same with the descriptor, for dark backgrounds |
 
 The window icons are in `src/main/resources/prism/srm/app/icon/` (16 to 256 px).
 
@@ -32,17 +34,20 @@ The window icons are in `src/main/resources/prism/srm/app/icon/` (16 to 256 px).
 - White on the accent has a contrast of 5.54:1, the same pair as the application's primary buttons.
 
 **Logotype.**
-- The lockup places the icon beside the word PRISM, and below the word the descriptor PROCESS &
-  RESOURCE INTERACTIVE SYSTEM MANAGER.
-- Both lines are in IBM Plex Sans, the application's typeface (SIL Open Font License): PRISM in
-  SemiBold, tracked +5 %, the descriptor in Medium capitals, tracked +9 %.
-- The letters are outlines shaped with the font's own kerning, so the files need no font.
-- PRISM's cap height is 40 % of the icon, and the descriptor's 8.2 %. The two lines are centred
-  on the icon as one block, 20 % of the icon away from it.
-- Text colours: `#15181e` and `#5c6474` on light backgrounds; `#ffffff` and `#aab1c2` on dark
+- **The logotype** places the icon beside the word PRISM, on one line, in IBM Plex Sans SemiBold
+  (the application's typeface, SIL Open Font License), tracked +5 %.
+  - PRISM's cap height is half the icon's height, and the word is centred on it.
+  - The space between the icon and the word is 24 % of the icon.
+- **The version with the descriptor** adds PROCESS & RESOURCE INTERACTIVE SYSTEM MANAGER below the
+  word, in Medium capitals tracked +9 %.
+  - PRISM's cap height is 40 % of the icon, and the descriptor's 8.2 %.
+  - The two lines are centred on the icon as one block.
+- **Outlines.** The letters are outlines shaped with the font's own kerning, so the files need no
+  font.
+- **Text colours.** `#15181e` and `#5c6474` on light backgrounds; `#ffffff` and `#aab1c2` on dark
   ones.
-- The lockup is for headers, documents and slides. Where space is small (a taskbar, a favicon),
-  use the icon alone.
+- **Where to use it.** The logotype is for headers, documents and slides. Where space is small (a
+  taskbar, a favicon), use the icon alone.
 
 **Regenerating.** The PNG, ICO and ICNS files are rendered from the SVG masters at exact sizes.
 The ICO and ICNS files hold PNG entries. When the design changes, render every size again; never

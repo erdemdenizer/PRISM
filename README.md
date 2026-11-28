@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="packaging/icons/prism-logotype-dark.svg">
-    <img src="packaging/icons/prism-logotype.svg" width="460" alt="PRISM, Process &amp; Resource Interactive System Manager">
+    <img src="packaging/icons/prism-logotype.svg" width="300" alt="PRISM">
   </picture>
 </p>
 
