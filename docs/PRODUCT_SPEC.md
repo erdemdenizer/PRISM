@@ -256,8 +256,10 @@ limit is `UNAVAILABLE` too, with the same reason.
     variable changes this. The product's limiter opens no bus connection, creates no scope and looks for no
     limits of earlier sessions. The mechanism below runs only on disposable processes that
     the test harness starts and names to the limiter. An eligibility policy for desktop
-    applications exists for the day K16 is lifted (every process except PRISM's own and the
-    processes PRISM runs under, with every other rule below), and the product does not use it.
+    applications exists for the day K16 is lifted (every process in the user manager's
+    `app.slice`, where systemd places the applications the user runs, except PRISM's own and the
+    processes PRISM runs under, with every other rule below; session services such as the bus
+    broker and the compositor run in `session.slice` and are refused), and the product does not use it.
   - **Preconditions.** Capability discovery is read-only: the unified cgroup v2 hierarchy
     with no v1 hierarchy mounted, `libsystemd` with every needed function, a reachable user
     manager of systemd 255 or later (adoption by pidfd), and the needed controllers

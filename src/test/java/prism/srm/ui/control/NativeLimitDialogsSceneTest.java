@@ -30,6 +30,28 @@ class NativeLimitDialogsSceneTest {
     private static final FallbackOffer OFFER =
             new FallbackOffer("it is in a Job Object PRISM does not hold", 4, 16, true);
 
+    private static final prism.srm.domain.LimitCapability SCOPE_MEMORY = prism.srm.domain.LimitCapability.of(
+            prism.srm.domain.CapabilityLevel.NATIVE_SOFT, prism.srm.domain.ControlMechanism.SYSTEMD_SCOPE);
+
+    /** Risk D16: the dialog of a systemd scope's memory.high says what it is, not a commit limit. */
+    @Test
+    void theDialogOfAScopesMemoryLimitShowsTheScopesWords() {
+        List<Object> seen = SnapshotHarness.inspect(Theme.LIGHT, 200, 100, Pane::new, root -> {
+            Dialog<ButtonType> dialog = MemoryLimitDialog.build("demo", 42, OptionalLong.empty(), "", SCOPE_MEMORY);
+            javafx.scene.control.Label means =
+                    (javafx.scene.control.Label) dialog.getDialogPane().lookup(".cpu-limit-means");
+            javafx.scene.control.Label heading =
+                    (javafx.scene.control.Label) dialog.getDialogPane().lookup(".cpu-limit-heading");
+            return List.of(heading.getText(), means.getText(), defaultButton(dialog));
+        });
+
+        assertThat(seen)
+                .containsExactly(
+                        "Limit the memory of this process",
+                        MemoryLimitDialog.SCOPE_THROTTLE_MEANS,
+                        ButtonData.CANCEL_CLOSE);
+    }
+
     /** Enter must not set a limit that may make the process fail, nor start the costlier limiter. */
     @Test
     void cancelIsTheDefaultButtonOfBothDialogs() {
@@ -147,7 +169,7 @@ class NativeLimitDialogsSceneTest {
     }
 
     /**
-     * Renders the dialogs for inspection (target/ui-snapshots/dialog-memory-*, dialog-fallback-*,
+     * Renders the dialogs for inspection (target/ui-snapshots/dialog-memory-*, dialog-memory-scope-*, dialog-fallback-*,
      * dialog-already-running-*, dialog-resident-offer-*), each at the size its window takes (LO-17).
      */
     @ParameterizedTest
@@ -161,6 +183,15 @@ class NativeLimitDialogsSceneTest {
                         9120,
                         OptionalLong.of(2L << 30),
                         "1.4 GiB"));
+        DialogSnapshots.render(
+                "dialog-memory-scope",
+                theme,
+                () -> MemoryLimitDialog.build(
+                        "a-build-tool-with-a-very-long-name-that-the-dialog-has-to-cut",
+                        9120,
+                        OptionalLong.of(2L << 30),
+                        "1.4 GiB",
+                        SCOPE_MEMORY));
         DialogSnapshots.render(
                 "dialog-cpu-limit",
                 theme,

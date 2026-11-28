@@ -463,6 +463,13 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
             NOT_OURS,
             /** The target has exited; the scope may still be PRISM's. */
             EXITED,
+            /**
+             * The scope is still the invocation PRISM made with its recorded cgroup (checked first), and the process its
+             * descriptor names still exists, but it is no longer the user's: signal 0 is refused (EPERM, not ESRCH) or its
+             * user or group IDs are not the user's now. No limit is set or tightened on it; its scope's limits may still
+             * be cleared, which signals nothing and only loosens (risk D4).
+             */
+            NOT_THE_USERS,
             /** Something could not be read; nothing is known to have changed. */
             UNREADABLE
         }
@@ -500,7 +507,7 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
                 return Optional.of(new Outside(Outside.Kind.EXITED, "the process has exited"));
             }
             case NOT_SIGNALLABLE -> {
-                return Optional.of(new Outside(Outside.Kind.NOT_OURS, NOT_SIGNALLABLE));
+                return Optional.of(new Outside(Outside.Kind.NOT_THE_USERS, NOT_SIGNALLABLE));
             }
             case RUNS -> {
                 // Checked below: the identity and the membership.
@@ -518,7 +525,7 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
         }
         Optional<String> user = otherUser(target);
         if (user.isPresent()) {
-            return Optional.of(new Outside(Outside.Kind.NOT_OURS, user.get()));
+            return Optional.of(new Outside(Outside.Kind.NOT_THE_USERS, user.get()));
         }
         if (path.value().isEmpty() || members.value().isEmpty()) {
             return Optional.of(
@@ -807,11 +814,8 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
                     return refusedStart(target, OperationResult.UNSUPPORTED, start, false);
                 }
                 default -> {
-                    if (liveness(target, fd) == Liveness.EXITED) {
-                        // Refused because the process exited (the manager answers UnixProcessIdUnknown): nothing was
-                        // created, and there is nothing left to limit.
-                        return refusedStart(target, OperationResult.PROCESS_NOT_FOUND, start, false);
-                    }
+                    // A process that exited meanwhile (the manager answers UnixProcessIdUnknown) or may no longer be
+                    // signalled is said as such by refusedStart.
                     return refusedStart(target, OperationResult.NATIVE_ERROR, start, true);
                 }
             }
@@ -820,12 +824,17 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
             if (facts.status() == SystemdUserBus.Status.NO_SUCH_UNIT) {
                 holds.remove(target);
                 kept = false;
-                if (identityProblem(target).isPresent() || liveness(target, fd) == Liveness.EXITED) {
+                Liveness now = liveness(target, fd);
+                if (identityProblem(target).isPresent() || now == Liveness.EXITED) {
                     return new ApplyResult(
                             ApplyResult.Phase.ASSIGNED_RELEASED,
                             fail(OperationResult.PROCESS_NOT_FOUND, "the process exited while it was being moved"),
                             Optional.of(EffectiveLimits.NONE),
                             false);
+                }
+                if (now == Liveness.NOT_SIGNALLABLE) {
+                    // Risk D5: said as before the start, with no emulated fallback, which could not signal it either.
+                    return ApplyResult.notAssigned(fail(OperationResult.ACCESS_DENIED, NOT_SIGNALLABLE), false);
                 }
                 // The unit does not exist, so the process is in no scope of PRISM's: the system shows nothing happened.
                 return ApplyResult.notAssigned(
@@ -908,14 +917,37 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
         }
     }
 
+    /**
+     * A refusal by the manager is a reply: it created nothing and moved nothing. A process that has exited meanwhile is
+     * said as gone; one that may no longer be signalled is said as before the start (risk D5): access denied, with no
+     * emulated fallback, whose stops would be refused with EPERM too (kill(2); only SIGCONT within the session is
+     * exempt).
+     */
     private ApplyResult refusedStart(
             ProcessIdentity target, OperationResult result, ScopeManager.Start start, boolean fallback) {
-        // A refusal by the manager is a reply: it created nothing and moved nothing.
         Hold hold = holds.remove(target);
+        Liveness now = Liveness.RUNS;
         if (hold != null) {
-            close(hold.fd);
+            try {
+                now = liveness(target, hold.fd);
+            } finally {
+                close(hold.fd);
+            }
+            if (now == Liveness.NOT_SIGNALLABLE) {
+                // The manager's own answer is kept for the log; the user is told what was said before the start.
+                LOG.info(
+                        "The scope {} was not created ({}); the process may no longer be signalled",
+                        hold.unit,
+                        start.detail());
+            }
         }
-        return ApplyResult.notAssigned(fail(result, "the scope was not created: " + start.detail()), fallback);
+        String why = "the scope was not created: " + start.detail();
+        return switch (now) {
+            case EXITED -> ApplyResult.notAssigned(fail(OperationResult.PROCESS_NOT_FOUND, why), false);
+            case NOT_SIGNALLABLE ->
+                ApplyResult.notAssigned(fail(OperationResult.ACCESS_DENIED, NOT_SIGNALLABLE), false);
+            case RUNS -> ApplyResult.notAssigned(fail(result, why), fallback);
+        };
     }
 
     private ApplyResult released(ProcessIdentity target, Hold hold, String why) {
@@ -1189,7 +1221,8 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
     /**
      * A change of the scope the limiter holds. It needs no adoption consent, as the process was adopted; a hard memory
      * limit the scope has not had needs the hard-memory consent, from the limiter's {@link NativeConsent} or {@code
-     * granted}, and is otherwise answered {@link ChangeResult.Phase#CONSENT_REQUIRED} with nothing sent.
+     * granted}, and is otherwise answered {@link ChangeResult.Phase#CONSENT_REQUIRED} with nothing sent. A process that
+     * is no longer the user's gets no new or tighter limit; its scope's limits can still be removed (risk D4).
      */
     @Override
     public ChangeResult change(ProcessIdentity target, LimitSpec spec, Set<NativeConsentKind> granted) {
@@ -1230,7 +1263,15 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
             // Ownership and membership now, immediately before anything is sent: the unit is still the invocation PRISM
             // made and the process is still in it. Otherwise nothing is sent (independent audit follow-up).
             Optional<Outside> outside = outsideItsScope(target, hold);
-            if (outside.isPresent()) {
+            // Risk D4: a process that is no longer the user's (EPERM on signal 0, or other user IDs) gets no new or
+            // tighter limit, but its scope's limits can still be cleared: the scope was just shown to be the invocation
+            // PRISM made with its recorded cgroup, the proof every clearing in the session uses (clearScope; ADR-0016,
+            // "clearing in the session compares the recorded cgroup as well as the invocation id"), the writes go to
+            // that invocation and set every kind to infinity, and no signal is needed for them.
+            boolean clearingOnly = outside.isPresent()
+                    && outside.get().kind() == Outside.Kind.NOT_THE_USERS
+                    && spec.effective().none();
+            if (outside.isPresent() && !clearingOnly) {
                 switch (outside.get().kind()) {
                     case EXITED -> {
                         return notDone(
@@ -1249,16 +1290,23 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
                 }
             }
             String group = hold.provenance.get().cgroupPath().orElseThrow();
-            Optional<EffectiveLimits> before = hold.inForce();
+            // A clearing sends every kind: what is in force may have changed after the last read-back.
+            Optional<EffectiveLimits> before = clearingOnly ? Optional.empty() : hold.inForce();
             Sent sent = new Sent(hold.provenance.get().invocationId().orElseThrow());
             setKinds(scopes.orElseThrow(), hold.unit, before, spec.effective(), hardConsent, sent);
             Optional<EffectiveLimits> observed = settledReadBack(files.orElseThrow(), group, spec.effective());
             rememberHardConsent(hold, hardConsent, spec, observed);
             Optional<Outside> movedDuring = outsideItsScope(target, hold);
-            if (sent.gone || (movedDuring.isPresent() && movedDuring.get().kind() != Outside.Kind.EXITED)) {
+            // EXITED and NOT_THE_USERS are found only once the unit is again the invocation PRISM made with its cgroup.
+            boolean stillOurs = movedDuring.isEmpty()
+                    || movedDuring.get().kind() == Outside.Kind.EXITED
+                    || (clearingOnly && movedDuring.get().kind() == Outside.Kind.NOT_THE_USERS);
+            if (sent.gone || !stillOurs) {
                 // Left, or the unit changed, between the check and the sends (a window systemd offers no way to close):
                 // what was set is not known to be the target's. A failed read leaves the state as it was.
-                boolean notOurs = sent.gone || movedDuring.get().kind() == Outside.Kind.NOT_OURS;
+                // A clearing's process was already found no longer the user's: its hold is uncertain whatever this
+                // read.
+                boolean notOurs = sent.gone || clearingOnly || movedDuring.get().kind() != Outside.Kind.UNREADABLE;
                 hold.set(notOurs ? NativeHold.State.UNCERTAIN : hold.view.state(), Optional.empty());
                 return new ChangeResult(
                         ChangeResult.Phase.UNVERIFIED,
@@ -1269,13 +1317,18 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
                         Optional.empty());
             }
             // Proven again: the scope is the invocation PRISM made, with the target in it (or the target has exited).
+            // After
+            // a clearing of a process that is no longer the user's, only the scope is proven, not that the process is
+            // in
+            // it, so the hold stays uncertain: it gets no further limit, and the release at shutdown still clears it.
+            NativeHold.State state = clearingOnly ? NativeHold.State.UNCERTAIN : NativeHold.State.ASSIGNED;
             if (observed.isPresent() && observed.get().equals(spec.effective())) {
-                hold.set(NativeHold.State.ASSIGNED, observed);
+                hold.set(state, observed);
                 return new ChangeResult(ChangeResult.Phase.APPLIED, ControlOutcome.success(), observed);
             }
             if (observed.isEmpty() || mayStillLand(sent, observed)) {
                 // Unknown until read again: the next change sends every kind.
-                hold.set(NativeHold.State.ASSIGNED, Optional.empty());
+                hold.set(state, Optional.empty());
                 return new ChangeResult(
                         ChangeResult.Phase.UNVERIFIED,
                         fail(
@@ -1286,7 +1339,7 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
                                                 : "a limit systemd accepted is not shown yet")),
                         Optional.empty());
             }
-            hold.set(NativeHold.State.ASSIGNED, observed);
+            hold.set(state, observed);
             String why = sent.why("the scope holds other limits than asked");
             if (before.isPresent() && observed.equals(before)) {
                 return new ChangeResult(ChangeResult.Phase.NOT_DONE, fail(OperationResult.NATIVE_ERROR, why), observed);

@@ -68,9 +68,36 @@ final class LimitsViewModel {
     static final String READING = "Reading…";
     static final String EMPTY = "No managed processes. To manage one, choose Manage in the context menu of a process"
             + " on the Processes page.";
-    /** What the memory column stands for: said in its header (CAP-3: a watched limit is never called a cap). */
+    /**
+     * What the memory column stands for where the native memory limit is a Job Object's commit limit, or is not
+     * native: said in its header (CAP-3: a watched limit is never called a cap).
+     */
     static final String MEMORY_NOTE = "The memory each process may commit (native cap), or, where no native cap is"
             + " available, the resident memory PRISM watches.";
+
+    /**
+     * What the memory column stands for where the native memory limit is a systemd scope's {@code memory.high} (risk
+     * D16, ADR-0016 decision 4): a throttling boundary, worded as {@code LimitMessages} words it.
+     */
+    static final String MEMORY_NOTE_SCOPE = "The memory each process is held near, through its systemd scope: above it"
+            + " the kernel slows the process down and reclaims its memory, and stops nothing; memory used before the"
+            + " move into the scope is not counted. Where no native limit is available, the resident memory PRISM"
+            + " watches.";
+
+    /** What the memory column stands for where the native memory limit is a systemd scope's {@code memory.max}. */
+    static final String MEMORY_NOTE_SCOPE_HARD = "The most memory each process may use, through its systemd scope: at"
+            + " it the kernel may terminate the process or one it started; memory used before the move into the scope"
+            + " is not counted. Where no native limit is available, the resident memory PRISM watches.";
+
+    /** What the memory column stands for with this system's memory limit (CAP-5), as {@code LimitMessages} words it. */
+    static String memoryNote(LimitCapability memory) {
+        if (memory.mechanism()
+                .filter(mechanism -> mechanism == ControlMechanism.SYSTEMD_SCOPE)
+                .isPresent()) {
+            return memory.level() == CapabilityLevel.NATIVE_HARD ? MEMORY_NOTE_SCOPE_HARD : MEMORY_NOTE_SCOPE;
+        }
+        return MEMORY_NOTE;
+    }
 
     static final String DASH = "–";
     static final String SELECT_FIRST = "Select a managed process first.";
@@ -90,6 +117,8 @@ final class LimitsViewModel {
     private final Map<Action, ReadOnlyStringWrapper> explanations = new EnumMap<>(Action.class);
     private final ResultLineState line = new ResultLineState();
     private final ReadOnlyBooleanWrapper watchOffered = new ReadOnlyBooleanWrapper(false);
+    private final ReadOnlyStringWrapper memoryNote =
+            new ReadOnlyStringWrapper(memoryNote(LimitsSnapshot.EMPTY.memory()));
     private final Set<LimitRequest> pending = new HashSet<>();
 
     private LimitsSnapshot latest = LimitsSnapshot.EMPTY;
@@ -121,6 +150,11 @@ final class LimitsViewModel {
     /** Why limits are off or unavailable on this system; empty while they can be set. */
     ReadOnlyStringProperty noticeProperty() {
         return notice.getReadOnlyProperty();
+    }
+
+    /** What the memory column stands for on this system (risk D16): the tooltip of its header and of the editor. */
+    ReadOnlyStringProperty memoryNoteProperty() {
+        return memoryNote.getReadOnlyProperty();
     }
 
     /** One line above the table, in the tone of what it says: a failure, a warning, or a fact of the system. */
@@ -192,6 +226,7 @@ final class LimitsViewModel {
             notices.setAll(lines);
         }
         notice.set(String.join("\n", lines.stream().map(Notice::text).toList()));
+        memoryNote.set(memoryNote(snapshot.memory()));
         limitsOff.set(lines.stream().anyMatch(each -> each.tone() == LimitRow.Tone.ERROR));
         refresh();
     }
@@ -277,15 +312,15 @@ final class LimitsViewModel {
                 row.get().name()));
     }
 
-    /** Whether a memory limit set for the selected process is watched resident memory, not a native cap. */
-    boolean memoryWatched() {
+    /**
+     * How a memory limit is provided for the selected process, else on this system: what the memory dialog says
+     * (risk D16).
+     */
+    LimitCapability memoryCapability() {
         return selected()
                 .flatMap(row -> latest.find(row.identity()))
                 .map(view -> view.capability(LimitKind.MEMORY))
-                .or(() -> Optional.of(latest.memory()))
-                .flatMap(LimitCapability::mechanism)
-                .filter(mechanism -> mechanism == ControlMechanism.RESIDENT_POLICY)
-                .isPresent();
+                .orElse(latest.memory());
     }
 
     /** The emulated limit offered for the selected process, with its cost, for the consent dialog. */

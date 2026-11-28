@@ -47,6 +47,42 @@ class LimitsViewModelNativeTest {
         assertThat(row.fallbackOffered()).isFalse();
     }
 
+    /**
+     * Risk D16: the memory column's note follows the system's memory limit: a commit limit for a Job Object, a systemd
+     * scope's memory.high as a boundary the process is held near, and the dialog is given the capability.
+     */
+    @Test
+    void theMemoryNoteAndTheDialogFollowTheMechanism() {
+        prism.srm.domain.LimitCapability scope = prism.srm.domain.LimitCapability.of(
+                prism.srm.domain.CapabilityLevel.NATIVE_SOFT, prism.srm.domain.ControlMechanism.SYSTEMD_SCOPE);
+        prism.srm.domain.LimitCapability scopeHard = prism.srm.domain.LimitCapability.of(
+                prism.srm.domain.CapabilityLevel.NATIVE_HARD, prism.srm.domain.ControlMechanism.SYSTEMD_SCOPE);
+
+        model.show(LimitsFixtures.nativeSnapshot(List.of(LimitsFixtures.enforced(DEMO, "demo", 20, 512))));
+        assertThat(model.memoryNoteProperty().get()).isEqualTo(LimitsViewModel.MEMORY_NOTE);
+        assertThat(LimitsViewModel.MEMORY_NOTE).contains("commit");
+
+        model.show(new prism.srm.domain.LimitsSnapshot(
+                List.of(LimitsFixtures.managed(DEMO, "demo")), scope, scope, Optional.empty(), List.of()));
+        assertThat(model.memoryNoteProperty().get())
+                .isEqualTo(LimitsViewModel.MEMORY_NOTE_SCOPE)
+                .contains("held near")
+                .contains("slows the process down and reclaims its memory")
+                .contains("stops nothing")
+                .contains("before the move into the scope is not counted")
+                .doesNotContain("commit");
+        assertThat(model.memoryCapability())
+                .as("nothing selected: what the dialog says is the system's")
+                .isEqualTo(scope);
+        model.select(DEMO);
+        assertThat(model.memoryCapability())
+                .as("selected: the process's own")
+                .isEqualTo(LimitsFixtures.managed(DEMO, "demo").capability(prism.srm.domain.LimitKind.MEMORY));
+        assertThat(LimitsViewModel.memoryNote(scopeHard))
+                .contains("may terminate")
+                .doesNotContain("commit");
+    }
+
     /** A memory limit alone: the status is about the CPU and says so; the implementation is the memory's. */
     @Test
     void aMemoryLimitAloneSaysThereIsNoCpuLimitAndIsStillNative() {

@@ -95,6 +95,16 @@ final class LinuxNativeReadiness {
     /** Why every process is refused when the processes PRISM runs under could not all be read. */
     static final String ANCESTORS_UNKNOWN = "the processes PRISM runs under could not all be read";
 
+    /**
+     * Why a process outside the user manager's {@code app.slice} is refused under the desktop policy (risk D17); the
+     * place it runs in follows. systemd's desktop convention puts the applications the user runs in {@code app.slice},
+     * the services the graphical session needs (the display server, D-Bus, the portals) in {@code session.slice}, and
+     * low-priority background work in {@code background.slice}: systemd.special(7),
+     * https://www.freedesktop.org/software/systemd/man/latest/systemd.special.html, and
+     * https://systemd.io/DESKTOP_ENVIRONMENTS/.
+     */
+    static final String NOT_AN_APPLICATION = "not a desktop application: it runs in ";
+
     /** How many parents are followed from PRISM's process at most; a chain longer than this is not expected. */
     static final int MOST_ANCESTORS = 64;
 
@@ -102,7 +112,10 @@ final class LinuxNativeReadiness {
     static final class EligibilityPolicy {
 
         private final Set<ProcessIdentity> harnessOwned;
-        /** The desktop policy: PRISM's own PID and the PIDs of the processes it runs under, read at each call. */
+        /**
+         * The desktop policy: PRISM's own PID and the PIDs of the processes it runs under, read at each call. Its
+         * presence also restricts the cgroup to the user manager's {@code app.slice} ({@link #applicationsOnly}).
+         */
         private final Optional<Supplier<Excluded>> desktop;
 
         /**
@@ -141,7 +154,10 @@ final class LinuxNativeReadiness {
          * parent, and so on ({@link ProcessHandle#parent()}, read again at every call, as a process can be given a new
          * parent when its parent exits). They are compared by PID alone, within the walk of that call: a PID reused in
          * the middle of a walk can only add a process that is not an ancestor, which errs on the safe side. A chain
-         * longer than {@link #MOST_ANCESTORS} refuses every process. Every other rule of {@link #eligibility} and of the
+         * longer than {@link #MOST_ANCESTORS} refuses every process. Only a process whose cgroup is inside the user
+         * manager's {@code app.slice} is admitted (risk D17): the session bus broker, the compositor and the other
+         * session services run in {@code session.slice}, background work in {@code background.slice}, and none of them
+         * is a desktop application ({@link #NOT_AN_APPLICATION}). Every other rule of {@link #eligibility} and of the
          * limiter still applies: the user manager and its own {@code init.scope}, the user and group IDs, PRISM's
          * scopes, the cgroup.
          */
@@ -191,6 +207,11 @@ final class LinuxNativeReadiness {
 
         boolean admits(ProcessIdentity identity) {
             return refusal(identity).isEmpty();
+        }
+
+        /** Whether only processes in the user manager's {@code app.slice} are admitted: the desktop policy's rule. */
+        boolean applicationsOnly() {
+            return desktop.isPresent();
         }
 
         /** Whether the policy admits no process at all: the product's. */
@@ -298,6 +319,59 @@ final class LinuxNativeReadiness {
         if (ScopeNames.enclosingPrismScope(path).isPresent()) {
             return Optional.of("it is in a scope with PRISM's name; an earlier session may limit it");
         }
+        if (policy.applicationsOnly()) {
+            return notAnApplication(path.substring(manager.length()));
+        }
         return Optional.empty();
+    }
+
+    /**
+     * Under the desktop policy (risk D17): empty when the cgroup, relative to the user manager's, is a unit's own cgroup
+     * in {@code app.slice}: {@code app.slice/}, any number of nested {@code .slice} segments, then exactly one {@code
+     * .scope} or {@code .service} segment, and nothing below it. That is where systemd's desktop convention places the
+     * applications the user runs ("all normal applications that the user is running",
+     * https://systemd.io/DESKTOP_ENVIRONMENTS/; systemd.special(7): "By default, all user services and applications
+     * managed by systemd are found in this slice"). A slice holds no processes itself, and a cgroup below a unit exists
+     * only in a subtree delegated to another program, which systemd itself does not move processes across
+     * (https://systemd.io/CGROUP_DELEGATION/); both are refused. Otherwise why not.
+     * {@code session.slice} holds the services the graphical session depends on, among them the session bus broker
+     * ({@code dbus.service} of dbus-daemon and {@code dbus-broker.service}, both {@code Slice=session.slice} upstream:
+     * https://sources.debian.org/src/dbus/1.14.10-1~deb12u1/bus/systemd-user/dbus.service.in/,
+     * https://github.com/bus1/dbus-broker/blob/main/src/units/user/dbus-broker.service.in) and GNOME's compositor
+     * ({@code org.gnome.Shell@.service}, {@code Slice=session.slice}:
+     * https://github.com/GNOME/gnome-shell/blob/main/data/org.gnome.Shell@.service.in, GNOME's mirror); {@code
+     * background.slice} holds background work; a unit directly under the manager is in none of these slices. A unit
+     * that names no slice is put in {@code app.slice} by default (systemd.special(7)), so the rule relies on the
+     * session's own units naming {@code session.slice}, which the manual desktop validation observes. It is decided
+     * from the same cgroup read that the check after the pidfd is open proves (risk D2).
+     */
+    private static Optional<String> notAnApplication(String relative) {
+        int slash = relative.indexOf('/');
+        String first = slash < 0 ? relative : relative.substring(0, slash);
+        if (first.equals("app.slice")) {
+            String[] below =
+                    slash < 0 ? new String[0] : relative.substring(slash + 1).split("/", -1);
+            int unit = 0;
+            while (unit < below.length && below[unit].endsWith(".slice")) {
+                unit++;
+            }
+            if (unit == below.length || below[unit].isEmpty()) {
+                return Optional.of(NOT_AN_APPLICATION + (unit == 0 ? "app.slice itself" : below[unit - 1])
+                        + ", in no application's unit");
+            }
+            if (!below[unit].endsWith(".scope") && !below[unit].endsWith(".service")) {
+                return Optional.of(NOT_AN_APPLICATION + below[unit] + ", which is not a scope or service unit");
+            }
+            return unit == below.length - 1
+                    ? Optional.empty()
+                    : Optional.of("it runs in a cgroup below " + below[unit]
+                            + ", a subtree another program manages, which PRISM does not move processes out of");
+        }
+        if (first.endsWith(".slice")) {
+            return Optional.of(NOT_AN_APPLICATION + first);
+        }
+        return Optional.of(NOT_AN_APPLICATION
+                + (first.isEmpty() ? "the cgroup of your systemd user manager" : first)
+                + ", directly under your systemd user manager, not in app.slice");
     }
 }

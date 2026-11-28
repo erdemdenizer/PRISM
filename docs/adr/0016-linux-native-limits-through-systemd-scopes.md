@@ -339,6 +339,16 @@ documentation (the planning evidence, doc-facts, of plan Rev 2.2):
   user manager's own `init.scope` is now refused under every policy. The product still builds `product(...)` with
   `EligibilityPolicy.none()` and `NativeConsent.none()`, so no process reaches the dialog; the K16 source scan now also
   forbids making the desktop policy in the main sources. Run on Windows only, with fakes; not on Linux.
+- **Desktop policy narrowed to `app.slice`; clearing without a signal (2026-11-28, built and inert under K16).** The desktop
+  policy admits only processes whose cgroup is inside a unit in the user manager's `app.slice`, where systemd's desktop
+  convention puts the applications the user runs; the session bus broker, the compositor and the other session services
+  (`session.slice`), background work (`background.slice`) and units directly under the manager are refused (systemd.special(7),
+  https://systemd.io/DESKTOP_ENVIRONMENTS/; register D17). The rule is decided on the same cgroup read that the check after the
+  pidfd is open proves. A held process that is no longer the user's (signal 0 refused with EPERM, or other user IDs) can now
+  have its scope's limits cleared in the session: the unit is first proven the invocation PRISM made with its recorded cgroup,
+  as every clearing in the session proves it, and every kind is set to infinity on that invocation (decision 5; register D4).
+  Only a unit's own cgroup in `app.slice` is admitted, not a slice or a cgroup below a unit. A start refused for such a process is
+  reported as before the start, access denied without an emulated fallback (D5). Run on Windows only, with fakes; not on Linux.
 - **K16.** `HostPlatform` builds `LinuxScopeLimiter.product(...)`, which admits no process, opens no bus and reports
   every process `UNAVAILABLE` ("Linux native limits are not validated for desktop applications"; the system-wide report
   adds "(implemented, not enabled in this release)"; until 2026-11-27 it said "K16", an internal label, risk D12). There is no
