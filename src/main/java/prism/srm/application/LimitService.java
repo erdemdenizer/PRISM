@@ -2983,18 +2983,35 @@ public final class LimitService {
         if (nativeMemory) {
             long bytes = inForce.get().memoryBytes().getAsLong();
             boolean asked = requested.isPresent() && requested.getAsLong() == bytes;
+            LimitCapability nativeMemoryCapability = nativeCapability(LimitKind.MEMORY);
             return memory(
                     requested,
-                    nativeCapability(LimitKind.MEMORY),
+                    nativeMemoryCapability,
                     asked ? LimitStatus.ACTIVE_ENFORCED : LimitStatus.FAILED,
-                    Optional.of((asked ? "enforced: at most " : "in force: at most ") + EffectiveLimits.bytes(bytes)
-                            + " committed"),
+                    Optional.of((asked ? "enforced: " : "in force: ") + memoryInForce(nativeMemoryCapability, bytes)),
                     asked ? LimitNote.NONE : LimitNote.NATIVE_UNSETTLED);
         }
         if (!shown.available()) {
             return memory(requested, shown, LimitStatus.UNAVAILABLE, shown.reason(), LimitNote.NONE);
         }
         return memory(requested, shown, LimitStatus.INACTIVE, Optional.of("not at work"), LimitNote.NOT_AT_WORK);
+    }
+
+    /**
+     * The native memory limit in force, in the words of its mechanism: a Job Object limits committed memory, a
+     * systemd scope's memory.high holds the process near the amount (a throttle, not a cap), memory.max caps it.
+     */
+    static String memoryInForce(LimitCapability capability, long bytes) {
+        boolean job = capability
+                .mechanism()
+                .filter(mechanism -> mechanism == ControlMechanism.JOB_OBJECT)
+                .isPresent();
+        if (job) {
+            return "at most " + EffectiveLimits.bytes(bytes) + " committed";
+        }
+        return capability.level() == CapabilityLevel.NATIVE_SOFT
+                ? "held near " + EffectiveLimits.bytes(bytes)
+                : "at most " + EffectiveLimits.bytes(bytes);
     }
 
     /** A watched resident memory limit (LIM-9): never called a cap or enforced (CAP-3). */

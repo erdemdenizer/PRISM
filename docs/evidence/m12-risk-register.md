@@ -182,7 +182,7 @@ Still open before K16 can be lifted (superseded by the next section):
 
 **Decision.** The product owner lifts K16 on the condition that the manual desktop validation passes, run with the build of
 this change on the Ubuntu 24.04 GNOME desktop: [k16-desktop-validation-2026-11-28.md](k16-desktop-validation-2026-11-28.md)
-(**PENDING** until it is filled in; if it does not pass, this change is not merged and K16 stands). ADR-0016 records the
+(**PASS**, 2026-11-28: CPU caps from a launcher and from a terminal measured at the cap, `memory.high` held without a kill, session services refused, clearing on removal, after a hard kill and at shutdown). ADR-0016 records the
 amendment.
 
 **Decision 2 of the owner.** No emulated limit for a desktop session service on Linux: a process in the user manager's

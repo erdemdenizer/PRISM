@@ -372,6 +372,13 @@ final class LimitsViewModel {
         return result.consent();
     }
 
+    /** The user declined the consent: nothing was asked of the system, and the line says so. */
+    void declined(LimitRequest request) {
+        line.showResult(prism.srm.ui.control.NativeConsentDialog.declined(request));
+        refresh();
+        line.arrived();
+    }
+
     /**
      * The user confirmed the consent an answer asked for: the same request is sent again with it, for this process
      * only, and nothing is kept for later requests. Nothing if the process is no longer listed.
@@ -533,6 +540,12 @@ final class LimitsViewModel {
     }
 
     static String implementation(LimitReport report) {
+        if (report.note() == LimitNote.SESSION_SERVICE
+                || report.note() == LimitNote.IN_PRISM_SCOPE
+                || report.note() == LimitNote.FALLBACK_OFFERED) {
+            // Refused, or only offered: no mechanism is at work, so none is named (desktop validation, 2026-11-28).
+            return DASH;
+        }
         String level = levelName(report.inEffect().level());
         return report.note() == LimitNote.EMULATED_BY_CHOICE ? level + " (chosen)" : level;
     }

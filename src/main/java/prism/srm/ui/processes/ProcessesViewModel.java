@@ -140,6 +140,11 @@ final class ProcessesViewModel {
         return consent;
     }
 
+    /** The user declined the consent: the details say that nothing was changed. */
+    void consentDeclined(LimitRequest request) {
+        actions.acceptLimit(prism.srm.ui.control.NativeConsentDialog.declined(request));
+    }
+
     void showRecovered(List<RecoveredSuspension> entries) {
         recovered.show(Objects.requireNonNull(entries, "entries"));
     }

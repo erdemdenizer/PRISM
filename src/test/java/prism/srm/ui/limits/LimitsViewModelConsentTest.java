@@ -67,6 +67,21 @@ class LimitsViewModelConsentTest {
         assertThat(model.line().wholeProperty().get()).as("on its way again").contains("Setting the CPU limit");
     }
 
+    /** A declined consent says that nothing was changed, not that PRISM still asks (desktop validation, 2026-11-28). */
+    @Test
+    void aDeclinedConsentSaysNothingWasChangedAndSendsNothing() {
+        LimitRequest first = setTheLimit();
+        model.accept(consentAsked(first, OFFER));
+
+        model.declined(first);
+
+        assertThat(sent).hasSize(1);
+        assertThat(model.line().wholeProperty().get())
+                .contains("Nothing was changed for demo (PID 4242)")
+                .contains("consent was not given")
+                .doesNotContain("asks for your consent");
+    }
+
     /** Cancel: the dialog's no sends nothing; the next request about the process carries no consent. */
     @Test
     void withoutAConfirmationNothingIsSentAndNothingIsRemembered() {

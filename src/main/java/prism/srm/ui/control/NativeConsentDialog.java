@@ -14,7 +14,11 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import prism.srm.domain.ControlOutcome;
+import prism.srm.domain.LimitRequest;
+import prism.srm.domain.LimitResult;
 import prism.srm.domain.NativeConsentOffer;
+import prism.srm.domain.OperationResult;
 import prism.srm.ui.Stylesheets;
 
 /**
@@ -26,6 +30,16 @@ import prism.srm.ui.Stylesheets;
  */
 @FunctionalInterface
 public interface NativeConsentDialog {
+
+    /** What a declined consent changed: nothing, said on the line the answer would have used. */
+    static LimitResult declined(LimitRequest request) {
+        String target = request.name() + " (PID " + request.identity().pid() + ")";
+        return new LimitResult(
+                request,
+                ControlOutcome.of(OperationResult.INVALID_ARGUMENT, "consent declined"),
+                "Nothing was changed for " + target + ".",
+                "The consent was not given, so PRISM moved nothing and set no native limit.");
+    }
 
     /**
      * The gap between two statements, set here rather than in the style sheet so that the window is sized for it

@@ -139,6 +139,8 @@ class LimitsViewModelNativeTest {
             assertThat(row.status()).as("%s", status).isEqualTo("Not offered: desktop session service");
             assertThat(row.detail()).as("%s", status).contains("stopping it would freeze the desktop");
             assertThat(row.status()).as("%s", status).doesNotContain("Capped", "Failed", "emulated offered");
+            // Nothing is in force, so no mechanism is named (desktop validation, 2026-11-28).
+            assertThat(row.implementation()).as("%s", status).isEqualTo(LimitsViewModel.DASH);
         }
     }
 

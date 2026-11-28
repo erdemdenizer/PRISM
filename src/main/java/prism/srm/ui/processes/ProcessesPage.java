@@ -623,6 +623,8 @@ public final class ProcessesPage extends VBox {
             LimitRequest request = result.request();
             if (consentDialog.accept(request.name(), request.identity().pid(), offer, this)) {
                 model.managed().consent(request, offer);
+            } else {
+                model.consentDeclined(request);
             }
         });
     }
