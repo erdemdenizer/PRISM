@@ -68,6 +68,8 @@ public final class PackageImage {
                 version,
                 "--vendor",
                 "Prism",
+                "--icon",
+                Path.of("packaging", "icons", "prism.png").toString(),
                 "--input",
                 input.toString(),
                 "--main-jar",

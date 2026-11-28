@@ -1,7 +1,11 @@
 package prism.srm.app;
 
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.image.Image;
 import javafx.stage.Stage;
 import prism.srm.ui.Stylesheets;
 
@@ -26,8 +30,29 @@ final class MainWindow {
 
     private MainWindow() {}
 
+    /** The sizes of the window icon in the resources (icon/prism-<size>.png); JavaFX picks the closest one. */
+    static final List<Integer> ICON_SIZES = List.of(16, 24, 32, 48, 64, 128, 256);
+
     /**
-     * Gives the stage its title, its content at the default size and its smallest size, which it
+     * The window icons, the cut prism on PRISM's indigo (packaging/icons/README.md). An icon that cannot be read is
+     * left out: a missing icon must never keep the window from opening.
+     */
+    static List<Image> windowIcons() {
+        List<Image> icons = new ArrayList<>();
+        for (int size : ICON_SIZES) {
+            URL url = MainWindow.class.getResource("icon/prism-" + size + ".png");
+            if (url != null) {
+                Image image = new Image(url.toExternalForm());
+                if (!image.isError()) {
+                    icons.add(image);
+                }
+            }
+        }
+        return icons;
+    }
+
+    /**
+     * Gives the stage its title, its icons, its content at the default size and its smallest size, which it
      * keeps on every monitor. The stage is not shown. Call on the JavaFX Application Thread.
      *
      * @param typefaceBundled whether the bundled typeface was loaded ({@code Typefaces}); if not,
@@ -40,6 +65,8 @@ final class MainWindow {
             scene.getStylesheets().add(Stylesheets.fontsFallback());
         }
         stage.setTitle(TITLE);
+        // The application icon: the taskbar, the window switcher and the title bar take it from here.
+        stage.getIcons().setAll(windowIcons());
         new MinimumWindowSize(stage.minWidthProperty(), stage.minHeightProperty(), MIN_WIDTH, MIN_HEIGHT)
                 .keep(stage.outputScaleXProperty(), stage.outputScaleYProperty());
         stage.setScene(scene);
