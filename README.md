@@ -1,3 +1,5 @@
+<p align="center"><img src="packaging/icons/prism.svg" width="96" height="96" alt="PRISM"></p>
+
 # PRISM — Process & Resource Interactive System Manager
 
 PRISM is a cross-platform desktop process monitor and system resource manager developed for an Operating Systems course by **Team Prism** ([erdemdenizer](https://github.com/erdemdenizer), [erencatal](https://github.com/erencatal), [enessen0](https://github.com/enessen0)).
