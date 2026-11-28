@@ -1,4 +1,9 @@
-<p align="center"><img src="packaging/icons/prism.svg" width="96" height="96" alt="PRISM"></p>
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="packaging/icons/prism-logotype-dark.svg">
+    <img src="packaging/icons/prism-logotype.svg" width="460" alt="PRISM, Process &amp; Resource Interactive System Manager">
+  </picture>
+</p>
 
 # PRISM — Process & Resource Interactive System Manager
 
