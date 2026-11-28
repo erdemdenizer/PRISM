@@ -57,7 +57,9 @@ and configuration folders redirected for each scenario. Its checks:
 - `probe`: the image's own runtime runs `ImageProbe check` (modules, Turkish formats, JavaFX, Logback, the process
   listing through OSHI and JNA, and SAFE-2 refusing every action on PRISM's own process);
 - `single-process`: the started launcher is the process that runs the JVM, has no child, and is the only process of
-  the image; the log reports the native limits as not enabled (K16);
+  the image; the log states what the native limiter found, each kind's level through a systemd scope or unavailable with
+  its reason, and a level is stated with the consent per process (`native-limits-reported`, `native-limits-need-consent`;
+  until K16 was lifted on 2026-11-28, `k16-reported`: the native limits reported as not enabled);
 - `sigterm`: SIGTERM ends it within 20 s and leaves no process of the image. That is the shutdown hook's path
   (LIFE-5), which by design is not the controlled shutdown;
 - `window-close`: closing the window runs the controlled shutdown (LIFE-1), seen as "Shutdown complete" in the log,

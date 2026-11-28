@@ -18,7 +18,7 @@ As established in `docs/ROADMAP.md` and the Course Release 2 Scope Decision, PRI
 - OOM Guard state machine with hysteresis and intervention policies (Milestone 11).
 - Single-instance locking, graceful shutdown, and self-contained Windows application packaging via `jpackage` (Milestone 13).
 
-On **Linux** and **macOS**, cross-platform telemetry and emulated limiting are operational, but native operating system integration remains incomplete. Specifically, native cgroups v2 limits on Linux are intentionally disabled under safety condition **K16** (`UNAVAILABLE` in UI), and macOS relies exclusively on POSIX fallback mechanisms.
+On **Linux** and **macOS**, cross-platform telemetry and emulated limiting are operational, but native operating system integration remains incomplete. Specifically, native cgroups v2 limits on Linux are intentionally disabled under safety condition **K16** (`UNAVAILABLE` in UI; K16 was lifted on 2026-11-28, see 2.1), and macOS relies exclusively on POSIX fallback mechanisms.
 
 This document specifies the technical roadmap, prerequisites, testing matrices, and acceptance criteria to elevate Linux and macOS to parity with Windows.
 
@@ -27,6 +27,10 @@ This document specifies the technical roadmap, prerequisites, testing matrices, 
 ## 2. Linux Parity: Native Limits and Desktop Validation
 
 ### 2.1 Lifting Safety Condition K16 (ADR-0016 & Milestone 12)
+- **Status (2026-11-28):** K16 is lifted by the product owner after the desktop validation
+  ([evidence](../evidence/k16-desktop-validation-2026-11-28.md); ADR-0016, amendment of that date). Desktop applications in
+  their own `app.slice` scope can be limited natively, each with the user's consent per request; services and the desktop
+  session's processes are refused. The text below is the plan as it was written.
 - **Current State:** The native limiter backend (`platform.linux.LinuxCgroupLimiter` / `platform.linux.LinuxProcessController`) is fully implemented using `systemd` transient scopes (`prism-srm-limit-<pid>-<startMillis>.scope`) over D-Bus via `PIDFDs`. However, safety rule **K16** marks native limits as `UNAVAILABLE` for user-facing desktop processes because transient scope migration removes processes from their parent desktop slices (`app.slice`), causing potential desktop environment tracking loss or abrupt termination upon scope stop.
 - **Prerequisites for Lifting K16:**
   1. **Desktop Environment Lifecycle Validation:** Verify that moving real desktop applications (GNOME / KDE / Wayland / X11 sessions) into transient scopes preserves session integration, window manager focus, and child process inheritance without unintended OOM stops (`OOMPolicy=continue`).

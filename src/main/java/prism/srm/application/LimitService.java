@@ -1135,6 +1135,14 @@ public final class LimitService {
             offered.remove(identity);
             return LimitMessages.result(request, step.outcome(), LimitMessages.inPrismScope(request, scope.get()));
         }
+        Optional<String> session = natives.limiter().sessionBarrier(identity);
+        if (session.isPresent()) {
+            // Owner decision 2 of 2026-11-28: no emulated fallback for a desktop session service.
+            failures.put(identity, "the native limit was not applied (" + reason + "); " + session.get());
+            failureNotes.put(identity, LimitNote.SESSION_SERVICE);
+            offered.remove(identity);
+            return LimitMessages.result(request, step.outcome(), LimitMessages.sessionService(request, session.get()));
+        }
         failures.put(identity, "the native limit was not applied: " + reason);
         failureNotes.put(identity, LimitNote.FALLBACK_OFFERED);
         offered.add(identity);
@@ -1312,6 +1320,15 @@ public final class LimitService {
                         reason,
                         LimitMessages.memoryUnavailable(request, reason)));
             }
+            Optional<String> session = natives.limiter().sessionBarrier(identity);
+            if (session.isPresent()) {
+                // Owner decision 2 of 2026-11-28: the watched memory is an emulated limit too.
+                return Carried.answered(answer(
+                        request,
+                        OperationResult.UNSUPPORTED,
+                        session.get(),
+                        LimitMessages.sessionService(request, session.get())));
+            }
             // LIM-9: the resident memory is watched, never capped; consent is setting the limit (plan O9).
             ManagedSettings current = process.get().settings();
             registry.update(identity, current.withMemoryLimit(OptionalLong.of(bytes)));
@@ -1364,6 +1381,12 @@ public final class LimitService {
                 if (inScope.isPresent()) {
                     yield LimitMessages.result(
                             request, step.outcome(), LimitMessages.inPrismScope(request, inScope.get()));
+                }
+                Optional<String> session = natives.limiter().sessionBarrier(identity);
+                if (session.isPresent()) {
+                    // Owner decision 2 of 2026-11-28: no watched memory offered for a desktop session service.
+                    yield LimitMessages.result(
+                            request, step.outcome(), LimitMessages.sessionService(request, session.get()));
                 }
                 if (!policyAvailable()
                         || !step.fallbackEligible()
@@ -1667,6 +1690,15 @@ public final class LimitService {
             return answer(request, OperationResult.INVALID_ARGUMENT, "no limit", LimitMessages.noMemoryLimit(request));
         }
         residentOffered.remove(identity);
+        Optional<String> session = natives.limiter().sessionBarrier(identity);
+        if (session.isPresent()) {
+            // Owner decision 2 of 2026-11-28, checked again: an offer made before the rule could tell is not taken up.
+            return answer(
+                    request,
+                    OperationResult.UNSUPPORTED,
+                    session.get(),
+                    LimitMessages.sessionService(request, session.get()));
+        }
         residentApproved.add(identity);
         newWatch(identity);
         return LimitMessages.result(
@@ -1705,7 +1737,14 @@ public final class LimitService {
         boolean nativeMemory = hold.isPresent()
                 && (!hold.get().settled()
                         || hold.get().inForce().orElseThrow().memoryBytes().isPresent());
-        return nativeMemory ? OptionalLong.empty() : settings.memoryLimitBytes();
+        if (nativeMemory) {
+            return OptionalLong.empty();
+        }
+        // Owner decision 2 of 2026-11-28, wherever the watch came from: OOM Guard watches no desktop session service.
+        // Asked last, so that only a process with a watched limit pays the read of its cgroup.
+        return natives.limiter().sessionBarrier(identity).isPresent()
+                ? OptionalLong.empty()
+                : settings.memoryLimitBytes();
     }
 
     /**
@@ -2325,10 +2364,13 @@ public final class LimitService {
     /**
      * Whether the emulated CPU limit may run on the process (plan §9 invariant): no native CPU cap
      * is, or may be, in force on it: PRISM holds no job for it, or one known to cap nothing; and no
-     * earlier session may still cap it.
+     * earlier session may still cap it; and it is not a desktop session service (owner decision 2 of
+     * 2026-11-28).
      */
     private boolean emulatedAllowed(ProcessIdentity identity) {
-        if (priorSession.containsKey(identity) || earlierBarrier(identity).isPresent()) {
+        if (priorSession.containsKey(identity)
+                || earlierBarrier(identity).isPresent()
+                || natives.limiter().sessionBarrier(identity).isPresent()) {
             return false;
         }
         return mayHold(identity).map(hold -> !hold.mayCapCpu()).orElse(true);
@@ -2354,6 +2396,16 @@ public final class LimitService {
     /** Why the emulated limit may not run on the process, in words. */
     private LimitResult emulatedRefused(LimitRequest request) {
         ProcessIdentity identity = request.identity();
+        Optional<String> session = natives.limiter().sessionBarrier(identity);
+        if (session.isPresent()) {
+            failures.put(identity, "no emulated limit: " + session.get());
+            failureNotes.put(identity, LimitNote.SESSION_SERVICE);
+            offered.remove(identity);
+            return LimitMessages.result(
+                    request,
+                    ControlOutcome.of(OperationResult.UNSUPPORTED, session.get()),
+                    LimitMessages.sessionService(request, session.get()));
+        }
         Optional<String> earlier = priorSession.containsKey(identity)
                 ? Optional.empty()
                 : natives.earlier().mayStillCap(identity);

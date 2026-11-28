@@ -31,9 +31,9 @@ import prism.srm.platform.windows.WindowsWindowChrome;
  * <p>One instance is created at start-up and kept. It owns the long-lived objects of the
  * implementations, so every source it hands out shares them.
  *
- * <p>The static methods answer what must be known before that instance exists and before logging
- * is set up: they query nothing but system properties and the environment, and neither they nor
- * what they return use a logger.
+ * <p>The public static methods other than {@link #create} answer what must be known before that
+ * instance exists and before logging is set up: they query nothing but system properties and the
+ * environment, and neither they nor what they return use a logger.
  */
 public final class HostPlatform {
 
@@ -93,18 +93,24 @@ public final class HostPlatform {
     }
 
     /**
-     * The native limiter the system gets (milestone 10): Job Objects on Windows; on Linux the scope
-     * limiter of milestone 12 in its product form, which admits no process (K16, ADR-0016); elsewhere a
+     * The native limiter the system gets (milestone 10): Job Objects on Windows; on Linux the systemd
+     * scope limiter of milestone 12 for desktop applications, which moves a process into a scope only
+     * with the user's consent for that request, and reports native limits unavailable, with the
+     * reason, where the system cannot provide them (ADR-0016, K16 lifted on 2026-11-28); elsewhere a
      * limiter that reports native limits as unavailable, with the reason, so that the limit service
-     * runs the emulated CPU limit (LIM-7). Making one touches nothing native: the Windows limiter
-     * probes the system on first use.
+     * runs the emulated CPU limit (LIM-7). The Windows limiter touches nothing native until first use.
+     * The Linux one queries the system when it is made: it reads {@code /proc} and the cgroup files,
+     * loads libsystemd and asks the systemd user manager over the user bus what it can provide
+     * (read-only, at most {@code LinuxScopeLimiter.PROBE_BOUND}), so this runs, with {@link #create},
+     * on the start-up thread {@code srm-startup}, never on the JavaFX Application Thread.
      */
     static ResourceLimiter limiterFor(HostSystem system, LongSupplier bootTimeSeconds) {
         return switch (system) {
             case WINDOWS -> new WindowsJobLimiter();
-            // Milestone 12: the systemd scope mechanism exists, but no desktop application is eligible (K16); the
-            // product's limiter reports every kind unavailable with that reason and keeps the scope-membership rule.
-            case LINUX -> LinuxScopeLimiter.product(bootTimeSeconds);
+            // K16 lifted on 2026-11-28 by the product owner, after the desktop validation recorded in
+            // docs/evidence/k16-desktop-validation-2026-11-28.md (ADR-0016, amendment of that date): desktop
+            // applications in their own app.slice scopes, the user's consent per request, every other rule kept.
+            case LINUX -> LinuxScopeLimiter.desktop(bootTimeSeconds);
             case MACOS, OTHER -> UnavailableResourceLimiter.here();
         };
     }

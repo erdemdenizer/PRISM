@@ -91,7 +91,12 @@ class SystemdCapabilityProbeTest {
         assertThat(report.readiness().cpu().ready()).isTrue();
         assertThat(report.readiness().memoryHard().ready()).isTrue();
         assertThat(report.readiness().cpu().unconfirmed()).contains("acceptance of PIDFDs by this user manager");
-        assertThat(report.productPolicy()).contains("every process UNAVAILABLE");
+        // K16 lifted on 2026-11-28: the report names the product's policy as it now is.
+        assertThat(report.productPolicy())
+                .isEqualTo(SystemdCapabilityProbe.PRODUCT_POLICY)
+                .contains("desktop applications in their own scope in app.slice")
+                .contains("never PRISM or the processes it runs under")
+                .contains("with the user's consent for that request");
         assertThat(report.describe()).contains("product:").doesNotContain("finding:");
         assertThat(fake.sent)
                 .allMatch(call ->

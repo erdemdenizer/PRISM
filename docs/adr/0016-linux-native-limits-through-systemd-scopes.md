@@ -2,7 +2,9 @@
 
 - Status: **Accepted** (2026-11-07, by the product owner, with milestone 12 and with K16 active:
   [evidence/m12-acceptance-decision.md](../evidence/m12-acceptance-decision.md)). Replaces
-  [0003](0003-linux-native-limits-with-cgroups-v2.md). This does not enable Linux native limits for real user processes.
+  [0003](0003-linux-native-limits-with-cgroups-v2.md). **Amended 2026-11-28: K16 lifted** by the product owner after the
+  desktop validation in [evidence/k16-desktop-validation-2026-11-28.md](../evidence/k16-desktop-validation-2026-11-28.md): Linux native limits are enabled
+  for desktop applications, each with the user's consent per request (decision 7 as amended, and the amendment at the end).
 - Date: 2026-10-14 (planning Rev 2; amended in Rev 2.1 after the reviewer's conditional architecture GO; amended
   2026-10-15 in plan Rev 2.2 for review follow-up O9: decision 8 separates identity blocking, scope-membership
   blocking and ownership-provenance retention; implementation notes and CI-3 added 2026-10-15 with stages S3B to S6;
@@ -32,7 +34,8 @@ documentation (the planning evidence, doc-facts, of plan Rev 2.2):
    accept `PIDFDs`, native limits are `UNAVAILABLE`; there is no fallback to PID-based adoption in PRISM's own
    messages. (systemd's user manager itself asks the system manager to move a process by PID number when it lacks the
    privilege to move it, as from outside `user@UID.service`; PRISM admits only processes inside `user@UID.service`,
-   checked before the pidfd is opened, and does not check that again after it: a recorded design risk.)
+   checked before the pidfd is opened and, since 2026-11-27, again after it (risk D2, mitigated: a privileged move, an
+   exit and a PID reuse between the checks and systemd's fallback by PID cannot be excluded).)
    Capability discovery is read-only: files under `/proc` and `/sys/fs/cgroup`, symbol lookup in `libsystemd.so.0`,
    property reads and `GetUnit`/`GetUnitByPID`. It never calls `StartTransientUnit` or any other state-changing method,
    and never hands the pidfd of PRISM or of a user process to the manager. systemd 255 is a necessary condition only;
@@ -61,6 +64,15 @@ documentation (the planning evidence, doc-facts, of plan Rev 2.2):
    and names to the limiter explicitly; per-process adoption consent and separate hard-memory consent are required by
    the limiter's contract. Extending native limits to ordinary desktop applications needs new evidence and a new
    product-owner approval (K16).
+   **Amended 2026-11-28 (K16 lifted):** the evidence and the approval came ([desktop validation](../evidence/k16-desktop-validation-2026-11-28.md)). In the
+   product native limits are available for a desktop application: a process whose cgroup is a scope unit's own cgroup in
+   the user manager's `app.slice` (what a launcher or a terminal starts), never PRISM's own process or the processes it runs
+   under, never a service (systemd starts and supervises a service, systemd.service(5); a scope only groups processes it
+   did not start, systemd.scope(5); moving a service's process out of its unit could end the service, and for the GNOME
+   session manager, which Ubuntu 24.04 runs in `app.slice`, the session), never `session.slice`, `background.slice` or the
+   manager's own `init.scope`. Every adoption needs the user's consent for that request (decision 6), a hard memory limit
+   its own (decision 4); the limiter holds no consent of its own. There is still no experimental setting. A process in the
+   user manager's `session.slice` gets no emulated limit either, and none is offered (the owner's decision 2 of that date).
 8. Recovery after a crash is read-only classification first (`recover`, unchanged contract) and a separate explicit
    clearing step (`clearOwned`) that runs only when ownership is proven: PRISM's ledger record with the unit name
    and the unit's `InvocationID`, the live unit's `InvocationID` equal to it, and the recorded identity (or only its
@@ -99,7 +111,8 @@ documentation (the planning evidence, doc-facts, of plan Rev 2.2):
 - Native limits on Linux need systemd ≥ 255 for adoption and ≥ 253 for `memory.max`; a session without a reachable
   user manager, a process outside `user@UID.service`, or a controller not delegated gets `UNAVAILABLE` with the reason.
 - The process is moved out of the unit its launcher created; the desktop environment may see it differently. This is
-  unvalidated and is stated to the user; the feature is off by default until validated.
+  stated to the user before every move. It was unvalidated, and the feature off in the product, until the desktop
+  validation of 2026-11-28; since then it is on for desktop applications, never without the user's consent for the request.
 - After a crash the limits stay until the next start clears them where ownership is proven, or until the process exits.
 - Verification so far: CI-0 (2026-10-14, GitHub-hosted ubuntu-24.04, read-only) found cgroup v2, systemd 255.4, a
   lingering user manager with `cpu memory pids` delegated and owned by the user, a reachable user bus, the Manager
@@ -326,7 +339,8 @@ documentation (the planning evidence, doc-facts, of plan Rev 2.2):
   the macOS test machine (2287, 0, 63); the native suite 3 of 3 on the VM; hosted `verify` on Windows, Ubuntu and macOS and
   `linux-native-validation` passed; hosted `native-validation` failed, as it does by design. The product owner accepted this
   record on 2026-11-07.
-- **Consent and eligibility for desktop processes (2026-11-28), built and inert under K16.** Decision 6's consent and
+- **Consent and eligibility for desktop processes (2026-11-28), built and inert under K16 (reachable since K16 was lifted the
+  same day, below).** Decision 6's consent and
   decision 4's separate hard-memory consent can now be given by the user per request: the limiter answers a missing one
   `CONSENT_REQUIRED` before anything is asked of the system, with the statements of `NativeConsent`; the limit service
   answers the request with that offer and changes nothing (no record kept, no emulated limit stopped or started); the
@@ -339,7 +353,8 @@ documentation (the planning evidence, doc-facts, of plan Rev 2.2):
   user manager's own `init.scope` is now refused under every policy. The product still builds `product(...)` with
   `EligibilityPolicy.none()` and `NativeConsent.none()`, so no process reaches the dialog; the K16 source scan now also
   forbids making the desktop policy in the main sources. Run on Windows only, with fakes; not on Linux.
-- **Desktop policy narrowed to `app.slice`; clearing without a signal (2026-11-28, built and inert under K16).** The desktop
+- **Desktop policy narrowed to `app.slice`; clearing without a signal (2026-11-28, built and inert under K16; reachable since
+  K16 was lifted the same day, below).** The desktop
   policy admits only processes whose cgroup is inside a unit in the user manager's `app.slice`, where systemd's desktop
   convention puts the applications the user runs; the session bus broker, the compositor and the other session services
   (`session.slice`), background work (`background.slice`) and units directly under the manager are refused (systemd.special(7),
@@ -349,12 +364,37 @@ documentation (the planning evidence, doc-facts, of plan Rev 2.2):
   as every clearing in the session proves it, and every kind is set to infinity on that invocation (decision 5; register D4).
   Only a unit's own cgroup in `app.slice` is admitted, not a slice or a cgroup below a unit. A start refused for such a process is
   reported as before the start, access denied without an emulated fallback (D5). Run on Windows only, with fakes; not on Linux.
-- **K16.** `HostPlatform` builds `LinuxScopeLimiter.product(...)`, which admits no process, opens no bus and reports
-  every process `UNAVAILABLE` ("Linux native limits are not validated for desktop applications"; the system-wide report
-  adds "(implemented, not enabled in this release)"; until 2026-11-27 it said "K16", an internal label, risk D12). There is no
-  setting, property or environment variable that changes this; only the test harness composes an admitting limiter,
-  for identities it started itself. K16 is an active safety restriction in the current product. It can be lifted later only
-  after separate validation and with the product owner's explicit approval; accepting this ADR does not lift it.
+- **K16 (until 2026-11-28).** `HostPlatform` built `LinuxScopeLimiter.product(...)`, which admitted no process, opened no bus
+  and reported every process `UNAVAILABLE` ("Linux native limits are not validated for desktop applications"; the system-wide
+  report added "(implemented, not enabled in this release)"; until 2026-11-27 it said "K16", an internal label, risk D12). No
+  setting, property or environment variable changed this; only the test harness composed an admitting limiter, for identities
+  it started itself. K16 was an active safety restriction; accepting this ADR did not lift it.
+- **Amendment, 2026-11-28: K16 lifted** by the product owner after the desktop validation in
+  [docs/evidence/k16-desktop-validation-2026-11-28.md](../evidence/k16-desktop-validation-2026-11-28.md), with the residuals the
+  [risk register](../evidence/m12-risk-register.md) lists under "K16 lifted" accepted rather than closed. What changed:
+  - `HostPlatform.limiterFor(LINUX)` builds `LinuxScopeLimiter.desktop(...)`, the only composition of the limiter in the main
+    sources (`ReadOnlyNativeScanTest` fails on a second one, on a harness policy or consent, on a desktop policy with excluded
+    processes from elsewhere, on a second scope manager): `EligibilityPolicy.desktop()`, `NativeConsent.none()` (no consent of
+    the limiter's own: the user gives it per request in `NativeConsentDialog`), the real `/proc`, cgroup files and pidfd calls,
+    and `SystemdScopeManager` over libsystemd's sd-bus. `product(...)` is gone; `EligibilityPolicy.none()` stays for tests.
+  - The readiness, PRISM's user ID and the manager's control group come from the read-only `SystemdCapabilityProbe`, as the
+    test harness takes them. It runs once, when `HostPlatform` is made on `srm-startup`, on a thread of its own
+    (`srm-linux-probe`), waited for at most 5 s; each of its bus calls is bounded to 2 s, the SASL authentication before them
+    only by libsystemd's own timeout (risk D1). Where anything is missing (no cgroup v2, no libsystemd, no user manager, a v1
+    hierarchy too, a controller not delegated, systemd older than 255, the user ID unreadable, the probe late or failed, the
+    probe's sources disagreeing) every native kind is `UNAVAILABLE` with the reason, the activity log says it, and the emulated
+    CPU limit is offered as before; where the user manager was not reached there is no scope manager, so recovery asks
+    nothing of the bus. The log states the outcome in one line ("Linux native limits: CPU ...; memory ...").
+  - The desktop policy admits only a scope unit's own cgroup in `app.slice` (decision 7 as amended); a `.service` there is
+    refused with "a service of your session manager: moving it out of its unit could end it".
+  - Decision 2 of the owner: `ResourceLimiter.sessionBarrier` says, on Linux from `/proc/<pid>/cgroup` alone and under any
+    policy or readiness, that a process in a user manager's `session.slice` is a desktop session service ("stopping it would
+    freeze the desktop"). The limit service then starts no emulated CPU limit and no watched memory limit and offers neither
+    as a fallback (`LimitNote.SESSION_SERVICE`, "Not offered: desktop session service"). A cgroup that cannot be read is not
+    taken for a session service; the scope-membership rule (decision 8) refuses such a process anyway. Services in
+    `app.slice` keep the emulated limit, which moves nothing.
+  - Recovery now clears what it proves (decision 8), since the product's limiter admits processes.
+  Tested on Windows with the fake systemd and fake `/proc`; on Linux only in the desktop validation.
 
 Sources: the planning evidence (doc-facts) of plan Rev 2.2; systemd v255 `org.freedesktop.systemd1(5)`,
 `systemd.resource-control(5)`, `systemd.scope(5)`, `sd_bus_message_append(3)`, `sd_bus_call(3)`; kernel

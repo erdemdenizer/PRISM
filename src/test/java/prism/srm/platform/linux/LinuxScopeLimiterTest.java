@@ -7,7 +7,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
@@ -23,7 +25,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.CleanupMode;
 import org.junit.jupiter.api.io.TempDir;
+import prism.srm.domain.CapabilityLevel;
+import prism.srm.domain.ControlMechanism;
 import prism.srm.domain.EffectiveLimits;
+import prism.srm.domain.LimitCapability;
 import prism.srm.domain.LimitKind;
 import prism.srm.domain.LimitRecord;
 import prism.srm.domain.LimitSpec;
@@ -147,10 +152,11 @@ class LinuxScopeLimiterTest {
         return MANAGER + "/app.slice/" + UNIT;
     }
 
-    // ----- K16, eligibility, consent -----
+    // ----- Eligibility, consent -----
 
+    /** A limiter whose policy admits no process (the product's while K16 held) asks nothing of the system. */
     @Test
-    void theProductLimiterAdmitsNothingAndNeverTouchesTheSystem() {
+    void aLimiterThatAdmitsNoProcessNeverTouchesTheSystem() {
         LinuxScopeLimiter product = new LinuxScopeLimiter(new LinuxScopeLimiter.Parts(
                 LinuxNativeReadiness.EligibilityPolicy.none(),
                 NativeConsent.none(),
@@ -168,8 +174,8 @@ class LinuxScopeLimiterTest {
                 () -> 0));
 
         assertThat(product.capabilities().values())
-                .allSatisfy(c -> assertThat(c.reason()).contains(LinuxScopeLimiter.PRODUCT_REASON));
-        assertThat(product.capabilitiesFor(DEMO).get(LimitKind.CPU).reason()).contains(LinuxScopeLimiter.NOT_VALIDATED);
+                .allSatisfy(c -> assertThat(c.reason()).contains(LinuxScopeLimiter.ADMITS_NONE));
+        assertThat(product.capabilitiesFor(DEMO).get(LimitKind.CPU).reason()).contains(LinuxScopeLimiter.NOT_NAMED);
         ApplyResult refused = product.apply(DEMO, CPU20_THROTTLE256, p -> true);
         assertThat(refused.phase()).isEqualTo(ApplyResult.Phase.NOT_ASSIGNED);
         assertThat(refused.fallbackEligible()).isTrue();
@@ -189,7 +195,7 @@ class LinuxScopeLimiterTest {
                         .outcome()
                         .detail()
                         .orElseThrow())
-                .contains(LinuxScopeLimiter.NOT_VALIDATED);
+                .contains(LinuxScopeLimiter.NOT_NAMED);
         assertThat(linux.calls).isEmpty();
         assertThat(systemd.calls).isEmpty();
     }
@@ -220,7 +226,7 @@ class LinuxScopeLimiterTest {
         assertThat(systemd.calls).isEmpty();
     }
 
-    // ----- Consent per call (the product's consent dialog; K16 keeps it unreachable) -----
+    // ----- Consent per call (the product's consent dialog) -----
 
     private static final LimitSpec HARD256 =
             new LimitSpec(OptionalInt.empty(), OptionalLong.of(256L << 20), MemoryBoundary.HARD);
@@ -378,6 +384,20 @@ class LinuxScopeLimiterTest {
             assertThat(refused.phase()).isEqualTo(ApplyResult.Phase.NOT_ASSIGNED);
             assertThat(refused.outcome().detail().orElseThrow()).contains("not a desktop application");
         }
+        // A service, in app.slice too: systemd started and supervises it, and moving its process out of its unit could
+        // end it (systemd.service(5), systemd.scope(5)); the GNOME session manager runs there on Ubuntu 24.04.
+        for (String service : List.of(
+                MANAGER + "/app.slice/app-org.gnome.Terminal.slice/gnome-terminal-server.service",
+                MANAGER + "/app.slice/app-gnome\\x2dsession\\x2dmanager.slice/gnome-session-manager@ubuntu.service")) {
+            systemd.placeProcess(PID, service);
+            assertThat(limiter.capabilitiesFor(DEMO).get(LimitKind.CPU).reason())
+                    .as(service)
+                    .hasValueSatisfying(r -> assertThat(r).endsWith(LinuxNativeReadiness.SERVICE_UNIT));
+            assertThat(limiter.consentNeeded(DEMO, CPU20_THROTTLE256, Set.of())).isEmpty();
+            ApplyResult refused = apply(CPU20_THROTTLE256, Set.of(NativeConsentKind.ADOPTION));
+            assertThat(refused.phase()).isEqualTo(ApplyResult.Phase.NOT_ASSIGNED);
+            assertThat(refused.outcome().detail().orElseThrow()).contains("a service of your session manager");
+        }
         assertThat(linux.calls).as("no pidfd opened").noneMatch(c -> c.startsWith("pidfd_open"));
         assertThat(systemd.calls).isEmpty();
 
@@ -390,6 +410,470 @@ class LinuxScopeLimiterTest {
                 .contains("not a desktop application: it runs in session.slice");
         assertThat(systemd.calls).noneMatch(call -> call.startsWith("start"));
         assertThat(linux.openFds()).as("the pidfd is closed").isEmpty();
+    }
+
+    /**
+     * What a launcher starts (app-gnome-NAME-PID.scope, GNOME's autostart items too) and what a terminal starts
+     * (app-org.gnome.Terminal.slice/vte-spawn-UUID.scope) is admitted under the desktop policy, with the user's consent.
+     */
+    @Test
+    void theDesktopPolicyAdmitsWhatALauncherAndATerminalStart() {
+        limiter = composed(
+                LinuxNativeReadiness.EligibilityPolicy.desktopExcluding(
+                        () -> new LinuxNativeReadiness.EligibilityPolicy.Excluded(9_100, Set.of(9_050L, 1L))),
+                NativeConsent.none());
+        for (String app : List.of(
+                MANAGER + "/app.slice/app-gnome-org.gnome.TextEditor-" + PID + ".scope",
+                MANAGER
+                        + "/app.slice/app-org.gnome.Terminal.slice/vte-spawn-0b6d5c1e-9f0e-4d38-8f4f-1f0e2b7d1c11.scope")) {
+            systemd.placeProcess(PID, app);
+            assertThat(limiter.capabilitiesFor(DEMO).get(LimitKind.CPU).available())
+                    .as(app)
+                    .isTrue();
+            assertThat(limiter.consentNeeded(DEMO, CPU20_THROTTLE256, Set.of()))
+                    .as(app)
+                    .hasValueSatisfying(offer -> assertThat(offer.kinds()).containsExactly(NativeConsentKind.ADOPTION));
+        }
+        assertThat(apply(CPU20_THROTTLE256, Set.of(NativeConsentKind.ADOPTION)).phase())
+                .as("from the terminal's scope")
+                .isEqualTo(ApplyResult.Phase.ENFORCED);
+    }
+
+    // ----- The product's composition (LinuxScopeLimiter.desktop, K16 lifted on 2026-11-28) -----
+
+    private LinuxScopeLimiter.DesktopSystem desktopSystem(Optional<CgroupFiles> cgroups, long uid) {
+        return new LinuxScopeLimiter.DesktopSystem(
+                linux,
+                new ProcFs(proc.root),
+                () -> FakeProc.BOOT_TIME_SECONDS,
+                cgroups,
+                Optional.of(systemd),
+                uid,
+                () -> 4,
+                duration -> {
+                    clock[0] += duration.toNanos();
+                    systemd.settle();
+                },
+                () -> clock[0]);
+    }
+
+    /** A probe's report with this readiness and these findings, from a manager with this control group (empty: none). */
+    private static SystemdCapabilityProbe.Report report(
+            LinuxNativeReadiness.SystemReadiness readiness, List<String> findings, String manager) {
+        return new SystemdCapabilityProbe.Report(
+                "libsystemd.so.0 (test)",
+                Optional.of(
+                        manager.isEmpty()
+                                ? SystemdUserBus.Reading.not(SystemdUserBus.Status.FAILED, "no user bus")
+                                : SystemdUserBus.Reading.ok(new SystemdUserBus.ManagerFacts(
+                                        "255.4-1ubuntu8.18",
+                                        Optional.empty(),
+                                        Optional.of("running"),
+                                        manager,
+                                        Optional.of("stop")))),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                new LinuxNativeReadiness.Facts(
+                        Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty()),
+                readiness,
+                findings,
+                SystemdCapabilityProbe.PRODUCT_POLICY);
+    }
+
+    private static LinuxNativeReadiness.SystemReadiness readiness(
+            boolean v1, String version, Set<String> delegated, boolean libsystemd) {
+        return LinuxNativeReadiness.classify(new LinuxNativeReadiness.Facts(
+                Optional.of("/sys/fs/cgroup"),
+                Optional.of(v1),
+                Optional.of(version),
+                Optional.of(delegated),
+                Optional.of(libsystemd)));
+    }
+
+    /** A PID that is neither this JVM nor one of the processes it runs under, which the real desktop policy refuses. */
+    private static int notThisJvmNorItsAncestors(int from) {
+        Set<Long> excluded = new java.util.HashSet<>();
+        ProcessHandle self = ProcessHandle.current();
+        excluded.add(self.pid());
+        for (Optional<ProcessHandle> parent = self.parent();
+                parent.isPresent();
+                parent = parent.get().parent()) {
+            if (!excluded.add(parent.get().pid())) {
+                break;
+            }
+        }
+        int pid = from;
+        while (excluded.contains((long) pid)) {
+            pid++;
+        }
+        return pid;
+    }
+
+    /**
+     * The product's limiter on Linux, as {@code LinuxScopeLimiter.desktop} composes it: the desktop policy and no
+     * consent of its own, so that the user's consent for a request admits an adoption and nothing else does; PRISM
+     * itself, a session service, the user manager and a service are refused whatever the request carries.
+     */
+    @Test
+    void theProductsCompositionIsTheDesktopPolicyWithTheUsersConsentPerRequest() {
+        int pid = notThisJvmNorItsAncestors(6_100);
+        ProcessIdentity app = new ProcessIdentity(pid, FakeProc.start(TICKS));
+        proc.process(pid, "gedit", TICKS);
+        java.util.concurrent.atomic.AtomicLong probedAs = new java.util.concurrent.atomic.AtomicLong(-1);
+        LinuxScopeLimiter.Parts parts = LinuxScopeLimiter.desktopParts(
+                desktopSystem(Optional.of(files), 1000),
+                (cgroups, uid) -> {
+                    probedAs.set(uid);
+                    return report(ready(), List.of(), MANAGER);
+                },
+                Duration.ofSeconds(5));
+        assertThat(probedAs).as("the probe asks for PRISM's own user").hasValue(1000);
+        assertThat(parts.policy().applicationsOnly()).as("the desktop policy").isTrue();
+        assertThat(parts.policy().admitsNone()).isFalse();
+        assertThat(parts.consent().adoption(app))
+                .as("no consent of the limiter's own")
+                .isFalse();
+        assertThat(parts.consent().hardMemory(app)).isFalse();
+        assertThat(parts.managerGroup()).isEqualTo(MANAGER);
+        assertThat(parts.scopes()).contains(systemd);
+        limiter = new LinuxScopeLimiter(parts);
+
+        assertThat(limiter.limitations()).isEmpty();
+        assertThat(limiter.capabilities().get(LimitKind.CPU))
+                .isEqualTo(LimitCapability.of(CapabilityLevel.NATIVE_HARD, ControlMechanism.SYSTEMD_SCOPE));
+        assertThat(limiter.capabilities().get(LimitKind.MEMORY))
+                .isEqualTo(LimitCapability.of(CapabilityLevel.NATIVE_SOFT, ControlMechanism.SYSTEMD_SCOPE));
+        assertThat(limiter.summary())
+                .isEqualTo("CPU NATIVE_HARD through a systemd scope; memory NATIVE_SOFT through a systemd scope; each"
+                        + " process needs the user's consent before PRISM moves it into a scope");
+        assertThat(limiter.mayHaveLeftLimits()).isTrue();
+        assertThat(limiter.recoveryClears()).isTrue();
+
+        Set<NativeConsentKind> every = EnumSet.allOf(NativeConsentKind.class);
+        ProcessIdentity prism = new ProcessIdentity(ProcessHandle.current().pid(), Instant.EPOCH);
+        assertThat(limiter.capabilitiesFor(prism).get(LimitKind.CPU).reason())
+                .contains(LinuxNativeReadiness.PRISM_ITSELF);
+        assertThat(limiter.apply(prism, CPU20_THROTTLE256, provenance -> true, every)
+                        .outcome()
+                        .detail())
+                .contains(LinuxNativeReadiness.PRISM_ITSELF);
+        ProcessHandle.current()
+                .parent()
+                .ifPresent(parent -> assertThat(limiter.apply(
+                                        new ProcessIdentity(parent.pid(), Instant.EPOCH),
+                                        CPU20_THROTTLE256,
+                                        provenance -> true,
+                                        every)
+                                .outcome()
+                                .detail())
+                        .contains(LinuxNativeReadiness.PRISM_ANCESTOR));
+        for (Map.Entry<String, String> place : Map.of(
+                        MANAGER + "/session.slice/org.gnome.Shell@wayland.service",
+                        "not a desktop application: it runs in session.slice",
+                        MANAGER + "/session.slice/dbus.service",
+                        "not a desktop application: it runs in session.slice",
+                        MANAGER + "/init.scope",
+                        "it is your systemd user manager itself",
+                        MANAGER
+                                + "/app.slice/app-gnome\\x2dsession\\x2dmanager.slice/gnome-session-manager@ubuntu.service",
+                        LinuxNativeReadiness.SERVICE_UNIT,
+                        MANAGER + "/app.slice/app-org.gnome.Terminal.slice/gnome-terminal-server.service",
+                        LinuxNativeReadiness.SERVICE_UNIT,
+                        "/user.slice/user-1000.slice/session-2.scope",
+                        "outside your session manager")
+                .entrySet()) {
+            systemd.placeProcess(pid, place.getKey());
+            assertThat(limiter.capabilitiesFor(app).get(LimitKind.CPU).reason())
+                    .as(place.getKey())
+                    .hasValueSatisfying(r -> assertThat(r).contains(place.getValue()));
+            assertThat(limiter.consentNeeded(app, CPU20_THROTTLE256, Set.of())).isEmpty();
+            ApplyResult refused = limiter.apply(app, CPU20_THROTTLE256, provenance -> true, every);
+            assertThat(refused.phase()).as(place.getKey()).isEqualTo(ApplyResult.Phase.NOT_ASSIGNED);
+            assertThat(refused.outcome().detail().orElseThrow()).contains(place.getValue());
+        }
+        assertThat(linux.calls).as("no pidfd opened").noneMatch(c -> c.startsWith("pidfd_open"));
+        assertThat(systemd.calls).as("nothing asked of systemd").isEmpty();
+
+        systemd.placeProcess(pid, MANAGER + "/app.slice/app-gnome-org.gnome.TextEditor-" + pid + ".scope");
+        assertThat(limiter.consentNeeded(app, CPU20_THROTTLE256, Set.of())).hasValueSatisfying(offer -> {
+            assertThat(offer.kinds()).containsExactly(NativeConsentKind.ADOPTION);
+            assertThat(offer.statements()).isEqualTo(NativeConsent.ADOPTION_STATEMENTS);
+        });
+        assertThat(limiter.consentNeeded(app, HARD256, Set.of(NativeConsentKind.ADOPTION)))
+                .as("a hard memory limit needs its own consent")
+                .hasValueSatisfying(offer -> assertThat(offer.kinds()).containsExactly(NativeConsentKind.HARD_MEMORY));
+        ApplyResult unconsented = limiter.apply(app, CPU20_THROTTLE256, provenance -> true, Set.of());
+        assertThat(unconsented.phase()).isEqualTo(ApplyResult.Phase.CONSENT_REQUIRED);
+        assertThat(linux.calls).noneMatch(c -> c.startsWith("pidfd_open"));
+        assertThat(systemd.calls).isEmpty();
+
+        ApplyResult consented =
+                limiter.apply(app, CPU20_THROTTLE256, provenance -> true, Set.of(NativeConsentKind.ADOPTION));
+        assertThat(consented.phase()).isEqualTo(ApplyResult.Phase.ENFORCED);
+        String unit = ScopeNames.of(app).orElseThrow();
+        assertThat(systemd.read(MANAGER + "/app.slice/" + unit, "cpu.max")).isEqualTo("80000 100000");
+        assertThat(limiter.releaseAll(Duration.ofSeconds(1)).cleared()).containsEntry(app, true);
+    }
+
+    /**
+     * Where the system cannot provide native limits, the product's limiter says why for every kind, keeps no scope
+     * manager where the user manager was not reached, and still keeps the scope-membership rule and decision 2; the
+     * probe is not asked where it has nothing to read.
+     */
+    @Test
+    void theProductsCompositionDegradesToUnavailableWithTheReason() throws IOException {
+        java.util.concurrent.atomic.AtomicInteger probes = new java.util.concurrent.atomic.AtomicInteger();
+        LinuxScopeLimiter.Probe counted = (cgroups, uid) -> {
+            probes.incrementAndGet();
+            return report(ready(), List.of(), MANAGER);
+        };
+
+        LinuxScopeLimiter.Parts noCgroup2 =
+                LinuxScopeLimiter.desktopParts(desktopSystem(Optional.empty(), 1000), counted, Duration.ofSeconds(5));
+        LinuxScopeLimiter.Parts noUid =
+                LinuxScopeLimiter.desktopParts(desktopSystem(Optional.of(files), -1), counted, Duration.ofSeconds(5));
+        assertThat(probes).as("nothing to probe with").hasValue(0);
+        assertUnavailable(noCgroup2, "the cgroup v2 file system is not mounted");
+        assertUnavailable(noUid, "PRISM's own user ID could not be read");
+
+        Map<String, SystemdCapabilityProbe.Report> reports = Map.of(
+                "libsystemd (or a function of it) is not available",
+                report(readiness(false, "255.4", Set.of("cpu", "memory"), false), List.of(), ""),
+                "the systemd user manager's version is unknown (no user manager reachable)",
+                report(
+                        LinuxNativeReadiness.classify(new LinuxNativeReadiness.Facts(
+                                Optional.of("/sys/fs/cgroup"),
+                                Optional.of(false),
+                                Optional.empty(),
+                                Optional.empty(),
+                                Optional.of(true))),
+                        List.of(),
+                        ""),
+                "a cgroup v1 hierarchy is mounted (hybrid system)",
+                report(readiness(true, "255.4", Set.of("cpu", "memory"), true), List.of(), MANAGER),
+                "the cpu controller is not delegated to your session manager",
+                report(readiness(false, "255.4", Set.of("memory", "pids"), true), List.of(), MANAGER),
+                "adopting a process by pidfd needs systemd 255 (found 254)",
+                report(readiness(false, "254.5", Set.of("cpu", "memory"), true), List.of(), MANAGER),
+                "PRISM's unit names the cgroup /a but /proc/self/cgroup names /b",
+                report(ready(), List.of("PRISM's unit names the cgroup /a but /proc/self/cgroup names /b"), MANAGER));
+        for (Map.Entry<String, SystemdCapabilityProbe.Report> found : reports.entrySet()) {
+            LinuxScopeLimiter.Parts parts = LinuxScopeLimiter.desktopParts(
+                    desktopSystem(Optional.of(files), 1000), (cgroups, uid) -> found.getValue(), Duration.ofSeconds(5));
+            assertThat(parts.policy().applicationsOnly()).isTrue();
+            LinuxScopeLimiter degraded = new LinuxScopeLimiter(parts);
+            assertThat(degraded.capabilities().get(LimitKind.CPU).reason())
+                    .as(found.getKey())
+                    .hasValueSatisfying(r -> assertThat(r).contains(found.getKey()));
+            assertThat(degraded.limitations())
+                    .as(found.getKey())
+                    .singleElement()
+                    .satisfies(line -> assertThat(line)
+                            .startsWith("Linux native limits are unavailable: ")
+                            .contains(found.getKey()));
+            assertThat(degraded.summary()).startsWith("CPU unavailable (");
+            if (found.getValue()
+                            .manager()
+                            .flatMap(SystemdUserBus.Reading::value)
+                            .isEmpty()
+                    || !found.getValue().findings().isEmpty()) {
+                assertThat(parts.scopes())
+                        .as("no user manager to ask: " + found.getKey())
+                        .isEmpty();
+                assertThat(degraded.recover(LimitRecord.intended(DEMO, "demo", EffectiveLimits.NONE, "1-1"))
+                                .verdict())
+                        .isEqualTo(RecoveredLimit.Verdict.FAILED);
+            }
+            ApplyResult refused =
+                    degraded.apply(DEMO, CPU20_THROTTLE256, provenance -> true, EnumSet.allOf(NativeConsentKind.class));
+            assertThat(refused.phase()).isEqualTo(ApplyResult.Phase.NOT_ASSIGNED);
+            assertThat(refused.fallbackEligible())
+                    .as("the emulated limit stays available")
+                    .isTrue();
+        }
+        assertThat(linux.calls).noneMatch(c -> c.startsWith("pidfd_open"));
+        assertThat(systemd.calls).isEmpty();
+
+        // Decision 2 and the membership rule need no native readiness: without the mount, /proc/<pid>/cgroup decides.
+        LinuxScopeLimiter withoutMount = new LinuxScopeLimiter(noCgroup2);
+        Path cgroup = proc.root.resolve(Integer.toString(PID)).resolve("cgroup");
+        Files.writeString(cgroup, "0::" + MANAGER + "/session.slice/org.gnome.Shell@wayland.service\n");
+        assertThat(withoutMount.sessionBarrier(DEMO)).isPresent();
+        Files.writeString(cgroup, "0::" + MANAGER + "/app.slice/prism-srm-limit-2071-17.scope\n");
+        assertThat(withoutMount.scopeBarrier(DEMO)).isPresent();
+        assertThat(withoutMount.sessionBarrier(DEMO)).isEmpty();
+    }
+
+    private void assertUnavailable(LinuxScopeLimiter.Parts parts, String why) {
+        LinuxScopeLimiter degraded = new LinuxScopeLimiter(parts);
+        assertThat(parts.scopes()).isEmpty();
+        assertThat(parts.readiness()).isEmpty();
+        assertThat(parts.policy().applicationsOnly()).isTrue();
+        assertThat(degraded.capabilities().values())
+                .allSatisfy(capability -> assertThat(capability.reason())
+                        .hasValueSatisfying(r -> assertThat(r).contains(why)));
+        assertThat(degraded.limitations()).containsExactly("Linux native limits are unavailable: " + why);
+    }
+
+    /** The probe runs on its own named thread and is waited for at most its bound; a failure is said, not thrown. */
+    @Test
+    void theProbeIsBoundedAndRunsOnItsOwnThread() throws InterruptedException {
+        java.util.concurrent.CountDownLatch stuck = new java.util.concurrent.CountDownLatch(1);
+        java.util.concurrent.atomic.AtomicReference<Thread> ranOn = new java.util.concurrent.atomic.AtomicReference<>();
+        try {
+            long before = System.nanoTime();
+            LinuxScopeLimiter.Parts late = LinuxScopeLimiter.desktopParts(
+                    desktopSystem(Optional.of(files), 1000),
+                    (cgroups, uid) -> {
+                        ranOn.set(Thread.currentThread());
+                        try {
+                            stuck.await();
+                        } catch (InterruptedException interrupted) {
+                            Thread.currentThread().interrupt();
+                        }
+                        return report(ready(), List.of(), MANAGER);
+                    },
+                    Duration.ofMillis(50));
+            assertThat(Duration.ofNanos(System.nanoTime() - before)).isLessThan(Duration.ofSeconds(5));
+            assertUnavailable(late, "the systemd user manager did not answer within 50 ms");
+            assertThat(ranOn.get().getName()).isEqualTo("srm-linux-probe");
+            assertThat(ranOn.get().isDaemon()).isTrue();
+            assertThat(ranOn.get()).isNotSameAs(Thread.currentThread());
+        } finally {
+            stuck.countDown();
+        }
+        ranOn.get().join(5_000);
+
+        LinuxScopeLimiter.Parts failed = LinuxScopeLimiter.desktopParts(
+                desktopSystem(Optional.of(files), 1000),
+                (cgroups, uid) -> {
+                    throw new IllegalStateException("no bus");
+                },
+                Duration.ofSeconds(5));
+        assertUnavailable(
+                failed, "the systemd user manager could not be checked: java.lang.IllegalStateException: no bus");
+
+        // An Error (a binding that cannot link, for example) is said as a failure at once, not as a late answer.
+        long beforeError = System.nanoTime();
+        LinuxScopeLimiter.Parts linkage = LinuxScopeLimiter.desktopParts(
+                desktopSystem(Optional.of(files), 1000),
+                (cgroups, uid) -> {
+                    throw new LinkageError("no such symbol");
+                },
+                Duration.ofSeconds(30));
+        assertThat(Duration.ofNanos(System.nanoTime() - beforeError)).isLessThan(Duration.ofSeconds(10));
+        assertUnavailable(
+                linkage, "the systemd user manager could not be checked: java.lang.LinkageError: no such symbol");
+
+        Thread.currentThread().interrupt();
+        try {
+            LinuxScopeLimiter.Parts interrupted = LinuxScopeLimiter.desktopParts(
+                    desktopSystem(Optional.of(files), 1000),
+                    (cgroups, uid) -> report(ready(), List.of(), MANAGER),
+                    Duration.ofSeconds(5));
+            assertThat(Thread.currentThread().isInterrupted())
+                    .as("the interrupt is kept")
+                    .isTrue();
+            assertUnavailable(
+                    interrupted, "the systemd user manager was not checked: PRISM was interrupted while it waited");
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    /** PRISM's own real user ID comes from the first field of the Uid line of its /proc status; -1 when unreadable. */
+    @Test
+    void prismsOwnUserIdIsReadFromItsProcStatus() {
+        int self = (int) ProcessHandle.current().pid();
+        assertThat(LinuxScopeLimiter.ownUid(new ProcFs(proc.root)))
+                .as("no entry")
+                .isEqualTo(-1);
+        proc.process(self, "java", TICKS);
+        proc.uids(self, 1000, 0, 0, 0);
+        assertThat(LinuxScopeLimiter.ownUid(new ProcFs(proc.root))).isEqualTo(1000);
+    }
+
+    // ----- Owner decision 2 of 2026-11-28: no emulated limit for a desktop session service -----
+
+    /**
+     * A process in the user manager's session.slice is a desktop session service: the barrier says so, from the same
+     * read as the scope-membership rule. Nothing else is one, and a cgroup that cannot be read is not one here (the
+     * scope-membership rule refuses it as before).
+     */
+    @Test
+    void aDesktopSessionServiceGetsTheSessionBarrierAndNothingElseDoes() throws IOException {
+        systemd.placeProcess(PID, MANAGER + "/session.slice/org.gnome.Shell@wayland.service");
+        assertThat(limiter.sessionBarrier(DEMO))
+                .contains("it is a desktop session service (session.slice/org.gnome.Shell@wayland.service): stopping it"
+                        + " would freeze the desktop");
+        assertThat(limiter.scopeBarrier(DEMO)).isEmpty();
+        systemd.placeProcess(PID, MANAGER + "/session.slice/dbus.service");
+        assertThat(limiter.sessionBarrier(DEMO))
+                .hasValueSatisfying(r -> assertThat(r).contains("dbus.service"));
+
+        for (String other : List.of(
+                MANAGER + "/app.slice/app-demo-1.scope",
+                MANAGER + "/app.slice/app-gnome\\x2dsession\\x2dmanager.slice/gnome-session-manager@ubuntu.service",
+                MANAGER + "/background.slice/tracker-miner-fs-3.service",
+                "/system.slice/session.slice/x.service")) {
+            systemd.placeProcess(PID, other);
+            assertThat(limiter.sessionBarrier(DEMO)).as(other).isEmpty();
+        }
+        assertThat(limiter.sessionBarrier(new ProcessIdentity(4999, Instant.EPOCH)))
+                .as("gone")
+                .isEmpty();
+
+        Files.writeString(
+                temp.resolve("proc-cgroup").resolve(Integer.toString(PID)).resolve("cgroup"), "0::/../x\n");
+        assertThat(limiter.sessionBarrier(DEMO))
+                .as("an unreadable cgroup is not a session service")
+                .isEmpty();
+        assertThat(limiter.scopeBarrier(DEMO))
+                .as("the membership rule still refuses it")
+                .hasValueSatisfying(r -> assertThat(r).contains("could not be read"));
+        assertThat(linux.calls).isEmpty();
+        assertThat(systemd.calls).isEmpty();
+    }
+
+    /** Decision 2 without the cgroup mount: /proc/<pid>/cgroup alone decides, under any policy. */
+    @Test
+    void theSessionBarrierHoldsWithoutTheCgroupMount() throws IOException {
+        LinuxScopeLimiter noMount = new LinuxScopeLimiter(new LinuxScopeLimiter.Parts(
+                LinuxNativeReadiness.EligibilityPolicy.none(),
+                NativeConsent.none(),
+                linux,
+                new ProcFs(proc.root),
+                () -> FakeProc.BOOT_TIME_SECONDS,
+                Optional.empty(),
+                Optional.empty(),
+                "",
+                -1,
+                Optional.empty(),
+                List.of(),
+                () -> 4,
+                duration -> {},
+                () -> 0));
+        proc.process(4100, "gnome-shell", TICKS);
+        Files.writeString(
+                proc.root.resolve("4100/cgroup"), "0::" + MANAGER + "/session.slice/org.gnome.Shell@wayland.service\n");
+        proc.process(4200, "ordinary", TICKS);
+        Files.writeString(proc.root.resolve("4200/cgroup"), "0::" + MANAGER + "/app.slice/app-1.scope\n");
+        proc.process(4300, "no unified hierarchy", TICKS);
+        Files.writeString(proc.root.resolve("4300/cgroup"), "4:cpu:/user.slice\n");
+        proc.process(4400, "malformed", TICKS);
+        Files.writeString(proc.root.resolve("4400/cgroup"), "0::/../outside\n");
+
+        assertThat(noMount.sessionBarrier(new ProcessIdentity(4100, FakeProc.start(TICKS))))
+                .hasValueSatisfying(r -> assertThat(r).contains("org.gnome.Shell@wayland.service"));
+        for (int pid : new int[] {4200, 4300, 4400, 4999}) {
+            assertThat(noMount.sessionBarrier(new ProcessIdentity(pid, FakeProc.start(TICKS))))
+                    .as("pid %d", pid)
+                    .isEmpty();
+        }
+        assertThat(linux.calls).isEmpty();
     }
 
     @Test

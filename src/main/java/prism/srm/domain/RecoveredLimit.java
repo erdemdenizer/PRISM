@@ -43,7 +43,7 @@ public record RecoveredLimit(LimitRecord record, Verdict verdict, String detail)
          * Linux: the record's scope is proven PRISM's (the record's unit and invocation id equal the live unit's)
          * and still holds the recorded process; its limits may be in force. Classifying clears nothing: clearing is a
          * separate operation (ResourceLimiter#clearOwned), which recovery asks of a limiter that clears. The product's
-         * Linux limiter does not (K16).
+         * Linux limiter clears since K16 was lifted on 2026-11-28; one that admits no process does not.
          */
         OWNED_LIMITED,
         /**

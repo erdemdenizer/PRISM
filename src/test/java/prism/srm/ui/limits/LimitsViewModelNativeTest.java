@@ -117,6 +117,31 @@ class LimitsViewModelNativeTest {
         }
     }
 
+    /** Owner decision 2 of 2026-11-28: a desktop session service is said as not offered, with the reason. */
+    @Test
+    void aDesktopSessionServiceIsShownAsNotOffered() {
+        for (LimitStatus status : List.of(LimitStatus.FAILED, LimitStatus.UNAVAILABLE)) {
+            model.show(
+                    LimitsFixtures.nativeSnapshot(
+                            List.of(
+                                    LimitsFixtures.nativeLimited(
+                                            DEMO,
+                                            "gnome-shell",
+                                            OptionalInt.of(20),
+                                            OptionalLong.empty(),
+                                            status,
+                                            LimitNote.SESSION_SERVICE,
+                                            Optional.of(
+                                                    "no emulated limit: it is a desktop session service"
+                                                            + " (session.slice/org.gnome.Shell@wayland.service): stopping it would freeze the desktop")))));
+
+            LimitRow row = only();
+            assertThat(row.status()).as("%s", status).isEqualTo("Not offered: desktop session service");
+            assertThat(row.detail()).as("%s", status).contains("stopping it would freeze the desktop");
+            assertThat(row.status()).as("%s", status).doesNotContain("Capped", "Failed", "emulated offered");
+        }
+    }
+
     /** The emulated limit is offered, never assumed: the action is enabled only with an offer, and asks first. */
     @Test
     void theEmulatedLimitCanBeChosenOnlyWhenOfferedAndIsSentAsAnAcceptance() {

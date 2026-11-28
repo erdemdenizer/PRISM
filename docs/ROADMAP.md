@@ -46,7 +46,7 @@ Left for the next stage, as the release stated it:
 
 - application images for Linux and macOS (the image is built for Windows only);
 - the Linux native limits, implemented in milestone 12 and switched off in the product (owner
-  decision K16) until desktop applications are validated with them;
+  decision K16) until desktop applications are validated with them (done since: see below);
 - validated memory signals on Linux and macOS, so that OOM Guard's interventions and the watched
   memory limit can run there (today they monitor, warn and log);
 - the redesigned user interface tested on macOS, and its test round on Linux repeated;
@@ -58,7 +58,11 @@ Done since, on an Ubuntu 24.04.5 desktop and in CI:
   [evidence](evidence/linux-image-2026-11-26.md));
 - the Linux test round repeated: the full gate and the UI snapshot profile pass on the desktop,
   and the Overview's Disk and Network totals, which were unavailable on every Linux machine, are
-  shown (the Linux source of device layers).
+  shown (the Linux source of device layers);
+- the Linux native limits switched on for desktop applications, each with the user's consent per
+  process, and no limit for a service of the desktop session: K16 lifted by the product owner on
+  2026-11-28 after the desktop validation ([ADR-0016](adr/0016-linux-native-limits-through-systemd-scopes.md);
+  [evidence](evidence/k16-desktop-validation-2026-11-28.md)).
 
 Details and the provenance of the release: [COURSE_RELEASE.md](COURSE_RELEASE.md).
 

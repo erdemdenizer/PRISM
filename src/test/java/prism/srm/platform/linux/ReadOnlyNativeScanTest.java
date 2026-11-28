@@ -21,8 +21,9 @@ import org.junit.jupiter.api.Test;
  * cgroup.kill} or a signal subscription; the two state-changing methods milestone 12 needs ({@code StartTransientUnit}
  * by {@code PIDFDs}, and {@code Unit.SetProperties} on the invocation-id path; {@code SetUnitProperties}, which
  * addresses a unit by name, is forbidden) appear only in {@link SystemdScopeManager}; the read-only classes
- * stay read-only; and the product reaches the Linux limiter only through {@link LinuxScopeLimiter#product}, which admits
- * no process (K16).
+ * stay read-only; and the product reaches the Linux limiter only through {@link LinuxScopeLimiter#desktop}, which since
+ * K16 was lifted on 2026-11-28 composes the desktop policy with no consent of its own, so that only the user's consent
+ * for a request admits an adoption, and no other composition exists in the main sources.
  */
 class ReadOnlyNativeScanTest {
 
@@ -129,9 +130,20 @@ class ReadOnlyNativeScanTest {
         }
     }
 
+    /** The code of one method of the limiter, from its declaration to its first line that is exactly {@code end}. */
+    private static String body(String source, String declaration, String end) {
+        int from = source.indexOf(declaration);
+        assertThat(from).as(declaration).isNotNegative();
+        String rest = source.substring(from);
+        int to = rest.indexOf(end);
+        assertThat(to).as("the end of " + declaration).isPositive();
+        return rest.substring(0, to + end.length());
+    }
+
     @Test
-    void theProductReachesTheLinuxLimiterOnlyThroughItsDisabledProductForm() throws IOException {
+    void theProductReachesTheLinuxLimiterOnlyThroughItsDesktopFactory() throws IOException {
         List<String> users = new ArrayList<>();
+        List<String> factory = new ArrayList<>();
         for (Path source : sources(MAIN)) {
             String name = source.getFileName().toString().replace(".java", "");
             if (NATIVE_CLASSES.contains(name)) {
@@ -146,7 +158,9 @@ class ReadOnlyNativeScanTest {
                     Matcher use =
                             Pattern.compile("\\b" + type + "\\b(\\.\\w+)?").matcher(line);
                     while (use.find()) {
-                        if (!use.group().equals("LinuxScopeLimiter.product")) {
+                        if (use.group().equals("LinuxScopeLimiter.desktop")) {
+                            factory.add(name + ": " + code);
+                        } else {
                             users.add(name + " uses " + use.group());
                         }
                     }
@@ -154,20 +168,28 @@ class ReadOnlyNativeScanTest {
             }
         }
         assertThat(users)
-                .as("only LinuxScopeLimiter.product, which admits no process (K16)")
+                .as("only LinuxScopeLimiter.desktop, the product's composition (K16 lifted on 2026-11-28)")
                 .isEmpty();
+        assertThat(factory)
+                .as("exactly one use, in HostPlatform.limiterFor")
+                .containsExactly("HostPlatform: case LINUX -> LinuxScopeLimiter.desktop(bootTimeSeconds);");
     }
 
     /**
-     * K16 inside the native classes themselves: in the main sources the limiter is constructed once, in
-     * {@code product}, and the admitting pieces (a harness policy, the desktop policy, harness consent, a scope manager)
-     * are never made, so
-     * no second factory or hidden switch can compose an admitting limiter.
+     * Inside the native classes themselves: in the main sources the limiter is constructed once, in {@code desktop},
+     * from the one set of parts the main sources build, in {@code desktopParts}, which takes the desktop policy and no
+     * consent of the limiter's own ({@code NativeConsent.none()}); the scope manager is made once, in {@code desktop};
+     * and the other admitting pieces (a harness policy, harness consent, a desktop policy with excluded processes from
+     * elsewhere) are never made, so no second factory or hidden switch can compose a limiter that admits a process
+     * without the user's consent for that request.
      */
     @Test
-    void mainCodeNeverComposesAnAdmittingLimiter() throws IOException {
+    void mainCodeComposesTheLimiterOnlyInItsDesktopFactory() throws IOException {
         List<String> hits = new ArrayList<>();
+        List<String> desktopUses = new ArrayList<>();
         int constructions = 0;
+        int parts = 0;
+        int scopeManagers = 0;
         for (Path source : sources(MAIN)) {
             String file = source.getFileName().toString();
             for (String line : Files.readAllLines(source, StandardCharsets.UTF_8)) {
@@ -175,25 +197,48 @@ class ReadOnlyNativeScanTest {
                 if (code.startsWith("*") || code.startsWith("//") || code.startsWith("/*")) {
                     continue;
                 }
-                // Any use of the admitting factories other than their own declarations, qualified or not. The desktop
-                // policy (for the day K16 is lifted) admits processes too: no main code may make it while K16 holds.
+                // Any use of the admitting factories other than their own declarations, qualified or not.
                 boolean declaration = code.startsWith("static EligibilityPolicy harnessOwned(")
                         || code.startsWith("static NativeConsent harness(")
                         || code.startsWith("static EligibilityPolicy desktop(")
-                        || code.startsWith("static EligibilityPolicy desktopExcluding(");
+                        || code.startsWith("static EligibilityPolicy desktopExcluding(")
+                        || code.startsWith("public static LinuxScopeLimiter desktop(")
+                        || code.startsWith("static Parts desktopParts(");
                 for (String admitting : List.of(
                         "harnessOwned(",
                         "::harnessOwned",
                         " harness(",
                         ".harness(",
                         "::harness",
-                        "desktop(",
                         "::desktop",
                         "desktopExcluding(",
-                        "SystemdScopeManager(",
-                        "SystemdScopeManager::new",
-                        "LinuxScopeLimiter::new")) {
-                    if (line.contains(admitting) && !declaration && !code.startsWith("SystemdScopeManager(")) {
+                        "LinuxScopeLimiter::new",
+                        "new Parts(",
+                        "Parts::new")) {
+                    if (line.contains(admitting)
+                            && !declaration
+                            && !code.startsWith("new Parts(")
+                            && !code.startsWith("return new Parts(")) {
+                        hits.add(file + ": " + code);
+                    }
+                }
+                if (line.contains("desktop(") && !declaration) {
+                    desktopUses.add(file + ": " + code);
+                }
+                if (line.contains("SystemdScopeManager::new")
+                        || Pattern.compile("new\\s+(\\w+\\.)*SystemdScopeManager\\s*\\(")
+                                .matcher(line)
+                                .find()) {
+                    scopeManagers++;
+                    if (!file.equals("LinuxScopeLimiter.java")) {
+                        hits.add(file + ": " + code);
+                    }
+                }
+                if (Pattern.compile("new\\s+(\\w+\\.)*Parts\\s*\\(")
+                        .matcher(line)
+                        .find()) {
+                    parts++;
+                    if (!file.equals("LinuxScopeLimiter.java")) {
                         hits.add(file + ": " + code);
                     }
                 }
@@ -208,16 +253,29 @@ class ReadOnlyNativeScanTest {
             }
         }
         assertThat(hits).isEmpty();
-        assertThat(constructions).as("one construction, in product()").isEqualTo(1);
+        assertThat(desktopUses)
+                .as("the desktop policy is made once, in desktopParts; the factory is used once, in HostPlatform")
+                .containsExactlyInAnyOrder(
+                        "HostPlatform.java: case LINUX -> LinuxScopeLimiter.desktop(bootTimeSeconds);",
+                        "LinuxScopeLimiter.java: LinuxNativeReadiness.EligibilityPolicy.desktop(),");
+        assertThat(constructions).as("one construction, in desktop()").isEqualTo(1);
+        assertThat(parts).as("one set of parts, in desktopParts()").isEqualTo(1);
+        assertThat(scopeManagers).as("one scope manager, in desktop()").isEqualTo(1);
+
         String limiter = Files.readString(LINUX.resolve("LinuxScopeLimiter.java"), StandardCharsets.UTF_8);
-        String product = limiter.substring(limiter.indexOf("public static LinuxScopeLimiter product("));
-        product = product.substring(0, product.indexOf("System::nanoTime));"));
-        assertThat(product)
-                .contains("new LinuxScopeLimiter(", "EligibilityPolicy.none()", "NativeConsent.none()")
-                .doesNotContain("ScopeManager", "SdBus", "System.getProperty", "System.getenv");
-        assertThat(product)
-                .as("no scope manager: the product can reach no state-changing bus call")
-                .containsPattern("CgroupFiles\\.mounted\\(procRoot\\),\\s+Optional\\.empty\\(\\),");
+        String desktop = body(limiter, "public static LinuxScopeLimiter desktop(", "\n    }\n");
+        assertThat(desktop)
+                .contains("new LinuxScopeLimiter(desktopParts(", "library.api().map(SystemdScopeManager::new)")
+                .doesNotContain("System.getProperty", "System.getenv", "harness", "Excluding");
+        String composed = body(limiter, "static Parts desktopParts(", "\n    }\n");
+        assertThat(composed)
+                .as("the desktop policy and no consent of the limiter's own, never a parameter")
+                .contains(
+                        "return new Parts(",
+                        "LinuxNativeReadiness.EligibilityPolicy.desktop(),",
+                        "NativeConsent.none(),")
+                .doesNotContain(
+                        "System.getProperty", "System.getenv", "harness", "Excluding", "system.consent", "policy");
         assertThat(limiter).doesNotContain("System.getProperty", "System.getenv");
         assertThat(limiter)
                 .as("what admits a process cannot change after construction")

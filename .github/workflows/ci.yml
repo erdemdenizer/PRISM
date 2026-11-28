@@ -95,8 +95,9 @@ jobs:
   # Milestone 12 (plan Rev 2.2 §8.2, S6): the Linux native suites on a real systemd user manager, on disposable
   # processes the test harness starts under it (systemd-run --user --scope, test infrastructure only). The suites skip
   # themselves unless -Dprism.linux.native.required=true asks for them; here a missing capability fails them, and the
-  # check below passes only if every test of both suites ran and passed (a skip is not a pass). The product never adopts
-  # a process: Linux native limits stay unavailable to desktop applications (K16).
+  # check below passes only if every test of both suites ran and passed (a skip is not a pass). The product adopts a
+  # desktop application only with the user's consent for that request (K16 lifted on 2026-11-28, ADR-0016); this job
+  # runs outside a desktop session and proves nothing about desktop applications.
   linux-native-validation:
     name: linux-native-validation
     runs-on: ubuntu-24.04

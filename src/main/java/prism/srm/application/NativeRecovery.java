@@ -415,8 +415,8 @@ public final class NativeRecovery implements EarlierLimits {
                         ActivitySeverity.WARNING,
                         who + " may still be limited by an earlier PRISM session (" + limits + "): " + result.detail()
                                 + ". " + lasts + "; PRISM starts no second limiter for it.");
-            // Linux (milestone 12): a proven scope left as it was, because the limiter does not clear (the K16 product,
-            // which reads no ledger at all) or answered that it cannot. A clearing that was tried is CLEARED or
+            // Linux (milestone 12): a proven scope left as it was, because the limiter does not clear (one that admits
+            // no process reads no ledger at all) or answered that it cannot. A clearing that was tried is CLEARED or
             // CLEAR_FAILED instead (risk D8: the wording no longer says this version never clears).
             case OWNED_LIMITED ->
                 activity.record(

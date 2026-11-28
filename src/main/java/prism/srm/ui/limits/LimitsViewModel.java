@@ -624,6 +624,8 @@ final class LimitsViewModel {
                         new Status("Capped by an earlier session", LimitRow.Tone.WARNING, detail + ".");
                     case IN_PRISM_SCOPE ->
                         new Status("Not offered: in a PRISM scope", LimitRow.Tone.WARNING, detail + ".");
+                    case SESSION_SERVICE ->
+                        new Status("Not offered: desktop session service", LimitRow.Tone.WARNING, detail + ".");
                     default -> new Status("Unavailable", LimitRow.Tone.WARNING, detail);
                 };
             case FAILED ->
@@ -637,6 +639,8 @@ final class LimitsViewModel {
                     case NATIVE_UNSETTLED -> new Status("Failed: limit differs", LimitRow.Tone.ERROR, detail + ".");
                     case IN_PRISM_SCOPE ->
                         new Status("Not offered: in a PRISM scope", LimitRow.Tone.WARNING, detail + ".");
+                    case SESSION_SERVICE ->
+                        new Status("Not offered: desktop session service", LimitRow.Tone.WARNING, detail + ".");
                     case RELEASE_INCOMPLETE ->
                         new Status(
                                 "Failed: threads still held",

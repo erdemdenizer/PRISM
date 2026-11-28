@@ -28,7 +28,7 @@ stands:
 | Process control: End task, Force kill, Suspend, Resume, Priority | 7, 7.5, 8 | yes | yes (pidfd signals) | yes |
 | Protection rules, Logs page | 7 | yes | yes | yes |
 | Managed processes, emulated CPU limit, suspension journal | 9 | yes | yes | yes |
-| Native (hard) CPU and memory limits | 10, 12 | yes (Job Objects) | implemented, switched off in the product (K16) | no |
+| Native (hard) CPU and memory limits | 10, 12 | yes (Job Objects) | implemented; switched off in this release (K16), switched on for desktop applications with consent per process on 2026-11-28 | no |
 | OOM Guard interventions and the watched memory limit (LIM-9) | 11 | yes | monitor, warn and log only | monitor, warn and log only |
 | Settings page, shutdown hardening, one PRISM per user profile | 10, 11, 13 | yes | yes | yes |
 | Application image (jpackage) | 13 | yes | no | no |
@@ -40,7 +40,9 @@ done; the missing part is on Linux and macOS.
 
 - Application images for Linux and macOS.
 - The Linux native limits switched on, once desktop applications are validated with them (K16,
-  [ADR-0016](adr/0016-linux-native-limits-through-systemd-scopes.md)).
+  [ADR-0016](adr/0016-linux-native-limits-through-systemd-scopes.md)). Done after this release, on
+  2026-11-28: K16 lifted by the product owner after the desktop validation
+  ([evidence](evidence/k16-desktop-validation-2026-11-28.md)).
 - Validated memory signals on Linux and macOS, so that OOM Guard's interventions and the watched
   memory limit can run there.
 - The redesigned user interface tested on macOS, and its Linux test round repeated with the fix of

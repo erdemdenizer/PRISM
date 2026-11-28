@@ -327,6 +327,82 @@ class LimitServiceOomTest {
         assertThat(view().memory().inEffect().mechanism()).contains(ControlMechanism.RESIDENT_POLICY);
     }
 
+    private static final String SESSION_SERVICE =
+            "it is a desktop session service (session.slice/org.gnome.Shell@wayland.service): stopping it would freeze the desktop";
+
+    /** Owner decision 2 of 2026-11-28: the watched memory is an emulated limit, and a desktop session service gets none. */
+    @Test
+    void aDesktopSessionServicesMemoryIsNotWatched() {
+        build(false, OomSignalStatus.VALIDATED);
+        limiter.sessionBarrier = identity -> identity.equals(DEMO) ? Optional.of(SESSION_SERVICE) : Optional.empty();
+        manage();
+
+        LimitResult set = ask(LimitRequest.memoryLimit(DEMO, "demo", 256 * MIB));
+
+        assertThat(set.outcome().result()).isEqualTo(OperationResult.UNSUPPORTED);
+        assertThat(set.text()).contains(SESSION_SERVICE);
+        assertThat(view().process().settings().memoryLimitBytes()).isEmpty();
+        assertThat(candidate().orElseThrow().memoryLimitBytes())
+                .as("OOM Guard watches nothing")
+                .isEmpty();
+    }
+
+    /** Nor is the watch offered for one whose native memory limit was refused. */
+    @Test
+    void noWatchIsOfferedForADesktopSessionServiceWhoseNativeMemoryLimitIsRefused() {
+        build(true, OomSignalStatus.VALIDATED);
+        manage();
+        limiter.apply = FakeResourceLimiter.notAssigned(
+                OperationResult.UNSUPPORTED, "not a desktop application: it runs in session.slice", true);
+        limiter.sessionBarrier = identity -> identity.equals(DEMO) ? Optional.of(SESSION_SERVICE) : Optional.empty();
+
+        LimitResult set = ask(LimitRequest.memoryLimit(DEMO, "demo", 256 * MIB));
+
+        assertThat(set.outcome().succeeded()).isFalse();
+        assertThat(set.text()).contains(SESSION_SERVICE).doesNotContain("offers to watch");
+        assertThat(view().residentOffer()).isEmpty();
+        LimitResult accepted = ask(LimitRequest.of(LimitAction.ACCEPT_RESIDENT_POLICY, DEMO, "demo"));
+        assertThat(accepted.outcome().result()).isEqualTo(OperationResult.INVALID_ARGUMENT);
+        assertThat(candidate().orElseThrow().memoryLimitBytes()).isEmpty();
+    }
+
+    /**
+     * The rule could not tell when the limit was set (an unreadable cgroup is not taken for a session service), and tells
+     * later: OOM Guard then watches nothing on the process, wherever the watch came from.
+     */
+    @Test
+    void aWatchSetBeforeTheRuleCouldTellIsDroppedOnceItTells() {
+        build(false, OomSignalStatus.VALIDATED);
+        manage();
+        ask(LimitRequest.memoryLimit(DEMO, "demo", 256 * MIB));
+        assertThat(candidate().orElseThrow().memoryLimitBytes()).hasValue(256 * MIB);
+
+        limiter.sessionBarrier = identity -> identity.equals(DEMO) ? Optional.of(SESSION_SERVICE) : Optional.empty();
+        ask(LimitRequest.oom(DEMO, "demo", new OomManagement(true, OomPriority.NORMAL, EmergencyAction.SUSPEND)));
+
+        assertThat(candidate().orElseThrow().memoryLimitBytes())
+                .as("OOM Guard watches nothing")
+                .isEmpty();
+    }
+
+    /** An offer of the watch made before the rule could tell is not taken up once it tells. */
+    @Test
+    void anOfferMadeBeforeTheRuleCouldTellCannotBeAccepted() {
+        build(true, OomSignalStatus.VALIDATED);
+        manage();
+        limiter.apply = FakeResourceLimiter.notAssigned(OperationResult.ACCESS_DENIED, "in another job", true);
+        ask(LimitRequest.memoryLimit(DEMO, "demo", 256 * MIB));
+        assertThat(view().residentOffer()).isPresent();
+
+        limiter.sessionBarrier = identity -> identity.equals(DEMO) ? Optional.of(SESSION_SERVICE) : Optional.empty();
+        LimitResult accepted = ask(LimitRequest.of(LimitAction.ACCEPT_RESIDENT_POLICY, DEMO, "demo"));
+
+        assertThat(accepted.outcome().result()).isEqualTo(OperationResult.UNSUPPORTED);
+        assertThat(accepted.text()).contains(SESSION_SERVICE);
+        assertThat(view().residentOffer()).isEmpty();
+        assertThat(candidate().orElseThrow().memoryLimitBytes()).isEmpty();
+    }
+
     @Test
     void acceptingWithoutAnOfferIsRefused() {
         build(true, OomSignalStatus.VALIDATED);

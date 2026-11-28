@@ -56,15 +56,17 @@ import prism.srm.platform.ResourceLimiter;
  * {@code memory.high} and {@code memory.max}. PRISM never writes a cgroup file and never stops, kills, abandons or
  * attaches to a unit.
  *
- * <p><b>Who may be adopted (K16).</b> Nothing is asked of the system before the {@link
+ * <p><b>Who may be adopted.</b> Nothing is asked of the system before the {@link
  * LinuxNativeReadiness.EligibilityPolicy} admits the identity and the adoption consent is given (and, for {@code
  * memory.max}, the separate hard-memory consent): by the {@link NativeConsent} the limiter was made with, or by the user
  * for the call ({@link NativeConsentKind}). A consent not given is answered {@code CONSENT_REQUIRED}, with the statements
- * of {@link NativeConsent} to show, before anything is asked of the system. The product's limiter ({@link #product})
- * admits no process:
- * every capability is {@code UNAVAILABLE} with the reason that Linux native limits are not validated for desktop
- * applications, and it never opens a bus connection. Only a test harness makes a limiter that admits the disposable
- * processes it created.
+ * of {@link NativeConsent} to show, before anything is asked of the system. The product's limiter ({@link #desktop},
+ * since the product owner lifted K16 on 2026-11-28) is made with the desktop policy and with no consent of its own: it
+ * admits only a desktop application's own scope in the user manager's {@code app.slice}, never PRISM or the processes
+ * it runs under, and only once the user consented for that request in the consent dialog. A limiter made with {@link
+ * LinuxNativeReadiness.EligibilityPolicy#none()} admits no process and never opens a bus connection; a test harness
+ * makes one that admits the disposable processes it created. {@link #sessionBarrier} keeps every desktop session
+ * service from an emulated limit (owner decision 2 of 2026-11-28).
  *
  * <p><b>Adoption (§2.5).</b> A pidfd is opened and the identity (PID and start time) checked after it; the scope is
  * created with that descriptor; the job is awaited for a bounded time; then the unit's {@code ControlGroup} and
@@ -89,9 +91,15 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
 
     private static final Logger LOG = LoggerFactory.getLogger(LinuxScopeLimiter.class);
 
-    static final String NOT_VALIDATED = LinuxNativeReadiness.NOT_VALIDATED;
-    // Shown to the user, so it names no internal decision label (risk D12; K16 is the decision behind it).
-    static final String PRODUCT_REASON = NOT_VALIDATED + " (implemented, not enabled in this release)";
+    static final String NOT_NAMED = LinuxNativeReadiness.NOT_NAMED;
+    /** Why a limiter whose policy admits no process ({@code EligibilityPolicy.none()}) offers nothing. */
+    static final String ADMITS_NONE = "this native limiter admits no process";
+    /**
+     * How long making the product's limiter waits for the read-only probe of the user manager ({@link #desktop}). The
+     * probe normally answers within milliseconds; each of its bus calls is bounded to 2 s on its own.
+     */
+    static final Duration PROBE_BOUND = Duration.ofSeconds(5);
+
     static final String CPU_QUOTA = "CPUQuotaPerSecUSec";
     static final String MEMORY_HIGH = "MemoryHigh";
     static final String MEMORY_MAX = "MemoryMax";
@@ -233,29 +241,190 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
         this.nanoTime = Objects.requireNonNull(parts.nanoTime(), "nanoTime");
     }
 
+    /** The read-only probe of the user manager the product's limiter is made from; a seam for tests. */
+    @FunctionalInterface
+    interface Probe {
+        SystemdCapabilityProbe.Report run(CgroupFiles files, long uid);
+    }
+
     /**
-     * The product's limiter in milestone 12 (K16): it admits no process, reports every kind {@code UNAVAILABLE} with
-     * the reason that Linux native limits are not validated for desktop applications, never opens a bus connection and
-     * never looks for earlier sessions' limits. It keeps the scope-membership rule: a process inside a PRISM scope gets
-     * no emulated limit either. Making it reads only {@code /proc/self/mountinfo}.
+     * The product's limiter on Linux since the product owner lifted K16 on 2026-11-28 (ADR-0016, amendment of that
+     * date; docs/evidence/k16-desktop-validation-2026-11-28.md). It is made with the desktop policy ({@link
+     * LinuxNativeReadiness.EligibilityPolicy#desktop()}) and with no consent of its own ({@link NativeConsent#none()}):
+     * the user gives the adoption consent, and the hard-memory one, for each request in the consent dialog. It uses the
+     * real {@code /proc}, the cgroup v2 files and the systemd user manager over libsystemd's sd-bus ({@link
+     * SystemdScopeManager}). What the system can provide comes from the read-only {@link SystemdCapabilityProbe}, as
+     * the test harness takes it: the readiness, the manager's control group, and PRISM's own user ID. Where anything is
+     * missing (no cgroup v2, no libsystemd, no reachable user manager, a cgroup v1 hierarchy too, a controller not
+     * delegated, systemd older than 255, the probe's sources disagreeing, no answer within {@link #PROBE_BOUND}) every
+     * native kind is {@code UNAVAILABLE} with the reason and the limit service offers the emulated CPU limit as it does
+     * where there is no native limit.
+     *
+     * <p>Making it queries the system: it reads {@code /proc} and the cgroup mount, loads libsystemd where the checks of
+     * {@link LibsystemdCheck} pass, and the probe opens the user bus (one short connection per inspection, read-only
+     * methods only, each call bounded to 2 s; the SASL authentication before them only by libsystemd's own timeout,
+     * risk D1). The probe runs on a thread of its own, {@code srm-linux-probe}, which is waited for at most {@link
+     * #PROBE_BOUND}; a probe that has not answered by then ends by its own bounds, and its answer is not used. Never call
+     * this on the JavaFX Application Thread: {@code HostPlatform.create} runs on {@code srm-startup}.
      */
-    public static LinuxScopeLimiter product(LongSupplier bootSeconds) {
+    public static LinuxScopeLimiter desktop(LongSupplier bootSeconds) {
         Path procRoot = Path.of("/proc");
-        return new LinuxScopeLimiter(new Parts(
-                LinuxNativeReadiness.EligibilityPolicy.none(),
+        ProcFs proc = new ProcFs(procRoot);
+        LibsystemdCheck.Outcome library = LibsystemdCheck.onThisSystem();
+        LinuxScopeLimiter limiter = new LinuxScopeLimiter(desktopParts(
+                new DesktopSystem(
+                        new JnaLinux(),
+                        proc,
+                        bootSeconds,
+                        CgroupFiles.mounted(procRoot),
+                        library.api().map(SystemdScopeManager::new),
+                        ownUid(proc),
+                        () -> onlineProcessors(procRoot.resolve("stat")),
+                        duration -> TimeUnit.NANOSECONDS.sleep(duration.toNanos()),
+                        System::nanoTime),
+                (files, uid) -> new SystemdCapabilityProbe(library, SystemdUserBus::new, files, uid).run(),
+                PROBE_BOUND));
+        LOG.info("Linux native limits: {}", limiter.summary());
+        return limiter;
+    }
+
+    /**
+     * What {@link #desktop} gathers from the running system before it probes the user manager.
+     *
+     * @param scopes the state-changing side of the user manager, where libsystemd could be bound
+     * @param uid PRISM's own real user ID, -1 when it could not be read
+     */
+    record DesktopSystem(
+            LinuxNative calls,
+            ProcFs proc,
+            LongSupplier bootSeconds,
+            Optional<CgroupFiles> files,
+            Optional<ScopeManager> scopes,
+            long uid,
+            IntSupplier processors,
+            Pause pause,
+            LongSupplier nanoTime) {}
+
+    /**
+     * The parts of the product's limiter: always the desktop policy and no consent of the limiter's own, so that only
+     * the user's consent for a request admits an adoption. The probe runs only where the cgroup v2 files and PRISM's
+     * user ID are there, bounded by {@code bound}. The scope manager is kept only when the probe reached the user
+     * manager and its sources agree; otherwise there is none, and recovery classifies an earlier session's record as
+     * failed without a bus call. A finding of the probe (the manager's control group not the user's, {@code app.slice}
+     * outside it, PRISM's unit and {@code /proc/self/cgroup} disagreeing) makes every kind unavailable: the paths PRISM
+     * would decide eligibility from are then not the manager's.
+     */
+    static Parts desktopParts(DesktopSystem system, Probe probe, Duration bound) {
+        List<String> missing = new ArrayList<>();
+        Optional<SystemdCapabilityProbe.Report> report = Optional.empty();
+        if (system.files().isEmpty()) {
+            missing.add("the cgroup v2 file system is not mounted");
+        } else if (system.uid() < 0) {
+            missing.add("PRISM's own user ID could not be read");
+        } else {
+            CgroupFiles files = system.files().get();
+            report = probed(() -> probe.run(files, system.uid()), bound, missing);
+        }
+        Optional<LinuxNativeReadiness.SystemReadiness> readiness = Optional.empty();
+        String manager = "";
+        if (report.isPresent()) {
+            if (report.get().findings().isEmpty()) {
+                readiness = Optional.of(report.get().readiness());
+                manager = report.get()
+                        .manager()
+                        .flatMap(SystemdUserBus.Reading::value)
+                        .map(SystemdUserBus.ManagerFacts::controlGroup)
+                        .orElse("");
+                for (LinuxNativeReadiness.Readiness kind :
+                        List.of(readiness.get().cpu(), readiness.get().memoryThrottle())) {
+                    kind.reasons().stream().filter(r -> !missing.contains(r)).forEach(missing::add);
+                }
+            } else {
+                missing.addAll(report.get().findings());
+            }
+        }
+        Optional<ScopeManager> scopes = manager.isEmpty() ? Optional.empty() : system.scopes();
+        return new Parts(
+                LinuxNativeReadiness.EligibilityPolicy.desktop(),
                 NativeConsent.none(),
-                new JnaLinux(),
-                new ProcFs(procRoot),
-                bootSeconds,
-                CgroupFiles.mounted(procRoot),
-                Optional.empty(),
-                "",
-                -1,
-                Optional.empty(),
-                List.of("Linux native limits: " + PRODUCT_REASON),
-                () -> onlineProcessors(procRoot.resolve("stat")),
-                duration -> TimeUnit.NANOSECONDS.sleep(duration.toNanos()),
-                System::nanoTime));
+                system.calls(),
+                system.proc(),
+                system.bootSeconds(),
+                system.files(),
+                scopes,
+                manager,
+                system.uid(),
+                readiness,
+                missing.isEmpty()
+                        ? List.of()
+                        : List.of("Linux native limits are unavailable: " + String.join("; ", missing)),
+                system.processors(),
+                system.pause(),
+                system.nanoTime());
+    }
+
+    /**
+     * The probe's report, run on {@code srm-linux-probe} and waited for at most {@code bound}; empty, with why in {@code
+     * missing}, when it did not answer in time, failed, or the wait was interrupted (the interrupt is kept). A probe left
+     * running ends by the bounds of its own calls; it changes nothing, and its answer is dropped.
+     */
+    static Optional<SystemdCapabilityProbe.Report> probed(
+            java.util.function.Supplier<SystemdCapabilityProbe.Report> probe, Duration bound, List<String> missing) {
+        CompletableFuture<SystemdCapabilityProbe.Report> done = new CompletableFuture<>();
+        Thread worker = new Thread(
+                () -> {
+                    try {
+                        done.complete(probe.get());
+                    } catch (RuntimeException failed) {
+                        done.completeExceptionally(failed);
+                    } catch (Error fatal) {
+                        // Said as what it is, not as a late answer; the Error goes on to the thread's handler.
+                        done.completeExceptionally(fatal);
+                        throw fatal;
+                    }
+                },
+                "srm-linux-probe");
+        worker.setDaemon(true);
+        worker.start();
+        try {
+            return Optional.of(done.get(nanosOf(bound), TimeUnit.NANOSECONDS));
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            missing.add("the systemd user manager was not checked: PRISM was interrupted while it waited");
+        } catch (TimeoutException late) {
+            missing.add("the systemd user manager did not answer within "
+                    + (bound.toMillis() % 1000 == 0 ? bound.toSeconds() + " s" : bound.toMillis() + " ms"));
+        } catch (ExecutionException failed) {
+            LOG.warn("Checking the systemd user manager failed", failed.getCause());
+            missing.add("the systemd user manager could not be checked: " + failed.getCause());
+        }
+        return Optional.empty();
+    }
+
+    /** PRISM's own real user ID, from {@code /proc/self/status} through its PID; -1 when it cannot be read. */
+    static long ownUid(ProcFs proc) {
+        return proc.uids((int) ProcessHandle.current().pid())
+                .value()
+                .filter(ids -> !ids.isEmpty())
+                .map(ids -> ids.get(0))
+                .orElse(-1L);
+    }
+
+    /** One line for the log: what each kind is here, or why it is unavailable. */
+    String summary() {
+        Map<LimitKind, LimitCapability> found = capabilities();
+        LimitCapability cpu = found.get(LimitKind.CPU);
+        LimitCapability memory = found.get(LimitKind.MEMORY);
+        return "CPU " + described(cpu) + "; memory " + described(memory)
+                + (cpu.available() || memory.available()
+                        ? "; each process needs the user's consent before PRISM moves it into a scope"
+                        : "");
+    }
+
+    private static String described(LimitCapability capability) {
+        return capability.available()
+                ? capability.level() + " through a systemd scope"
+                : "unavailable (" + capability.reason().orElse("no reason given") + ")";
     }
 
     /**
@@ -286,7 +455,7 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
     @Override
     public Map<LimitKind, LimitCapability> capabilities() {
         if (admitsNone()) {
-            LimitCapability no = LimitCapability.unavailable(PRODUCT_REASON);
+            LimitCapability no = LimitCapability.unavailable(ADMITS_NONE);
             return Map.of(LimitKind.CPU, no, LimitKind.MEMORY, no);
         }
         Map<LimitKind, LimitCapability> found = new LinkedHashMap<>();
@@ -1610,7 +1779,7 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
         lock.lock();
         try {
             if (admitsNone() || closed) {
-                return ClearResult.unsupported(closed ? "PRISM is closing" : PRODUCT_REASON);
+                return ClearResult.unsupported(closed ? "PRISM is closing" : ADMITS_NONE);
             }
             RecoveredLimit now = classify(record);
             if (!now.ownershipProven()) {
@@ -1677,23 +1846,11 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
         if (holds.containsKey(target)) {
             return Optional.empty();
         }
-        ProcFs.Reading<String> path;
-        if (files.isPresent()) {
-            path = files.get().processCgroup((int) target.pid());
-        } else {
-            // The rule needs only /proc/<pid>/cgroup, not the mount. A process listed with no unified line is on a
-            // system without that hierarchy, where no PRISM scope can exist.
-            ProcFs.Reading<String> text = proc.cgroupText((int) target.pid());
-            if (text.value().filter(found -> !CgroupV2.hasUnifiedLine(found)).isPresent()) {
-                return Optional.empty();
-            }
-            path = text.value().isEmpty()
-                    ? text
-                    : CgroupV2.unifiedPath(text.value().get())
-                            .map(ProcFs.Reading::found)
-                            .orElseGet(() -> ProcFs.Reading.not(
-                                    ProcFs.Status.FAILED, "/proc/" + target.pid() + "/cgroup is malformed"));
+        Optional<ProcFs.Reading<String>> read = unifiedCgroup(target);
+        if (read.isEmpty()) {
+            return Optional.empty();
         }
+        ProcFs.Reading<String> path = read.get();
         if (path.status() == ProcFs.Status.MISSING) {
             return Optional.empty();
         }
@@ -1703,6 +1860,41 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
         return ScopeNames.enclosingPrismScope(path.value().get())
                 .map(scope -> "it runs in " + scope + ", a scope a PRISM session created; no second limiter is started"
                         + " on it");
+    }
+
+    /**
+     * Owner decision 2 of 2026-11-28: a process in a user manager's {@code session.slice} (the compositor, the session
+     * bus broker and the other services of the desktop session) gets no emulated limit and is offered none, because
+     * stopping it freezes the desktop; native limits refuse it already (the desktop policy). Decided from the same read
+     * of {@code /proc/<pid>/cgroup} as the scope-membership rule ({@link #scopeBarrier}), under any policy and whether or
+     * not native limits are ready, without the bus. A cgroup that cannot be read is not a session service here: this
+     * rule never refuses on a failed read, and the scope-membership rule refuses such a process as before (risk F1).
+     */
+    @Override
+    public Optional<String> sessionBarrier(ProcessIdentity target) {
+        return unifiedCgroup(target).flatMap(ProcFs.Reading::value).flatMap(LinuxNativeReadiness::sessionService);
+    }
+
+    /**
+     * The process's unified-hierarchy cgroup for the barriers: through the mount where it is known, else from {@code
+     * /proc/<pid>/cgroup} alone, which the rules need. Empty when the process is listed with no unified line: a system
+     * without that hierarchy, where no PRISM scope and no user manager's slice can exist.
+     */
+    private Optional<ProcFs.Reading<String>> unifiedCgroup(ProcessIdentity target) {
+        if (files.isPresent()) {
+            return Optional.of(files.get().processCgroup((int) target.pid()));
+        }
+        ProcFs.Reading<String> text = proc.cgroupText((int) target.pid());
+        if (text.value().filter(found -> !CgroupV2.hasUnifiedLine(found)).isPresent()) {
+            return Optional.empty();
+        }
+        return Optional.of(
+                text.value().isEmpty()
+                        ? text
+                        : CgroupV2.unifiedPath(text.value().get())
+                                .map(ProcFs.Reading::found)
+                                .orElseGet(() -> ProcFs.Reading.not(
+                                        ProcFs.Status.FAILED, "/proc/" + target.pid() + "/cgroup is malformed")));
     }
 
     @Override
@@ -1727,8 +1919,8 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
         long deadline = nanoTime.getAsLong() + bound;
         java.util.Set<ProcessIdentity> known = java.util.Set.copyOf(holds.keySet());
         if (known.isEmpty() && lock.tryLock()) {
-            // Nothing held and nothing in flight (the K16 product holds nothing; it can still start one if another call
-            // holds the lock at that moment, which then finds nothing): no release thread is started.
+            // Nothing held and nothing in flight (a limiter that adopted nothing; it can still start one if another
+            // call holds the lock at that moment, which then finds nothing): no release thread is started.
             try {
                 if (holds.isEmpty()) {
                     return ReleaseResult.NOTHING;

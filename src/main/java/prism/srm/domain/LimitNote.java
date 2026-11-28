@@ -35,6 +35,12 @@ public enum LimitNote {
      * rule).
      */
     IN_PRISM_SCOPE,
+    /**
+     * The process is a service of the desktop session (on Linux, in the user manager's {@code session.slice}): stopping
+     * it would freeze the desktop, so no emulated limit runs on it and none is offered (the product owner's decision 2
+     * of 2026-11-28).
+     */
+    SESSION_SERVICE,
     /** The emulated limit could not release every thread; nothing else starts until it can. */
     RELEASE_INCOMPLETE,
     /** The resident memory went above the watched limit and OOM Guard applied the emergency action (LIM-9). */
