@@ -16,8 +16,9 @@ import java.util.function.Function;
  * {@code /proc/self/cgroup} names.
  *
  * <p>It only reads: files, {@code dlsym}, and the methods of {@link SystemdUserBus.ReadOnlyMethod}. It creates no unit,
- * moves no process, hands no pidfd to anyone and changes no product behaviour: nothing in the product calls it, and its
- * report always carries the product's eligibility policy, under which every process stays {@code UNAVAILABLE} (K16).
+ * moves no process and hands no pidfd to anyone. The product's limiter ({@code LinuxScopeLimiter.desktop}, since K16
+ * was lifted on 2026-11-28) runs it once when it is made, on its own thread and bounded, and takes the readiness, the
+ * manager's control group and the findings from its report; a finding makes every native kind unavailable there.
  */
 final class SystemdCapabilityProbe {
 
@@ -65,8 +66,8 @@ final class SystemdCapabilityProbe {
     }
 
     static final String PRODUCT_POLICY =
-            "every process UNAVAILABLE: Linux native limits are not validated for desktop applications"
-                    + " (not enabled in this release)";
+            "desktop applications in their own scope in app.slice, never PRISM or the processes it runs under, each"
+                    + " with the user's consent for that request (K16 lifted on 2026-11-28)";
 
     private final LibsystemdCheck.Outcome library;
     private final Function<SdBusApi, SystemdUserBus> busFactory;

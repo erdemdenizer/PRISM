@@ -106,6 +106,19 @@ public interface ResourceLimiter {
         return Optional.empty();
     }
 
+    /**
+     * Why no emulated limit may run on the process, and none be offered, because stopping it could freeze the user's
+     * desktop: on Linux a service the systemd user manager runs for the desktop session, in its {@code session.slice}
+     * (the product owner's decision 2 of 2026-11-28, with the lifting of K16). It knows only that placement: a display
+     * server or window manager a session starts outside the user manager (in the login session's own scope, as X11
+     * sessions and desktops without systemd integration may) is not recognised. Empty when nothing stands against it,
+     * and when it cannot be told: this rule never refuses on a failed read. Reads only; may be asked from the limiter
+     * thread. Empty for every limiter on a system without such a session.
+     */
+    default Optional<String> sessionBarrier(ProcessIdentity target) {
+        return Optional.empty();
+    }
+
     /** Changes the limits of the job the limiter holds for the process, to exactly these; see {@link ChangeResult}. */
     ChangeResult change(ProcessIdentity target, LimitSpec spec);
 

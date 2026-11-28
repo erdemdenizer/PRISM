@@ -52,7 +52,8 @@ jlink modules are in `packaging/windows/modules.txt`, and `PackagingConfigTest` 
 about 50 MiB with it.
 
 The application runs from the class path as it does in development, not from a module path. The Linux claim of K16
-depends on there being no `module-info`.
+depends on there being no `module-info`. (Since K16 was lifted on 2026-11-28 the claim is that the product composes the Linux
+limiter only through `LinuxScopeLimiter.desktop`; its limit is the same.)
 
 JavaFX and JNA keep extracting their native libraries at first start: JavaFX under
 `%USERPROFILE%\.openjfx\cache`, JNA under `%TEMP%`. Both are outside the application folder. This is reported, not

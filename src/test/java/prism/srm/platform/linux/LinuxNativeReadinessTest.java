@@ -186,14 +186,16 @@ class LinuxNativeReadinessTest {
         }
     }
 
+    /** The policy that admits nothing (the product's while K16 held) refuses every process, whatever its cgroup. */
     @Test
-    void theProductsPolicyRefusesEveryProcessWhateverItsCgroup() {
+    void theNonePolicyRefusesEveryProcessWhateverItsCgroup() {
         LinuxNativeReadiness.EligibilityPolicy none = LinuxNativeReadiness.EligibilityPolicy.none();
+        assertThat(none.admitsNone()).isTrue();
         assertThat(LinuxNativeReadiness.eligibility(
                         none, HARNESS, Optional.of(MANAGER + "/app.slice/app-gnome-firefox-1.scope"), UID))
-                .contains("Linux native limits are not validated for desktop applications");
+                .contains("it is not one of the processes this limiter was made for");
         assertThat(LinuxNativeReadiness.eligibility(none, HARNESS, Optional.empty(), UID))
-                .contains("Linux native limits are not validated for desktop applications");
+                .contains("it is not one of the processes this limiter was made for");
     }
 
     @Test
@@ -236,7 +238,7 @@ class LinuxNativeReadinessTest {
                 .isPresent();
     }
 
-    // ----- The desktop policy (built for the day K16 is lifted; the product does not use it) -----
+    // ----- The desktop policy (the product's since K16 was lifted on 2026-11-28) -----
 
     private static final long PRISM_PID = 9_100;
     private static final long PRISM_PARENT = 9_050;
@@ -319,23 +321,64 @@ class LinuxNativeReadinessTest {
     }
 
     /**
-     * Risk D17: the desktop policy admits only processes in the user manager's app.slice, where systemd's desktop
-     * convention puts the applications the user runs (systemd.special(7), https://systemd.io/DESKTOP_ENVIRONMENTS/):
-     * what a launcher and a terminal start, also in a nested slice.
+     * Risk D17: the desktop policy admits only a scope's own cgroup in the user manager's app.slice, where systemd's
+     * desktop convention puts the applications the user runs (systemd.special(7), https://systemd.io/DESKTOP_ENVIRONMENTS/):
+     * what a launcher (app-gnome-NAME-PID.scope, as GNOME's autostart items too) and a terminal (vte-spawn-UUID.scope)
+     * start, also in a nested slice. Observed on Ubuntu 24.04's GNOME session on 2026-11-28.
      */
     @Test
     void theDesktopPolicyAdmitsTheApplicationsInAppSlice() {
         LinuxNativeReadiness.EligibilityPolicy desktop = desktopOf(PRISM_PID, Set.of(PRISM_PARENT));
         for (String app : List.of(
                 MANAGER + "/app.slice/app-gnome-org.gnome.TextEditor-4711.scope",
+                MANAGER + "/app.slice/app-gnome-firefox-4711.scope",
+                MANAGER + "/app.slice/app-gnome-org.gnome.Evolution\\x2dalarm\\x2dnotify-2981.scope",
                 MANAGER
                         + "/app.slice/app-org.gnome.Terminal.slice/vte-spawn-0b6d5c1e-9f0e-4d38-8f4f-1f0e2b7d1c11.scope",
-                MANAGER + "/app.slice/app-org.gnome.Terminal.slice/gnome-terminal-server.service",
                 MANAGER + "/app.slice/app-flatpak-org.telegram.desktop-2345.scope")) {
             assertThat(LinuxNativeReadiness.eligibility(desktop, HARNESS, Optional.of(app), UID))
                     .as(app)
                     .isEmpty();
         }
+    }
+
+    /**
+     * A service is a process systemd started and supervises (systemd.service(5)); a scope only groups processes it did
+     * not start (systemd.scope(5)). Moving a service's process out of its unit could make systemd take the service as
+     * ended, and for the session manager that ends the session: the desktop policy refuses every service, also in
+     * app.slice, where Ubuntu 24.04's GNOME session runs the terminal server and the session manager (observed
+     * 2026-11-28).
+     */
+    @Test
+    void theDesktopPolicyRefusesEveryServiceAlsoInAppSlice() {
+        LinuxNativeReadiness.EligibilityPolicy desktop = desktopOf(PRISM_PID, Set.of(PRISM_PARENT));
+        assertThat(LinuxNativeReadiness.eligibility(
+                        desktop,
+                        HARNESS,
+                        Optional.of(MANAGER + "/app.slice/app-org.gnome.Terminal.slice/gnome-terminal-server.service"),
+                        UID))
+                .contains("it runs in gnome-terminal-server.service, a service of your session manager: moving it out"
+                        + " of its unit could end it");
+        assertThat(LinuxNativeReadiness.eligibility(
+                        desktop,
+                        HARNESS,
+                        Optional.of(
+                                MANAGER
+                                        + "/app.slice/app-gnome\\x2dsession\\x2dmanager.slice/gnome-session-manager@ubuntu.service"),
+                        UID))
+                .contains("it runs in gnome-session-manager@ubuntu.service, a service of your session manager: moving"
+                        + " it out of its unit could end it");
+        assertThat(LinuxNativeReadiness.eligibility(
+                        desktop, HARNESS, Optional.of(MANAGER + "/app.slice/snap.firefox.firefox.service"), UID))
+                .as("directly in app.slice too")
+                .hasValueSatisfying(r -> assertThat(r).endsWith(LinuxNativeReadiness.SERVICE_UNIT));
+        assertThat(LinuxNativeReadiness.eligibility(
+                        LinuxNativeReadiness.EligibilityPolicy.harnessOwned(Set.of(HARNESS)),
+                        HARNESS,
+                        Optional.of(MANAGER + "/app.slice/app-org.gnome.Terminal.slice/gnome-terminal-server.service"),
+                        UID))
+                .as("the rule is the desktop policy's; the harness names its own processes")
+                .isEmpty();
     }
 
     /**
@@ -393,8 +436,8 @@ class LinuxNativeReadinessTest {
                 .hasValueSatisfying(r -> assertThat(r).contains("below podman.service"));
         assertThat(LinuxNativeReadiness.eligibility(
                         desktop, HARNESS, Optional.of(MANAGER + "/app.slice/app-x.mount"), UID))
-                .as("only a scope or a service")
-                .contains("not a desktop application: it runs in app-x.mount, which is not a scope or service unit");
+                .as("only a scope")
+                .contains("not a desktop application: it runs in app-x.mount, which is not a scope unit");
         assertThat(LinuxNativeReadiness.eligibility(
                         desktop, HARNESS, Optional.of(MANAGER + "/session.slice/app.slice/app-x.scope"), UID))
                 .as("app.slice only directly under the manager")
@@ -447,5 +490,53 @@ class LinuxNativeReadinessTest {
                 .ifPresent(parent ->
                         assertThat(desktop.refusal(pid(parent.pid()))).contains(LinuxNativeReadiness.PRISM_ANCESTOR));
         assertThat(desktop.admitsNone()).isFalse();
+    }
+
+    // ----- Owner decision 2 of 2026-11-28: a desktop session service gets no emulated limit -----
+
+    /**
+     * The services of the desktop session run in the user manager's session.slice: on Ubuntu 24.04's GNOME session
+     * (observed 2026-11-28) the Shell in session.slice/org.gnome.Shell@wayland.service and the session bus in
+     * session.slice/dbus.service.
+     */
+    @Test
+    void aProcessInTheUserManagersSessionSliceIsADesktopSessionService() {
+        assertThat(LinuxNativeReadiness.sessionService(MANAGER + "/session.slice/org.gnome.Shell@wayland.service"))
+                .contains("it is a desktop session service (session.slice/org.gnome.Shell@wayland.service): stopping it"
+                        + " would freeze the desktop");
+        assertThat(LinuxNativeReadiness.sessionService(MANAGER + "/session.slice/dbus.service"))
+                .contains(LinuxNativeReadiness.SESSION_SERVICE + "session.slice/dbus.service"
+                        + LinuxNativeReadiness.SESSION_SERVICE_WHY);
+        assertThat(LinuxNativeReadiness.sessionService(MANAGER + "/session.slice/org.gnome.Shell@wayland.service/sub"))
+                .as("below a session service too")
+                .isPresent();
+        assertThat(LinuxNativeReadiness.sessionService(
+                        "/user.slice/user-1002.slice/user@1002.service/session.slice/dbus-broker.service"))
+                .as("another user's session too: the rule needs neither the manager's answer nor PRISM's user")
+                .isPresent();
+        assertThat(LinuxNativeReadiness.sessionService(MANAGER + "/session.slice"))
+                .as("the slice itself")
+                .isPresent();
+    }
+
+    /** Nothing else is a session service: the applications, background work, the manager, the system, lookalikes. */
+    @Test
+    void nothingOutsideTheUserManagersSessionSliceIsASessionService() {
+        for (String path : List.of(
+                MANAGER + "/app.slice/app-gnome-firefox-4711.scope",
+                MANAGER + "/app.slice/app-gnome\\x2dsession\\x2dmanager.slice/gnome-session-manager@ubuntu.service",
+                MANAGER + "/app.slice/app-org.gnome.Terminal.slice/gnome-terminal-server.service",
+                MANAGER + "/background.slice/tracker-miner-fs-3.service",
+                MANAGER + "/init.scope",
+                MANAGER,
+                "/system.slice/session.slice/x.service",
+                "/user.slice/user-1001.slice/session-2.scope",
+                "/session.slice/x.service",
+                MANAGER + "/app.slice/session.slice/x.scope",
+                MANAGER + "/session.slice2/x.service",
+                "/user.slice/user-1001.slice/user@x.service/session.slice/a.service",
+                "")) {
+            assertThat(LinuxNativeReadiness.sessionService(path)).as(path).isEmpty();
+        }
     }
 }

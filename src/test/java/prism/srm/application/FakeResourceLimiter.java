@@ -109,6 +109,14 @@ public final class FakeResourceLimiter implements ResourceLimiter {
         return scopeBarrier.apply(target);
     }
 
+    /** What the desktop-session rule says of a process (owner decision 2 of 2026-11-28); by default nothing. */
+    public volatile Function<ProcessIdentity, Optional<String>> sessionBarrier = target -> Optional.empty();
+
+    @Override
+    public Optional<String> sessionBarrier(ProcessIdentity target) {
+        return sessionBarrier.apply(target);
+    }
+
     public volatile Function<LimitRecord, RecoveredLimit> recover =
             record -> new RecoveredLimit(record, RecoveredLimit.Verdict.UNREACHABLE, "the job cannot be reached");
 

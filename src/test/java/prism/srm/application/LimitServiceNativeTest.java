@@ -503,6 +503,64 @@ class LimitServiceNativeTest {
                 .isTrue();
     }
 
+    private static final String SESSION_SERVICE =
+            "it is a desktop session service (session.slice/org.gnome.Shell@wayland.service): stopping it would freeze the desktop";
+
+    /**
+     * Owner decision 2 of 2026-11-28: the native limit refuses a desktop session service, and no emulated limit is
+     * offered in its place, nor can one be accepted, because stopping the process would freeze the desktop.
+     */
+    @Test
+    void aDesktopSessionServiceRefusedNativelyIsOfferedNoEmulatedLimit() {
+        limiter.apply = FakeResourceLimiter.notAssigned(
+                OperationResult.UNSUPPORTED, "not a desktop application: it runs in session.slice", true);
+        limiter.sessionBarrier = identity -> identity.equals(DEMO) ? Optional.of(SESSION_SERVICE) : Optional.empty();
+        managed();
+
+        LimitResult set = limit(20);
+        scheduler.advance(Duration.ofSeconds(5));
+
+        assertThat(set.outcome().succeeded()).isFalse();
+        assertThat(set.fallback()).as("no emulated limit offered").isEmpty();
+        assertThat(set.text()).contains(SESSION_SERVICE).contains("PRISM neither stops it nor moves it");
+        assertThat(view().cpu().note()).isEqualTo(LimitNote.SESSION_SERVICE);
+        assertThat(view().offer()).isEmpty();
+
+        LimitResult accepted = ask(LimitAction.ACCEPT_EMULATED_CPU);
+        scheduler.advance(Duration.ofSeconds(5));
+        assertThat(accepted.outcome().succeeded()).as("nothing to accept").isFalse();
+        assertThat(service.limiting(DEMO)).isFalse();
+        assertThat(suspends()).as("never stopped").isZero();
+    }
+
+    /**
+     * Decision 2 holds where there is no native limit at all, as on a Linux system without libsystemd: the emulated
+     * limit does not start on a desktop session service, and starts on a process the rule does not name.
+     */
+    @Test
+    void withNoNativeLimiterADesktopSessionServiceGetsNoEmulatedLimit() {
+        noNativeLimiterToday();
+        limiter.sessionBarrier = identity -> identity.equals(DEMO) ? Optional.of(SESSION_SERVICE) : Optional.empty();
+        managed();
+
+        LimitResult set = limit(20);
+        scheduler.advance(Duration.ofSeconds(5));
+
+        assertThat(set.outcome().succeeded()).isFalse();
+        assertThat(set.outcome().result()).isEqualTo(OperationResult.UNSUPPORTED);
+        assertThat(set.text()).contains(SESSION_SERVICE).doesNotContain("PRISM changes nothing in that scope");
+        assertThat(service.limiting(DEMO)).isFalse();
+        assertThat(suspends()).as("no emulated controller").isZero();
+        assertThat(view().cpu().note()).isEqualTo(LimitNote.SESSION_SERVICE);
+
+        limiter.sessionBarrier = identity -> Optional.empty();
+        assertThat(limit(20).outcome().succeeded())
+                .as("a process the rule does not name is limited as before")
+                .isTrue();
+        scheduler.advance(Duration.ofSeconds(5));
+        assertThat(suspends()).isPositive();
+    }
+
     /** The barrier is per process: a pending ledger blocks only what it may name; it is still said. */
     @Test
     void withNativeCpuUnavailableTodayAPendingLedgerThatCannotNameTheProcessBlocksNothing() {
@@ -598,6 +656,26 @@ class LimitServiceNativeTest {
                 .isFalse();
         assertThat(service.limiting(DEMO)).isFalse();
         assertThat(suspends()).isZero();
+    }
+
+    /** Owner decision 2: an emulated offer made before the session rule could tell cannot be accepted once it tells. */
+    @Test
+    void anOfferMadeBeforeTheSessionRuleCouldTellCannotBeAccepted() {
+        limiter.apply = FakeResourceLimiter.notAssigned(OperationResult.ACCESS_DENIED, "refused", true);
+        managed();
+        assertThat(limit(20).fallback())
+                .as("offered: the rule says nothing yet")
+                .isPresent();
+        limiter.sessionBarrier = identity -> identity.equals(DEMO) ? Optional.of(SESSION_SERVICE) : Optional.empty();
+
+        LimitResult accept = ask(LimitAction.ACCEPT_EMULATED_CPU);
+        scheduler.advance(Duration.ofSeconds(5));
+
+        assertThat(accept.outcome().result()).isEqualTo(OperationResult.UNSUPPORTED);
+        assertThat(accept.text()).contains(SESSION_SERVICE);
+        assertThat(service.limiting(DEMO)).isFalse();
+        assertThat(suspends()).isZero();
+        assertThat(view().cpu().note()).isEqualTo(LimitNote.SESSION_SERVICE);
     }
 
     /** An approval given before the barrier does not start the emulated limit while it holds. */
@@ -1225,7 +1303,8 @@ class LimitServiceNativeTest {
                 .contains(LimitsNotice.Kind.LEDGER_FAILED);
     }
 
-    // ----- Consent to a native limit (LIM-6, ADR-0016 decisions 4 and 6; the product's Linux limiter is K16's) -----
+    // ----- Consent to a native limit (LIM-6, ADR-0016 decisions 4 and 6; the product's Linux limiter asks for it)
+    // -----
 
     private static final LimitCapability SCOPE_CPU =
             LimitCapability.of(CapabilityLevel.NATIVE_HARD, ControlMechanism.SYSTEMD_SCOPE);

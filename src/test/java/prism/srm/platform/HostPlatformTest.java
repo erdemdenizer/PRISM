@@ -92,50 +92,78 @@ class HostPlatformTest {
     }
 
     /**
-     * K16 (plan Rev 2.2 T-D25), on the product's own wiring: the Linux limiter the application gets admits no process,
-     * offers no native limit, looks for no earlier session's limits, clears nothing and assigns nothing.
+     * The product's own wiring on Linux since K16 was lifted on 2026-11-28 (ADR-0016, plan Rev 2.2 T-D25 as amended): the
+     * limiter the application gets uses the desktop policy and has no consent of its own. On any host this test runs on,
+     * PRISM's own process and the process it runs under are refused whatever consents a request carries, before
+     * anything is asked of the system and with no consent asked for; a process that does not exist is refused; nothing
+     * is held, so nothing is changed, forgotten or released; a record no live scope proves is never cleared. Whether an
+     * eligible desktop application is admitted with the user's consent, and only with it, depends on a real user manager
+     * and is pinned on the composition itself in {@code LinuxScopeLimiterTest}.
      */
     @Test
-    void theProductsLinuxLimiterAdmitsNothing() {
+    void theProductsLinuxLimiterIsTheDesktopPolicyWithConsentPerRequest() {
         ResourceLimiter linux = HostPlatform.limiterFor(HostSystem.LINUX, () -> 0);
-        prism.srm.domain.ProcessIdentity process =
-                new prism.srm.domain.ProcessIdentity(4_242, java.time.Instant.parse("2026-10-15T10:00:00Z"));
+        ProcessHandle self = ProcessHandle.current();
+        prism.srm.domain.ProcessIdentity itselfId =
+                new prism.srm.domain.ProcessIdentity(self.pid(), java.time.Instant.EPOCH);
+        prism.srm.domain.ProcessIdentity absent = new prism.srm.domain.ProcessIdentity(
+                4_194_304 + 4_242, java.time.Instant.parse("2026-10-15T10:00:00Z"));
         prism.srm.domain.LimitSpec spec =
                 new prism.srm.domain.LimitSpec(java.util.OptionalInt.of(20), java.util.OptionalLong.empty());
-
-        assertThat(linux).isInstanceOf(prism.srm.platform.linux.LinuxScopeLimiter.class);
-        assertThat(linux.capabilities().values())
-                .isNotEmpty()
-                .allSatisfy(capability -> assertThat(capability.available()).isFalse());
-        assertThat(linux.capabilitiesFor(process).values()).isNotEmpty().allSatisfy(capability -> {
-            assertThat(capability.available()).isFalse();
-            assertThat(capability.reason().orElseThrow()).contains("not validated for desktop applications");
-        });
-        assertThat(linux.mayHaveLeftLimits()).isFalse();
-        assertThat(linux.recoveryClears()).isFalse();
-        assertThat(linux.apply(process, spec, provenance -> true).phase()).isEqualTo(ApplyResult.Phase.NOT_ASSIGNED);
-        assertThat(linux.apply(process, spec).phase()).isEqualTo(ApplyResult.Phase.NOT_ASSIGNED);
-        // K16 stands whatever consent a request carries: the policy refuses before any consent is looked at.
+        prism.srm.domain.LimitSpec hard = spec.withMemoryBytes(java.util.OptionalLong.of(256L << 20));
         java.util.Set<prism.srm.domain.NativeConsentKind> every =
                 java.util.EnumSet.allOf(prism.srm.domain.NativeConsentKind.class);
-        prism.srm.domain.LimitSpec hard = spec.withMemoryBytes(java.util.OptionalLong.of(256L << 20));
-        ApplyResult consented = linux.apply(process, hard, provenance -> true, every);
-        assertThat(consented.phase()).isEqualTo(ApplyResult.Phase.NOT_ASSIGNED);
-        assertThat(consented.outcome().detail().orElseThrow()).contains("not validated for desktop applications");
-        assertThat(linux.consentNeeded(process, hard, java.util.Set.of()))
-                .as("no consent is ever asked for")
+
+        assertThat(linux).isInstanceOf(prism.srm.platform.linux.LinuxScopeLimiter.class);
+        assertThat(linux.capabilities())
+                .containsOnlyKeys(prism.srm.domain.LimitKind.CPU, prism.srm.domain.LimitKind.MEMORY);
+        assertThat(linux.mayHaveLeftLimits())
+                .as("a limiter that admits can leave limits")
+                .isTrue();
+        assertThat(linux.recoveryClears())
+                .as("proven scopes of an earlier session are cleared")
+                .isTrue();
+
+        // PRISM itself, consent or not: the desktop policy refuses it first.
+        assertThat(linux.capabilitiesFor(itselfId).values()).isNotEmpty().allSatisfy(capability -> {
+            assertThat(capability.available()).isFalse();
+            assertThat(capability.reason().orElseThrow()).isEqualTo("it is PRISM's own process");
+        });
+        assertThat(linux.consentNeeded(itselfId, hard, java.util.Set.of()))
+                .as("no consent is asked for a move that would not be made")
                 .isEmpty();
-        assertThat(linux.change(process, hard, every).phase()).isEqualTo(prism.srm.platform.ChangeResult.Phase.NO_HOLD);
-        assertThat(linux.clearOwned(prism.srm.domain.LimitRecord.intended(process, "demo", spec.effective(), "1-1"))
-                        .outcome()
-                        .result())
-                .isEqualTo(prism.srm.domain.OperationResult.UNSUPPORTED);
-        assertThat(linux.hold(process)).isEmpty();
-        assertThat(linux.recover(prism.srm.domain.LimitRecord.intended(process, "demo", spec.effective(), "1-1"))
-                        .verdict())
-                .isEqualTo(prism.srm.domain.RecoveredLimit.Verdict.FAILED);
-        assertThat(linux.change(process, spec).phase()).isEqualTo(prism.srm.platform.ChangeResult.Phase.NO_HOLD);
-        assertThat(linux.forget(process).result()).isEqualTo(prism.srm.platform.ForgetResult.Outcome.NOT_HELD);
+        ApplyResult itself = linux.apply(itselfId, hard, provenance -> true, every);
+        assertThat(itself.phase()).isEqualTo(ApplyResult.Phase.NOT_ASSIGNED);
+        assertThat(itself.outcome().detail().orElseThrow()).isEqualTo("it is PRISM's own process");
+        assertThat(linux.apply(itselfId, spec).phase())
+                .as("never without a place to record the scope's ownership")
+                .isEqualTo(ApplyResult.Phase.NOT_ASSIGNED);
+        self.parent().ifPresent(parent -> {
+            ApplyResult under = linux.apply(
+                    new prism.srm.domain.ProcessIdentity(parent.pid(), java.time.Instant.EPOCH),
+                    spec,
+                    provenance -> true,
+                    every);
+            assertThat(under.phase()).isEqualTo(ApplyResult.Phase.NOT_ASSIGNED);
+            assertThat(under.outcome().detail().orElseThrow()).startsWith("PRISM runs under it");
+        });
+
+        // A process that does not exist (above the largest PID Linux allows) is refused, consent or not.
+        assertThat(linux.capabilitiesFor(absent).values())
+                .allSatisfy(capability -> assertThat(capability.available()).isFalse());
+        assertThat(linux.consentNeeded(absent, spec, java.util.Set.of())).isEmpty();
+        assertThat(linux.apply(absent, spec, provenance -> true, every).phase())
+                .isEqualTo(ApplyResult.Phase.NOT_ASSIGNED);
+
+        // Nothing is held: nothing to change, forget, release, or clear without proof.
+        assertThat(linux.hold(absent)).isEmpty();
+        assertThat(linux.change(absent, hard, every).phase()).isEqualTo(prism.srm.platform.ChangeResult.Phase.NO_HOLD);
+        assertThat(linux.change(absent, spec).phase()).isEqualTo(prism.srm.platform.ChangeResult.Phase.NO_HOLD);
+        assertThat(linux.forget(absent).result()).isEqualTo(prism.srm.platform.ForgetResult.Outcome.NOT_HELD);
+        prism.srm.domain.LimitRecord unproven =
+                prism.srm.domain.LimitRecord.intended(absent, "demo", spec.effective(), "1-1");
+        assertThat(linux.recover(unproven).ownershipProven()).isFalse();
+        assertThat(linux.clearOwned(unproven).result()).isEqualTo(prism.srm.platform.ClearResult.Outcome.NOT_OWNED);
         assertThat(linux.releaseAll(java.time.Duration.ofSeconds(1)))
                 .isEqualTo(prism.srm.platform.ReleaseResult.NOTHING);
     }

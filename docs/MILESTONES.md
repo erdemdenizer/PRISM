@@ -1702,8 +1702,9 @@ replaced ADR-0003's delegated subtree with systemd transient scopes
 
 **Objective.** A complete, tested mechanism for CPU and memory limits through systemd transient
 scopes, proven on disposable processes the test harness starts. In the product every process
-stays `UNAVAILABLE` (K16): desktop application ownership and lifecycle are not validated, and
-enabling native limits needs new evidence and the product owner's approval.
+stayed `UNAVAILABLE` (K16) at this milestone's acceptance: desktop application ownership and
+lifecycle were not validated, and enabling native limits needed new evidence and the product
+owner's approval. Both came on 2026-11-28 (amendment below).
 
 **Areas.** `platform.linux`: read-only capability discovery, the sd-bus mapping, adoption by
 pidfd, the scope limiter (`cpu.max`, `memory.high`, `memory.max` through unit properties), proven
@@ -1715,7 +1716,9 @@ milestone's acceptance, and ADR-0003 became Superseded.
 - LIM-6 holds for the mechanism on real systemd and cgroup v2, on disposable, test-owned processes.
 - K16 holds: the limiter `HostPlatform` gives the product admits no process, opens no bus and clears
   nothing, with no setting, property or environment variable that changes this, and a test fails if
-  a second composition appears in the main sources.
+  a second composition appears in the main sources. (Met at the acceptance; replaced on 2026-11-28,
+  when K16 was lifted, by: the product's limiter is `LinuxScopeLimiter.desktop`, the desktop policy
+  with no consent of its own, and a test fails if a second composition appears.)
 - A failed precondition reports `UNAVAILABLE` with its reason, and the limit service falls back to the
   emulated limiter. An unanswered step stays uncertain and starts no second limiter.
 - Limits are set only on scopes PRISM created and proves as its own: a foreign or unproven scope
@@ -1761,9 +1764,18 @@ macOS test machine. The product owner accepted the milestone on 2026-11-07:
 `memory.max` and `memory.high`, because K16 keeps that text unreachable on Linux. The other two exceptions are the OOM kill, not
 observed at the final candidate, and the hosted `native-validation` check, which fails and stays visible.
 
-K16 is an active safety restriction in the current product: native limits stay `UNAVAILABLE` for every process, because desktop
-application ownership and lifecycle are not validated. It can be lifted later only after separate validation and with the
-product owner's explicit approval. Accepting this milestone does not lift it.
+K16 was an active safety restriction from this milestone's acceptance on: native limits stayed `UNAVAILABLE` for every process,
+because desktop application ownership and lifecycle were not validated. Accepting this milestone did not lift it.
+
+**Amendment (2026-11-28): K16 lifted.** The product owner lifted K16 after the manual verification above was run on the Ubuntu
+24.04 GNOME desktop with this change's build ([desktop validation](evidence/k16-desktop-validation-2026-11-28.md); ADR-0016,
+amendment of that date; [risk register](evidence/m12-risk-register.md), "K16 lifted"). The product's Linux limiter is now
+`LinuxScopeLimiter.desktop`: only a scope unit's own cgroup in the user manager's `app.slice` is admitted, never PRISM or the
+processes it runs under, never a service, `session.slice`, `background.slice` or the manager's `init.scope`, and every adoption
+needs the user's consent for that request. Where the system cannot provide native limits they are `UNAVAILABLE` with the reason
+and the emulated CPU limit is offered as before; a service of the desktop session (`session.slice`) gets no emulated limit
+either (the owner's decision 2 of that date). The deferred criterion on the text for `memory.max` and `memory.high` is
+addressed by risks D8 and D16 (closed on 2026-11-28, run on Windows only) and is read on the desktop in the validation.
 
 ## 13. Settings, shutdown hardening, polish, packaging
 

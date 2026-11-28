@@ -5,15 +5,17 @@ import java.util.Set;
 import prism.srm.domain.ProcessIdentity;
 
 /**
- * The consent tokens a Linux native limit needs (milestone 12, plan Rev 2.2 §2.6, §3, K16, K18): a per-process consent
+ * The consent tokens a Linux native limit needs (milestone 12, plan Rev 2.2 §2.6, §3, K18): a per-process consent
  * to adoption, which is one-way, and a separate consent for a hard memory limit, under which the kernel may terminate
  * the process or a child. The limiter refuses an adoption without the first and a hard memory limit without the second,
  * before it asks anything of the system.
  *
  * <p>These are the consents a limiter is made with. The product's limiter is made with none ({@link #none()}); a user
  * gives them per request instead, in the consent dialog, which the limiter asks for with a {@code CONSENT_REQUIRED}
- * answer that carries the statements below ({@code NativeConsentOffer}), and admits for that call only. Under K16 no
- * process reaches that dialog: desktop applications are not eligible at all. Only a test harness declares consents at
+ * answer that carries the statements below ({@code NativeConsentOffer}), and admits for that call only. Since the
+ * product owner lifted K16 on 2026-11-28, a desktop application the desktop policy admits reaches that dialog before
+ * its first move into a scope; nothing is kept for the process beyond the scope PRISM then holds. Only a test harness
+ * declares consents at
  * construction, for the disposable processes it created ({@link #harness}). The texts the dialog shows are fixed here,
  * so that the consent the user gives and the one the harness declares stand for exactly these statements.
  */
@@ -44,7 +46,9 @@ final class NativeConsent {
         }
     }
 
-    /** The product in milestone 12: no consent can be given. */
+    /**
+     * No consent of the limiter's own: the product's, where only the user's consent for a request admits an adoption.
+     */
     static NativeConsent none() {
         return new NativeConsent(Set.of(), Set.of());
     }

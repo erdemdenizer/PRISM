@@ -138,8 +138,19 @@ else
     check no-child-process "$(is "$children" '')" "children: $children"
     count="$(image_processes "$image" | wc -l)"
     check one-prism-process "$(is "$count" 1)" "$count process(es) of the image"
-    check k16-reported "$(log_of | grep -q 'not validated for desktop applications' && echo true || echo false)" \
-        'native limits reported as not enabled (K16)'
+    # K16 was lifted on 2026-11-28 (ADR-0016): the log states once what the native limiter found here, each
+    # kind's level through a systemd scope or unavailable with its reason. Either is honest; no line, or a
+    # level offered without the per-process consent, fails.
+    native="$(log_of | grep -oE 'Linux native limits: CPU .*' | tail -n 1)"
+    check native-limits-reported "$(matches "$native" \
+        '^Linux native limits: CPU (NATIVE_HARD through a systemd scope|unavailable \(.+\)); memory (NATIVE_SOFT through a systemd scope|unavailable \(.+\))')" \
+        "${native:-no line}"
+    case "$native" in
+        *'through a systemd scope'*)
+            check native-limits-need-consent \
+                "$(matches "$native" "each process needs the user's consent before PRISM moves it into a scope\$")" "$native" ;;
+        *) rep native-limits-need-consent INFO 'no native limit available here, so none to consent to' ;;
+    esac
 
     # SIGTERM bypasses the controlled shutdown by design: the JVM's shutdown hook releases what the
     # limiter and OOM Guard hold and nothing else (LIFE-5). It is checked as that, not as LIFE-1.

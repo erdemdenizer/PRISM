@@ -25,7 +25,8 @@ import prism.srm.domain.ProcessIdentity;
  * mount from mountinfo), and starts the disposable processes the tests limit. Those are started under the user manager
  * with {@code systemd-run --user --scope}, as CI-1 did, because the test JVM itself runs outside it on a GitHub runner;
  * that command is test infrastructure, never product code. Only identities the harness started are admitted, and the
- * consents are declared for exactly those (K16, plan §2.6).
+ * consents are declared for exactly those (plan §2.6); the product's limiter ({@link LinuxScopeLimiter#desktop}) declares
+ * none and admits desktop applications only with the user's consent per request.
  */
 final class LinuxHarness {
 

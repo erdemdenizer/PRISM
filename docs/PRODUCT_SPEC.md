@@ -180,8 +180,8 @@ process is determined when the mechanism is applied and is shown to the user.
 | Force Kill | `NATIVE_HARD` | `NATIVE_HARD` | `NATIVE_HARD` |
 | Suspend / Resume | `NATIVE_SOFT` (per thread, not atomic) | `NATIVE_HARD` | `NATIVE_HARD` |
 | Change Priority | `NATIVE_SOFT` | `NATIVE_SOFT` (lowering only) | `NATIVE_SOFT` (lowering only) |
-| CPU limit | `NATIVE_HARD` (Job Object), else `EMULATED` | `EMULATED`. `NATIVE_HARD` (systemd scope, `cpu.max`) exists but is not enabled (LIM-6, K16) | `EMULATED` |
-| Memory limit | `NATIVE_HARD` (Job Object commit limit), else `EMULATED` policy | `EMULATED` policy (the memory signals are validated, ADR-0015 §7). `NATIVE_HARD` (`memory.max`) and `NATIVE_SOFT` (`memory.high`) through a systemd scope exist but are not enabled (LIM-6, K16) | `EMULATED` policy once the memory signals are validated, `UNAVAILABLE` until then |
+| CPU limit | `NATIVE_HARD` (Job Object), else `EMULATED` | `NATIVE_HARD` (systemd scope, `cpu.max`) for a desktop application, with the user's consent per process (LIM-6), else `EMULATED`; neither for a desktop session service | `EMULATED` |
+| Memory limit | `NATIVE_HARD` (Job Object commit limit), else `EMULATED` policy | `NATIVE_SOFT` (`memory.high`, systemd scope) for a desktop application, with the user's consent per process (LIM-6; `NATIVE_HARD` `memory.max` exists behind its own consent and is not offered in the interface), else `EMULATED` policy (the memory signals are validated, ADR-0015 §7); neither for a desktop session service | `EMULATED` policy once the memory signals are validated, `UNAVAILABLE` until then |
 
 The `EMULATED` CPU limit suspends and resumes its target (LIM-8), so it needs Suspend and
 Resume; where they are `UNAVAILABLE` (Linux without pidfd signalling) the emulated CPU
@@ -247,23 +247,40 @@ limit is `UNAVAILABLE` too, with the same reason.
   cgroup v2 limits the kernel enforces ([ADR-0016](adr/0016-linux-native-limits-through-systemd-scopes.md),
   Accepted; it replaces the delegated-subtree design of
   [ADR-0003](adr/0003-linux-native-limits-with-cgroups-v2.md)).
-  - **Not enabled in the product (K16).** Until desktop application ownership and lifecycle
-    have been validated on a real desktop Linux and the product owner has approved it, the
-    product reports native limits as `UNAVAILABLE` for every process ("not validated for
-    desktop applications"). A Linux user gets the emulated CPU limit (LIM-8). The memory
-    limit falls to the monitored policy (LIM-9), which the validated memory signals on Linux
-    make available (ADR-0015 §7). No setting, property or environment
-    variable changes this. The product's limiter opens no bus connection, creates no scope and looks for no
-    limits of earlier sessions. The mechanism below runs only on disposable processes that
-    the test harness starts and names to the limiter. An eligibility policy for desktop
-    applications exists for the day K16 is lifted (every process in the user manager's
-    `app.slice`, where systemd places the applications the user runs, except PRISM's own and the
-    processes PRISM runs under, with every other rule below; session services such as the bus
-    broker and the compositor run in `session.slice` and are refused), and the product does not use it.
+  - **Enabled for desktop applications (K16 lifted on 2026-11-28).** The product owner lifted
+    K16, under which every process was `UNAVAILABLE` from milestone 12 on, after the manual
+    desktop validation ([evidence](evidence/k16-desktop-validation-2026-11-28.md); ADR-0016, amendment of
+    that date). The product's limiter admits only a process whose cgroup is a scope unit's own
+    cgroup in the user manager's `app.slice`, where systemd places the applications the user
+    runs: what a launcher starts (`app-gnome-<name>-<pid>.scope`, GNOME's autostart items too)
+    and what a terminal starts (`vte-spawn-<uuid>.scope`), also in a nested slice. It never
+    admits PRISM's own process or the processes PRISM runs under. A service is refused wherever
+    it runs, `app.slice` included: systemd starts and supervises a service
+    ([systemd.service(5)](https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html)),
+    while a scope only groups processes systemd did not start
+    ([systemd.scope(5)](https://www.freedesktop.org/software/systemd/man/latest/systemd.scope.html)),
+    and moving a service's process out of its unit could make systemd take the service as
+    ended, which for the session manager ends the session. The session services, such as the
+    bus broker and the compositor, run in `session.slice` and are refused, as are
+    `background.slice`, units directly under the manager, a slice itself and a cgroup below a
+    unit. Every rule below still applies, and every adoption needs the user's consent for that
+    request. No setting, property or environment variable changes any of this. Where a
+    precondition below fails, native limits are `UNAVAILABLE` with the reason; a Linux user then
+    gets the emulated CPU limit (LIM-8), and the memory limit falls to the monitored policy
+    (LIM-9), which the validated memory signals on Linux make available (ADR-0015 §7).
+  - **No limit for a desktop session service.** A process in the user manager's
+    `session.slice` (the compositor, the session bus broker and the other services the
+    graphical session needs) gets no emulated CPU limit and no watched memory limit, and none
+    is offered when the native limit refuses it, because stopping it would freeze the desktop
+    (the product owner's decision of 2026-11-28). This is decided from `/proc/<pid>/cgroup`
+    alone, whether or not native limits are available; a cgroup that cannot be read is not
+    taken for a session service (the scope-membership rule below refuses such a process anyway).
   - **Preconditions.** Capability discovery is read-only: the unified cgroup v2 hierarchy
     with no v1 hierarchy mounted, `libsystemd` with every needed function, a reachable user
     manager of systemd 255 or later (adoption by pidfd), and the needed controllers
-    delegated to it. It never creates a unit and never hands over a pidfd. A process is
+    delegated to it; PRISM's own user ID readable, the user manager's answer within 5 s, and the
+    user manager and `/proc` agreeing on where PRISM and `app.slice` run. Discovery runs once,
+    at start-up, off the JavaFX Application Thread. It never creates a unit and never hands over a pidfd. A process is
     eligible only if it runs inside the user's own `user@UID.service` but not in its
     `init.scope` (the user manager itself), outside any scope with PRISM's name, its real,
     effective, saved and file system user IDs are the user's, and its four group IDs are
@@ -283,15 +300,14 @@ limit is `UNAVAILABLE` too, with the same reason.
     consent dialog lists these statements as the limiter fixes them; Cancel is its default.
     A consent is given for one request about one process and is not remembered for another
     process or session; a later change of a process PRISM already holds needs no new one.
-    While it is asked, nothing is changed and no emulated limit starts. Under K16 no process
-    reaches this dialog.
+    While it is asked, nothing is changed and no emulated limit starts. A process the
+    eligibility rules refuse never reaches this dialog.
   - **Ownership.** Before any limit is set, the unit name, its invocation id and its cgroup
     path are recorded durably. Every limit write goes to the unit object addressed by that
     invocation id, never by name, so a unit that later takes the name is never changed. Before
     a change, PRISM proves the unit is the recorded invocation with the recorded cgroup, and
     that the target is alive, the same process, with the same user IDs, and in that cgroup.
-    Before a clearing it proves the recorded invocation; comparing the cgroup there too is
-    required before K16 can be lifted. A scope that merely carries PRISM's name is never
+    Before a clearing it proves the recorded invocation with the recorded cgroup. A scope that merely carries PRISM's name is never
     changed. Any process inside such a scope gets no second limit, native or emulated,
     except the target this limiter holds.
   - **CPU limit.** `cpu.max`, set through `CPUQuotaPerSecUSec`. The whole-machine percentage P
@@ -512,8 +528,8 @@ Primary navigation: Overview, Processes, Performance, Limits, OOM Guard, Logs, S
   PRISM prove that a stop it finds is still its own; it lists what it may have left
   suspended (LIFE-6), reports the native limits an earlier session recorded, and logs all
   of it. On Windows it changes none of them (LIM-5, ADR-0012). On Linux the scope mechanism
-  clears only a scope whose ownership it proves again at that moment (LIM-6); the product
-  applies no native limit there (K16), so it has none to report or clear.
+  clears only a scope whose ownership it proves again at that moment (LIM-6); a scope it
+  cannot prove is listed, left as it is, and blocks a second limiter on its processes.
 - **LIFE-5** A JVM shutdown hook covers exits that bypass the controlled shutdown: it
   blocks further suspensions and releases the suspensions held by the limiter or OOM
   Guard, under the same rule as LIFE-1. It is safe to run after a controlled shutdown

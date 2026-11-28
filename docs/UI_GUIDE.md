@@ -411,7 +411,10 @@ transitions, which sit under `@media (prefers-reduced-motion: no-preference)`, a
   button ("Move and limit", "Move and set limits", "Set hard limit"). The act cannot be undone, so
   its button is the plain destructive one of the consent to termination, with its edge in the
   danger color where the kernel may terminate the process; Cancel is the default. It frames like
-  the CPU limit dialog. Under K16 it never opens.
+  the CPU limit dialog. It opens before the first move of a desktop application into its scope
+  (K16 lifted on 2026-11-28); a process the limiter refuses never gets it.
+- A desktop session service on Linux (in the user manager's `session.slice`) shows "Not offered:
+  desktop session service" with the reason, and no emulated limit is offered for it.
 
 - After a hard kill and a restart, a process an earlier session may still cap shows "Capped by an
   earlier session" with the recorded values, and the notice above the table says the limit lasts

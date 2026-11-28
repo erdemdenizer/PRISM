@@ -329,6 +329,17 @@ public final class LimitMessages {
                         + " lasts until the processes in it exit.");
     }
 
+    /**
+     * Owner decision 2 of 2026-11-28: the process is a service of the desktop session (on Linux, in the user manager's
+     * {@code session.slice}), so no emulated limit runs on it and none is offered; the native one refuses it too.
+     */
+    static Wording sessionService(LimitRequest request, String why) {
+        return new Wording(
+                nothingDone(request),
+                "No limit is offered for it: " + why + ". PRISM neither stops it nor moves it, so no emulated or native"
+                        + " limit is set on it.");
+    }
+
     static Wording priorSession(LimitRequest request, String inForce) {
         return new Wording(
                 nothingDone(request),

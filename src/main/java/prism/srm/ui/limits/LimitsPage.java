@@ -349,6 +349,8 @@ public final class LimitsPage extends VBox {
         Node focused = getScene() == null ? null : getScene().getFocusOwner();
         if (consentDialog.accept(request.name(), request.identity().pid(), offer, this)) {
             model.consent(request, offer);
+        } else {
+            model.declined(request);
         }
         if (focused != null && focused.getScene() == getScene() && !focused.isDisabled()) {
             focused.requestFocus();
