@@ -18,12 +18,16 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import prism.srm.domain.CapabilityLevel;
+import prism.srm.domain.ControlMechanism;
+import prism.srm.domain.LimitCapability;
 import prism.srm.domain.ManagedSettings;
 import prism.srm.ui.Stylesheets;
 
 /**
- * Asks for the memory limit of one process (LIM-2, LIM-5, milestone 10): the memory it may commit,
- * in MiB or GiB, with what reaching it means said before it is set. Cancel is the default button: a
+ * Asks for the memory limit of one process (LIM-2, LIM-5, milestone 10), in MiB or GiB, with what the
+ * limit is for its mechanism (a Job Object's commit limit, a systemd scope's boundary, or the watched
+ * resident memory) and what reaching it means said before it is set. Cancel is the default button: a
  * process that reaches the limit may fail (docs/UI_GUIDE.md, destructive confirmations). Enter in
  * the field neither cancels nor sets: it says how to set the limit, or what is wrong with the value;
  * Escape cancels.
@@ -41,19 +45,70 @@ public interface MemoryLimitDialog {
             + " suspends keeps its memory, so such a hold is usually ended by you. A limit below what the process"
             + " uses now acts at the next listing.";
 
-    /** What a memory limit is: said under the field, every time. */
+    /** What a memory limit through a Job Object is (a commit limit): said under the field, every time. */
     String MEANS = "Caps the memory the process may commit, not what it has in RAM. A process that reaches the cap"
             + " cannot allocate memory; most programs then fail or crash, and PRISM cannot undo that. The child"
             + " processes it starts afterwards get the same cap each.";
+
+    /**
+     * What a memory limit through a systemd scope's {@code memory.high} is (risk D16, ADR-0016 decision 4): a throttling
+     * boundary, as {@code LimitMessages} words it. Not a commit limit, and nothing is stopped for it.
+     */
+    String SCOPE_THROTTLE_MEANS = "Holds the process near this amount, through a systemd scope PRISM moves it into."
+            + " Above it the kernel slows the process down and reclaims its memory; it does not stop or terminate the"
+            + " process for it, and the use can go above the amount for a while. Memory it used before it was moved"
+            + " into its scope is not counted. The processes it starts afterwards share the limit.";
+
+    /** What a memory limit through a systemd scope's {@code memory.max} is (ADR-0016 decision 4, separate consent). */
+    String SCOPE_HARD_MEANS = "Caps the memory the process may use, through a systemd scope PRISM moves it into. When"
+            + " it reaches the cap and the kernel cannot reclaim enough, the kernel may terminate the process or one"
+            + " of the processes it started. Memory it used before it was moved into its scope is not counted. The"
+            + " processes it starts afterwards share the limit.";
 
     /**
      * The limit the user chose, in bytes, or empty if they cancelled.
      *
      * @param current the limit the process has now, to start from
      * @param inUse what the process has now, in words, to compare with; empty when not known
-     * @param watched whether the limit is watched resident memory rather than a native cap
+     * @param capability how a memory limit is provided for the process: the watched resident memory, a Job Object's
+     *     commit limit or a systemd scope's boundary, which the dialog says (CAP-5)
      */
-    OptionalLong ask(String name, long pid, OptionalLong current, String inUse, boolean watched, Node owner);
+    OptionalLong ask(String name, long pid, OptionalLong current, String inUse, LimitCapability capability, Node owner);
+
+    /** Whether the limit is watched resident memory rather than a native one (LIM-9, CAP-3). */
+    static boolean watched(LimitCapability capability) {
+        return capability
+                .mechanism()
+                .filter(ControlMechanism.RESIDENT_POLICY::equals)
+                .isPresent();
+    }
+
+    private static boolean scope(LimitCapability capability) {
+        return capability
+                .mechanism()
+                .filter(ControlMechanism.SYSTEMD_SCOPE::equals)
+                .isPresent();
+    }
+
+    /** What a memory limit is for this capability, said under the field (CAP-5): never more than it is. */
+    static String means(LimitCapability capability) {
+        if (watched(capability)) {
+            return WATCHED_MEANS;
+        }
+        if (scope(capability)) {
+            // Risk D16: a scope's default is memory.high (NATIVE_SOFT); memory.max is the hard one.
+            return capability.level() == CapabilityLevel.NATIVE_HARD ? SCOPE_HARD_MEANS : SCOPE_THROTTLE_MEANS;
+        }
+        return MEANS;
+    }
+
+    /** The dialog's heading for this capability. */
+    static String heading(LimitCapability capability) {
+        if (watched(capability)) {
+            return "Watch the resident memory of this process";
+        }
+        return scope(capability) ? "Limit the memory of this process" : "Limit the memory this process may commit";
+    }
 
     /**
      * The bytes typed: a whole number of MiB ("256", "256 MiB") or GiB ("2 GiB"), at least 1 MiB.
@@ -80,8 +135,8 @@ public interface MemoryLimitDialog {
 
     /** The dialog itself, modal to the window of the owner. Call on the JavaFX Application Thread. */
     static OptionalLong showDialog(
-            String name, long pid, OptionalLong current, String inUse, boolean watched, Node owner) {
-        Dialog<ButtonType> dialog = build(name, pid, current, inUse, watched);
+            String name, long pid, OptionalLong current, String inUse, LimitCapability capability, Node owner) {
+        Dialog<ButtonType> dialog = build(name, pid, current, inUse, capability);
         if (owner.getScene() != null && owner.getScene().getWindow() != null) {
             dialog.initOwner(owner.getScene().getWindow());
             if (owner.getScene().getStylesheets().contains(Stylesheets.fontsFallback())) {
@@ -93,21 +148,26 @@ public interface MemoryLimitDialog {
         return dialog.showAndWait().filter(set::equals).isPresent() ? parse(field.getText()) : OptionalLong.empty();
     }
 
-    /** Builds the dialog of a native limit without showing it; for tests. */
+    /** Builds the dialog of a Job Object's commit limit without showing it; for tests. */
     static Dialog<ButtonType> build(String name, long pid, OptionalLong current, String inUse) {
-        return build(name, pid, current, inUse, false);
+        return build(
+                name,
+                pid,
+                current,
+                inUse,
+                LimitCapability.of(CapabilityLevel.NATIVE_HARD, ControlMechanism.JOB_OBJECT));
     }
 
     /** Builds the dialog without showing it; for {@link #showDialog} and for tests. */
-    static Dialog<ButtonType> build(String name, long pid, OptionalLong current, String inUse, boolean watched) {
+    static Dialog<ButtonType> build(
+            String name, long pid, OptionalLong current, String inUse, LimitCapability capability) {
         Dialog<ButtonType> dialog = new Dialog<>();
         dialog.setTitle("Set memory limit");
         DialogPane pane = dialog.getDialogPane();
         pane.getStylesheets().addAll(Stylesheets.app(), Stylesheets.control());
         pane.getStyleClass().addAll("cpu-limit-dialog", "memory-limit-dialog");
 
-        Label heading = new Label(
-                watched ? "Watch the resident memory of this process" : "Limit the memory this process may commit");
+        Label heading = new Label(heading(capability));
         heading.getStyleClass().addAll("text-section-title", "cpu-limit-heading");
         heading.setWrapText(true);
         Label processName = new Label(name.isBlank() ? "Process" : name);
@@ -147,7 +207,7 @@ public interface MemoryLimitDialog {
         now.setVisible(!inUse.isEmpty());
         now.setManaged(!inUse.isEmpty());
 
-        Label meaning = new Label(watched ? WATCHED_MEANS : MEANS);
+        Label meaning = new Label(means(capability));
         meaning.getStyleClass().addAll("text-small", "cpu-limit-means", "memory-limit-warning");
         meaning.setWrapText(true);
         meaning.setMinHeight(Region.USE_PREF_SIZE);

@@ -389,7 +389,8 @@ public final class LimitsPage extends VBox {
         TableColumn<LimitRow, String> implementation = column("Implementation", LimitRow::implementation, 112);
         implementation.setCellFactory(column -> new TextCell(LimitRow::implementationDetail, OverrunStyle.ELLIPSIS));
         table.getColumns().setAll(List.of(name, pid, cpu, status, implementation, memory));
-        Tooltip memoryNote = new Tooltip(LimitsViewModel.MEMORY_NOTE);
+        Tooltip memoryNote = new Tooltip();
+        memoryNote.textProperty().bind(model.memoryNoteProperty());
         Label memoryHeader = new Label("Memory limit");
         memoryHeader.setTooltip(memoryNote);
         memory.setText(null);
@@ -610,7 +611,7 @@ public final class LimitsPage extends VBox {
             return;
         }
         OptionalLong chosen = memoryDialog.ask(
-                row.name(), row.identity().pid(), model.currentMemoryLimit(), "", model.memoryWatched(), this);
+                row.name(), row.identity().pid(), model.currentMemoryLimit(), "", model.memoryCapability(), this);
         if (chosen.isPresent()) {
             model.setMemoryLimit(row.identity(), chosen.getAsLong());
         }

@@ -352,6 +352,46 @@ class LinuxScopeLimiterTest {
                 .isTrue();
     }
 
+    /**
+     * Risk D17: under the desktop policy a session service (the bus broker, the compositor) or background work is refused
+     * before any call, consent or not; and the cgroup read again once the pidfd is open (risk D2) applies the same rule.
+     */
+    @Test
+    void theDesktopPolicyRefusesSessionServicesAndBackgroundWorkBeforeAnyCall() {
+        limiter = composed(
+                LinuxNativeReadiness.EligibilityPolicy.desktopExcluding(
+                        () -> new LinuxNativeReadiness.EligibilityPolicy.Excluded(9_100, Set.of(9_050L, 1L))),
+                NativeConsent.none());
+        for (String place : List.of(
+                MANAGER + "/session.slice/dbus-broker.service",
+                MANAGER + "/session.slice/org.gnome.Shell@wayland.service",
+                MANAGER + "/background.slice/tracker-miner-fs-3.service",
+                MANAGER + "/dbus.service")) {
+            systemd.placeProcess(PID, place);
+            assertThat(limiter.capabilitiesFor(DEMO).get(LimitKind.CPU).reason())
+                    .as(place)
+                    .hasValueSatisfying(r -> assertThat(r).startsWith(LinuxNativeReadiness.NOT_AN_APPLICATION));
+            assertThat(limiter.consentNeeded(DEMO, CPU20_THROTTLE256, Set.of()))
+                    .as("no consent is asked for a move that would not be made")
+                    .isEmpty();
+            ApplyResult refused = apply(CPU20_THROTTLE256, Set.of(NativeConsentKind.ADOPTION));
+            assertThat(refused.phase()).isEqualTo(ApplyResult.Phase.NOT_ASSIGNED);
+            assertThat(refused.outcome().detail().orElseThrow()).contains("not a desktop application");
+        }
+        assertThat(linux.calls).as("no pidfd opened").noneMatch(c -> c.startsWith("pidfd_open"));
+        assertThat(systemd.calls).isEmpty();
+
+        // Eligible when the first read is made, moved into session.slice before the read after the open.
+        systemd.placeProcess(PID, MANAGER + "/app.slice/app-gnome-demo-4711.scope");
+        linux.afterOpen = () -> systemd.placeProcess(PID, MANAGER + "/session.slice/dbus-broker.service");
+        ApplyResult moved = apply(CPU20_THROTTLE256, Set.of(NativeConsentKind.ADOPTION));
+        assertThat(moved.phase()).isEqualTo(ApplyResult.Phase.NOT_ASSIGNED);
+        assertThat(moved.outcome().detail().orElseThrow())
+                .contains("not a desktop application: it runs in session.slice");
+        assertThat(systemd.calls).noneMatch(call -> call.startsWith("start"));
+        assertThat(linux.openFds()).as("the pidfd is closed").isEmpty();
+    }
+
     @Test
     void aProcessOutsideTheManagerOrInAPrismScopeIsNotEligible() {
         systemd.placeProcess(PID, "/user.slice/user-1000.slice/session-2.scope");
@@ -1215,8 +1255,236 @@ class LinuxScopeLimiterTest {
 
         assertThat(refused.phase()).isEqualTo(ApplyResult.Phase.NOT_ASSIGNED);
         assertThat(refused.outcome().result()).isEqualTo(OperationResult.ACCESS_DENIED);
+        assertThat(refused.fallbackEligible()).isFalse();
         assertThat(systemd.calls).noneMatch(c -> c.startsWith("start"));
         assertThat(linux.openFds()).isEmpty();
+    }
+
+    /**
+     * Risk D5: refused by the manager after the process became one that may not be signalled, it is said as before the
+     * start: access denied, with no emulated fallback (whose stops and continues would get EPERM too).
+     */
+    @Test
+    void aStartRefusedForAProcessThatMayNoLongerBeSignalledIsSaidAsBeforeTheStart() {
+        ApplyResult before = refusedBeforeTheStart();
+        systemd.startAnswer = ScopeManager.StartStatus.REFUSED;
+        systemd.beforeStart = () -> linux.signalErrno.put(PID, LinuxErrors.EPERM);
+
+        ApplyResult refused = apply(CPU20_THROTTLE256);
+
+        assertThat(refused.phase()).isEqualTo(ApplyResult.Phase.NOT_ASSIGNED);
+        assertThat(refused.outcome().result()).isEqualTo(OperationResult.ACCESS_DENIED);
+        assertThat(refused.fallbackEligible()).as("no emulated fallback").isFalse();
+        assertThat(refused.outcome()).isEqualTo(before.outcome());
+        assertThat(limiter.hold(DEMO)).isEmpty();
+        assertThat(systemd.setCalls()).isZero();
+    }
+
+    /** Risk D5: the same for every refusal of the start; a refusal of PIDFDs still makes adoption unavailable. */
+    @Test
+    void everyRefusedStartForAProcessThatMayNoLongerBeSignalledOffersNoFallback() {
+        for (ScopeManager.StartStatus answer : List.of(
+                ScopeManager.StartStatus.ACCESS_DENIED,
+                ScopeManager.StartStatus.PIDFDS_REFUSED,
+                ScopeManager.StartStatus.UNIT_EXISTS)) {
+            linux.signalErrno.remove(PID);
+            limiter = harness(Set.of(DEMO), Set.of(DEMO), Set.of());
+            systemd.startAnswer = answer;
+            systemd.beforeStart = () -> linux.signalErrno.put(PID, LinuxErrors.EPERM);
+
+            ApplyResult refused = apply(CPU20_THROTTLE256);
+
+            assertThat(refused.outcome().result()).as(answer.name()).isEqualTo(OperationResult.ACCESS_DENIED);
+            assertThat(refused.fallbackEligible()).as(answer.name()).isFalse();
+            assertThat(limiter.hold(DEMO)).isEmpty();
+            if (answer == ScopeManager.StartStatus.PIDFDS_REFUSED) {
+                assertThat(limiter.capabilities().get(LimitKind.CPU).reason().orElseThrow())
+                        .as("a fact of the manager, kept for the session")
+                        .contains("never moves one by PID");
+            }
+        }
+    }
+
+    /** A process that exited while the start was refused is said as gone, with no fallback, whatever the refusal. */
+    @Test
+    void aStartRefusedForAProcessThatExitedMeanwhileIsSaidAsGone() {
+        for (ScopeManager.StartStatus answer :
+                List.of(ScopeManager.StartStatus.ACCESS_DENIED, ScopeManager.StartStatus.UNIT_EXISTS)) {
+            linux.signalErrno.remove(PID);
+            limiter = harness(Set.of(DEMO), Set.of(DEMO), Set.of());
+            systemd.startAnswer = answer;
+            systemd.beforeStart = () -> linux.signalErrno.put(PID, LinuxErrors.ESRCH);
+
+            ApplyResult refused = apply(CPU20_THROTTLE256);
+
+            assertThat(refused.outcome().result()).as(answer.name()).isEqualTo(OperationResult.PROCESS_NOT_FOUND);
+            assertThat(refused.fallbackEligible()).as(answer.name()).isFalse();
+        }
+    }
+
+    /** A refusal for a process that still runs as the user keeps its result and the fallback, as before D5. */
+    @Test
+    void aStartRefusedForAProcessThatStillRunsKeepsTheFallback() {
+        systemd.startAnswer = ScopeManager.StartStatus.REFUSED;
+
+        ApplyResult refused = apply(CPU20_THROTTLE256);
+
+        assertThat(refused.outcome().result()).isEqualTo(OperationResult.NATIVE_ERROR);
+        assertThat(refused.fallbackEligible()).isTrue();
+        assertThat(refused.outcome().detail().orElseThrow()).contains("the scope was not created");
+    }
+
+    /** Risk D5: a unit gone after the start, for a process that may no longer be signalled, is said as before it. */
+    @Test
+    void aUnitGoneAfterTheStartForAProcessThatMayNoLongerBeSignalledIsSaidAsBeforeTheStart() {
+        ApplyResult before = refusedBeforeTheStart();
+        systemd.unitVanishesOnStart = true;
+        systemd.afterStart = () -> linux.signalErrno.put(PID, LinuxErrors.EPERM);
+
+        ApplyResult refused = apply(CPU20_THROTTLE256);
+
+        assertThat(refused.phase()).isEqualTo(ApplyResult.Phase.NOT_ASSIGNED);
+        assertThat(refused.outcome()).isEqualTo(before.outcome());
+        assertThat(refused.fallbackEligible()).isFalse();
+        assertThat(limiter.hold(DEMO)).isEmpty();
+        assertThat(systemd.setCalls()).isZero();
+    }
+
+    /** What the same limiter answers when the process may not be signalled before the start; the state is reset. */
+    private ApplyResult refusedBeforeTheStart() {
+        linux.signalErrno.put(PID, LinuxErrors.EPERM);
+        ApplyResult before = apply(CPU20_THROTTLE256);
+        linux.signalErrno.remove(PID);
+        systemd.calls.clear();
+        assertThat(before.outcome().result()).isEqualTo(OperationResult.ACCESS_DENIED);
+        assertThat(before.fallbackEligible()).isFalse();
+        return before;
+    }
+
+    /**
+     * Risk D4: a process that may no longer be signalled gets no further limit, but its scope's limits are cleared in
+     * the session when the user removes them: the scope is proven the invocation PRISM made, the writes go to that
+     * invocation, and nothing needs the process to be signalled.
+     */
+    @Test
+    void theLimitsOfAProcessThatMayNoLongerBeSignalledCanBeRemovedInTheSession() {
+        apply(CPU20_THROTTLE256);
+        linux.signalErrno.put(PID, LinuxErrors.EPERM);
+        long sets = systemd.setCalls();
+        assertThat(limiter.change(DEMO, CPU20_THROTTLE256.withCpuPercent(OptionalInt.of(10)))
+                        .phase())
+                .as("no tighter limit")
+                .isEqualTo(ChangeResult.Phase.NOT_DONE);
+        assertThat(limiter.change(DEMO, CPU20_THROTTLE256.withCpuPercent(OptionalInt.of(50)))
+                        .phase())
+                .as("no other limit either, looser or not: only the removal of every limit")
+                .isEqualTo(ChangeResult.Phase.NOT_DONE);
+        assertThat(systemd.setCalls()).isEqualTo(sets);
+
+        ChangeResult cleared = limiter.change(DEMO, LimitSpec.NONE);
+
+        assertThat(cleared.phase()).as(cleared.toString()).isEqualTo(ChangeResult.Phase.APPLIED);
+        assertThat(cleared.observed()).contains(EffectiveLimits.NONE);
+        assertThat(systemd.read(group(), "cpu.max")).isEqualTo("max 100000");
+        assertThat(systemd.read(group(), "memory.high")).isEqualTo("max");
+        assertThat(systemd.setInvocations)
+                .as("every write addressed to the invocation PRISM made")
+                .containsOnly(systemd.units.get(UNIT).invocationId);
+        assertThat(limiter.hold(DEMO))
+                .as("only the scope is proven, so the hold stays uncertain and gets no further limit")
+                .contains(new NativeHold(NativeHold.State.UNCERTAIN, Optional.of(EffectiveLimits.NONE)));
+        long after = systemd.setCalls();
+        assertThat(limiter.change(DEMO, CPU20_THROTTLE256).phase()).isEqualTo(ChangeResult.Phase.NOT_DONE);
+        assertThat(systemd.setCalls()).isEqualTo(after);
+        assertThat(limiter.forget(DEMO).result()).as("it still runs").isEqualTo(ForgetResult.Outcome.STILL_RUNS);
+    }
+
+    /** Risk D4: the same for a process whose user IDs are no longer the user's (a set-user-ID program run later). */
+    @Test
+    void theLimitsOfAProcessThatTookOtherUserIdsCanBeRemovedInTheSession() {
+        apply(CPU20_THROTTLE256);
+        proc.uids(PID, 1000, 0, 0, 0);
+
+        ChangeResult cleared = limiter.change(DEMO, LimitSpec.NONE);
+
+        assertThat(cleared.phase()).as(cleared.toString()).isEqualTo(ChangeResult.Phase.APPLIED);
+        assertThat(systemd.read(group(), "cpu.max")).isEqualTo("max 100000");
+        assertThat(systemd.read(group(), "memory.high")).isEqualTo("max");
+        assertThat(systemd.setInvocations).containsOnly(systemd.units.get(UNIT).invocationId);
+        assertThat(limiter.hold(DEMO))
+                .contains(new NativeHold(NativeHold.State.UNCERTAIN, Optional.of(EffectiveLimits.NONE)));
+    }
+
+    /** Risk D4: the same for a set-group-ID program run after the adoption. */
+    @Test
+    void theLimitsOfAProcessThatTookOtherGroupIdsCanBeRemovedInTheSession() {
+        apply(CPU20_THROTTLE256);
+        proc.gids(PID, 1000, 5, 5, 5);
+
+        assertThat(limiter.change(DEMO, LimitSpec.NONE).phase()).isEqualTo(ChangeResult.Phase.APPLIED);
+        assertThat(systemd.read(group(), "cpu.max")).isEqualTo("max 100000");
+    }
+
+    /** Risk D4: a hard memory limit is cleared too; a clearing reads no OOMPolicy and writes no limit but infinity. */
+    @Test
+    void aHardMemoryLimitOfAProcessThatMayNoLongerBeSignalledIsClearedWithInfinityOnly() {
+        limiter = harness(Set.of(DEMO), Set.of(DEMO), Set.of(DEMO));
+        assertThat(apply(HARD256).phase()).isEqualTo(ApplyResult.Phase.ENFORCED);
+        assertThat(systemd.read(group(), "memory.max")).isEqualTo(String.valueOf(256L << 20));
+        linux.signalErrno.put(PID, LinuxErrors.EPERM);
+        systemd.calls.clear();
+
+        ChangeResult cleared = limiter.change(DEMO, LimitSpec.NONE);
+
+        assertThat(cleared.phase()).as(cleared.toString()).isEqualTo(ChangeResult.Phase.APPLIED);
+        assertThat(systemd.read(group(), "memory.max")).isEqualTo("max");
+        assertThat(systemd.calls).noneMatch(c -> c.startsWith("property "));
+        assertThat(systemd.calls).filteredOn(c -> c.startsWith("set ")).allMatch(c -> c.endsWith(" infinity"));
+    }
+
+    /** Risk D4: a clearing whose check after the sends cannot read the scope leaves the hold uncertain, not assigned. */
+    @Test
+    void aClearingWhoseSecondCheckCannotReadTheScopeLeavesTheHoldUncertain() {
+        apply(CPU20_THROTTLE256);
+        linux.signalErrno.put(PID, LinuxErrors.EPERM);
+        systemd.onSet = () -> systemd.unitReadFails = true;
+
+        ChangeResult cleared = limiter.change(DEMO, LimitSpec.NONE);
+
+        assertThat(cleared.phase()).as(cleared.toString()).isEqualTo(ChangeResult.Phase.UNVERIFIED);
+        assertThat(limiter.hold(DEMO)).contains(new NativeHold(NativeHold.State.UNCERTAIN, Optional.empty()));
+        systemd.unitReadFails = false;
+    }
+
+    /** Risk D4: a clearing whose invocation went during the sends is not taken as done. */
+    @Test
+    void aClearingWhoseScopeWentDuringTheSendsIsNotTakenAsDone() {
+        apply(CPU20_THROTTLE256);
+        linux.signalErrno.put(PID, LinuxErrors.EPERM);
+        systemd.setAnswer.put(LinuxScopeLimiter.CPU_QUOTA, ScopeManager.SetStatus.NO_SUCH_UNIT);
+
+        ChangeResult cleared = limiter.change(DEMO, LimitSpec.NONE);
+
+        assertThat(cleared.phase()).as(cleared.toString()).isEqualTo(ChangeResult.Phase.UNVERIFIED);
+        assertThat(limiter.hold(DEMO)).contains(new NativeHold(NativeHold.State.UNCERTAIN, Optional.empty()));
+    }
+
+    /** Risk D4: the clearing still needs the ownership proof; a unit that took the scope's name is never written. */
+    @Test
+    void aClearingOfAProcessThatMayNoLongerBeSignalledStillNeedsTheScopeToBePrisms() {
+        apply(CPU20_THROTTLE256);
+        linux.signalErrno.put(PID, LinuxErrors.EPERM);
+        systemd.units.remove(UNIT);
+        FakeScopeManager.Unit stranger = systemd.addUnit(UNIT, "fedcba9876543210fedcba9876543210", PID);
+        systemd.writeLimits(stranger.group, "80000 100000", String.valueOf(256L << 20), "max");
+        long sets = systemd.setCalls();
+
+        ChangeResult refused = limiter.change(DEMO, LimitSpec.NONE);
+
+        assertThat(refused.phase()).isEqualTo(ChangeResult.Phase.NOT_DONE);
+        assertThat(systemd.setCalls()).as("nothing sent to another invocation").isEqualTo(sets);
+        assertThat(systemd.read(group(), "cpu.max")).isEqualTo("80000 100000");
+        assertThat(limiter.hold(DEMO)).contains(new NativeHold(NativeHold.State.UNCERTAIN, Optional.empty()));
     }
 
     /** The invocation goes during a clearing and a unit takes the name: its files are not read back as PRISM's. */

@@ -318,6 +318,103 @@ class LinuxNativeReadinessTest {
                 .contains("the process's cgroup could not be read");
     }
 
+    /**
+     * Risk D17: the desktop policy admits only processes in the user manager's app.slice, where systemd's desktop
+     * convention puts the applications the user runs (systemd.special(7), https://systemd.io/DESKTOP_ENVIRONMENTS/):
+     * what a launcher and a terminal start, also in a nested slice.
+     */
+    @Test
+    void theDesktopPolicyAdmitsTheApplicationsInAppSlice() {
+        LinuxNativeReadiness.EligibilityPolicy desktop = desktopOf(PRISM_PID, Set.of(PRISM_PARENT));
+        for (String app : List.of(
+                MANAGER + "/app.slice/app-gnome-org.gnome.TextEditor-4711.scope",
+                MANAGER
+                        + "/app.slice/app-org.gnome.Terminal.slice/vte-spawn-0b6d5c1e-9f0e-4d38-8f4f-1f0e2b7d1c11.scope",
+                MANAGER + "/app.slice/app-org.gnome.Terminal.slice/gnome-terminal-server.service",
+                MANAGER + "/app.slice/app-flatpak-org.telegram.desktop-2345.scope")) {
+            assertThat(LinuxNativeReadiness.eligibility(desktop, HARNESS, Optional.of(app), UID))
+                    .as(app)
+                    .isEmpty();
+        }
+    }
+
+    /**
+     * Risk D17: the session bus broker, the compositor and the other session services (session.slice), background work
+     * (background.slice), the user manager itself (init.scope) and a unit directly under the manager are refused, with
+     * where they run.
+     */
+    @Test
+    void theDesktopPolicyRefusesWhatIsNotADesktopApplication() {
+        LinuxNativeReadiness.EligibilityPolicy desktop = desktopOf(PRISM_PID, Set.of(PRISM_PARENT));
+        assertThat(LinuxNativeReadiness.eligibility(
+                        desktop, HARNESS, Optional.of(MANAGER + "/session.slice/dbus-broker.service"), UID))
+                .contains("not a desktop application: it runs in session.slice");
+        assertThat(LinuxNativeReadiness.eligibility(
+                        desktop, HARNESS, Optional.of(MANAGER + "/session.slice/dbus.service"), UID))
+                .contains("not a desktop application: it runs in session.slice");
+        assertThat(LinuxNativeReadiness.eligibility(
+                        desktop, HARNESS, Optional.of(MANAGER + "/session.slice/org.gnome.Shell@wayland.service"), UID))
+                .contains("not a desktop application: it runs in session.slice");
+        assertThat(LinuxNativeReadiness.eligibility(
+                        desktop, HARNESS, Optional.of(MANAGER + "/background.slice/tracker-miner-fs-3.service"), UID))
+                .contains("not a desktop application: it runs in background.slice");
+        assertThat(LinuxNativeReadiness.eligibility(desktop, HARNESS, Optional.of(MANAGER + "/init.scope"), UID))
+                .as("the manager itself keeps its own reason")
+                .contains("it is your systemd user manager itself");
+        assertThat(LinuxNativeReadiness.eligibility(desktop, HARNESS, Optional.of(MANAGER + "/dbus.service"), UID))
+                .contains("not a desktop application: it runs in dbus.service, directly under your systemd user"
+                        + " manager, not in app.slice");
+        assertThat(LinuxNativeReadiness.eligibility(desktop, HARNESS, Optional.of(MANAGER + "/app.slice"), UID))
+                .as("the slice itself, in no unit")
+                .contains("not a desktop application: it runs in app.slice itself, in no application's unit");
+        assertThat(LinuxNativeReadiness.eligibility(
+                        desktop, HARNESS, Optional.of(MANAGER + "/app-lookalike.slice/app-x.scope"), UID))
+                .as("only the slice of that exact name")
+                .contains("not a desktop application: it runs in app-lookalike.slice");
+        assertThat(LinuxNativeReadiness.eligibility(
+                        desktop, HARNESS, Optional.of(MANAGER + "/app.slice2/x.scope"), UID))
+                .as("a name that only starts with app.slice")
+                .hasValueSatisfying(r -> assertThat(r).startsWith(LinuxNativeReadiness.NOT_AN_APPLICATION));
+        assertThat(LinuxNativeReadiness.eligibility(
+                        desktop, HARNESS, Optional.of(MANAGER + "/app.slice.d/x.scope"), UID))
+                .hasValueSatisfying(r -> assertThat(r).startsWith(LinuxNativeReadiness.NOT_AN_APPLICATION));
+        assertThat(LinuxNativeReadiness.eligibility(
+                        desktop, HARNESS, Optional.of(MANAGER + "/app.slice/app-org.gnome.Terminal.slice"), UID))
+                .as("a slice holds no processes of its own (systemd.io/CGROUP_DELEGATION)")
+                .contains("not a desktop application: it runs in app-org.gnome.Terminal.slice, in no application's"
+                        + " unit");
+        assertThat(LinuxNativeReadiness.eligibility(
+                        desktop, HARNESS, Optional.of(MANAGER + "/app.slice/app-x.scope/payload"), UID))
+                .as("below a unit: a subtree another program manages")
+                .hasValueSatisfying(
+                        r -> assertThat(r).contains("below app-x.scope").contains("another program"));
+        assertThat(LinuxNativeReadiness.eligibility(
+                        desktop, HARNESS, Optional.of(MANAGER + "/app.slice/podman.service/libpod-1/init"), UID))
+                .hasValueSatisfying(r -> assertThat(r).contains("below podman.service"));
+        assertThat(LinuxNativeReadiness.eligibility(
+                        desktop, HARNESS, Optional.of(MANAGER + "/app.slice/app-x.mount"), UID))
+                .as("only a scope or a service")
+                .contains("not a desktop application: it runs in app-x.mount, which is not a scope or service unit");
+        assertThat(LinuxNativeReadiness.eligibility(
+                        desktop, HARNESS, Optional.of(MANAGER + "/session.slice/app.slice/app-x.scope"), UID))
+                .as("app.slice only directly under the manager")
+                .contains("not a desktop application: it runs in session.slice");
+    }
+
+    /** The app.slice rule is the desktop policy's: the harness keeps admitting the processes it started anywhere. */
+    @Test
+    void theAppSliceRuleIsOnlyTheDesktopPolicys() {
+        LinuxNativeReadiness.EligibilityPolicy harness =
+                LinuxNativeReadiness.EligibilityPolicy.harnessOwned(Set.of(HARNESS));
+        assertThat(harness.applicationsOnly()).isFalse();
+        assertThat(LinuxNativeReadiness.EligibilityPolicy.none().applicationsOnly())
+                .isFalse();
+        assertThat(desktopOf(PRISM_PID, Set.of()).applicationsOnly()).isTrue();
+        assertThat(LinuxNativeReadiness.eligibility(
+                        harness, HARNESS, Optional.of(MANAGER + "/session.slice/run-u12.service"), UID))
+                .isEmpty();
+    }
+
     /** The user manager's own process lives in its init.scope (systemd.special(7)); no policy admits it. */
     @Test
     void theUserManagerItselfIsNeverEligible() {

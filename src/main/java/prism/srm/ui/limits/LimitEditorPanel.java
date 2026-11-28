@@ -174,7 +174,8 @@ final class LimitEditorPanel extends VBox {
         memoryBox.getStyleClass().add("limit-editor-value-box");
         grid.addRow(2, key("Memory limit"), memoryBox);
         grid.addRow(3, key("Limits"), value(limitsState));
-        Tooltip memoryNote = new Tooltip(LimitsViewModel.MEMORY_NOTE);
+        Tooltip memoryNote = new Tooltip();
+        memoryNote.textProperty().bind(model.memoryNoteProperty());
         memoryNote.setWrapText(true);
         memoryNote.setMaxWidth(400);
         memoryValue.setTooltip(memoryNote);
