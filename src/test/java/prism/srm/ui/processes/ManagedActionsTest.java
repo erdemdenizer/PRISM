@@ -226,4 +226,38 @@ class ManagedActionsTest {
         managed.setCpuLimit(demo, 30);
         assertThat(sent).isEmpty();
     }
+
+    // ----- The consent to a native limit (LIM-6) -----
+
+    private static final prism.srm.domain.NativeConsentOffer OFFER = new prism.srm.domain.NativeConsentOffer(
+            java.util.Set.of(prism.srm.domain.NativeConsentKind.ADOPTION), List.of("The process is moved."));
+
+    private static LimitResult consentAsked(LimitRequest request) {
+        return new LimitResult(
+                request,
+                ControlOutcome.of(OperationResult.INVALID_ARGUMENT, "consent"),
+                "PRISM asks for your consent before it limits demo (PID 10).",
+                "Nothing was changed.",
+                Optional.empty(),
+                Optional.of(OFFER));
+    }
+
+    @Test
+    void theAnswerToALimitOfThisPageHandsTheOfferOverAndTheConfirmationSendsItAgainWithTheConsent() {
+        model.showLimits(LimitsFixtures.snapshot(LimitsFixtures.managed(demo, "demo")));
+        listAndSelectTheDemo();
+        managed.setCpuLimit(demo, 30);
+        LimitRequest first = sent.get(0);
+
+        Optional<prism.srm.domain.NativeConsentOffer> offered = model.showLimitResult(consentAsked(first));
+        managed.consent(first, offered.orElseThrow());
+
+        assertThat(offered).contains(OFFER);
+        assertThat(sent).hasSize(2);
+        assertThat(sent.get(1)).isEqualTo(first.withConsents(OFFER.kinds()));
+        assertThat(model.actions().messageProperty().get()).isEqualTo("Setting the CPU limit of demo (PID 10)…");
+        assertThat(model.showLimitResult(consentAsked(LimitRequest.cpuLimit(demo, "demo", 50))))
+                .as("an answer to a request this page did not send")
+                .isEmpty();
+    }
 }

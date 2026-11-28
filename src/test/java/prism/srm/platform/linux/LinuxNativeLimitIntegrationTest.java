@@ -335,8 +335,10 @@ class LinuxNativeLimitIntegrationTest {
         LimitSpec hard = new LimitSpec(OptionalInt.empty(), OptionalLong.of(128L << 20), MemoryBoundary.HARD);
 
         LinuxScopeLimiter withoutConsent = limiter(Set.of(allocator.identity), Set.of());
-        assertThat(withoutConsent.apply(allocator.identity, hard, p -> true).phase())
-                .isEqualTo(ApplyResult.Phase.NOT_ASSIGNED);
+        ApplyResult refused = withoutConsent.apply(allocator.identity, hard, p -> true);
+        // Refused for the missing consent alone, before anything is asked, with what the user must confirm.
+        assertThat(refused.phase()).isEqualTo(ApplyResult.Phase.CONSENT_REQUIRED);
+        assertThat(refused.consent().orElseThrow().kinds()).contains(prism.srm.domain.NativeConsentKind.HARD_MEMORY);
         assertThat(harness.files
                         .processCgroup((int) allocator.identity.pid())
                         .value()

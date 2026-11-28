@@ -235,4 +235,120 @@ class LinuxNativeReadinessTest {
                 .as("the manager's own cgroup, not a unit below it")
                 .isPresent();
     }
+
+    // ----- The desktop policy (built for the day K16 is lifted; the product does not use it) -----
+
+    private static final long PRISM_PID = 9_100;
+    private static final long PRISM_PARENT = 9_050;
+    private static final long PRISM_GRANDPARENT = 1_830;
+
+    private static LinuxNativeReadiness.EligibilityPolicy desktopOf(long own, Set<Long> ancestors) {
+        return LinuxNativeReadiness.EligibilityPolicy.desktopExcluding(
+                () -> new LinuxNativeReadiness.EligibilityPolicy.Excluded(own, ancestors));
+    }
+
+    private static ProcessIdentity pid(long pid) {
+        return new ProcessIdentity(pid, Instant.ofEpochMilli(1_791_970_282_990L));
+    }
+
+    @Test
+    void theDesktopPolicyAdmitsAnyProcessButPrismAndTheProcessesItRunsUnder() {
+        LinuxNativeReadiness.EligibilityPolicy desktop = desktopOf(PRISM_PID, Set.of(PRISM_PARENT, PRISM_GRANDPARENT));
+        String app = MANAGER + "/app.slice/app-gnome-firefox-4711.scope";
+
+        assertThat(desktop.admitsNone()).as("unlike the product's policy").isFalse();
+        assertThat(LinuxNativeReadiness.eligibility(desktop, HARNESS, Optional.of(app), UID))
+                .as("a process the harness did not start")
+                .isEmpty();
+        assertThat(LinuxNativeReadiness.eligibility(desktop, pid(PRISM_PID), Optional.of(app), UID))
+                .contains(LinuxNativeReadiness.PRISM_ITSELF);
+        assertThat(LinuxNativeReadiness.eligibility(desktop, pid(PRISM_PARENT), Optional.of(app), UID))
+                .contains(LinuxNativeReadiness.PRISM_ANCESTOR);
+        assertThat(LinuxNativeReadiness.eligibility(desktop, pid(PRISM_GRANDPARENT), Optional.of(app), UID))
+                .as("an ancestor further up")
+                .contains(LinuxNativeReadiness.PRISM_ANCESTOR);
+        assertThat(LinuxNativeReadiness.eligibility(
+                        desktop, new ProcessIdentity(PRISM_PARENT, Instant.EPOCH), Optional.of(app), UID))
+                .as("compared by PID alone: a process that took an ancestor's PID is refused too, the safe side")
+                .contains(LinuxNativeReadiness.PRISM_ANCESTOR);
+    }
+
+    /** A walk that did not reach the top (longer than the bound) refuses every process: it fails closed. */
+    @Test
+    void anAncestorWalkThatDidNotEndRefusesEveryProcess() {
+        LinuxNativeReadiness.EligibilityPolicy desktop = LinuxNativeReadiness.EligibilityPolicy.desktopExcluding(
+                () -> new LinuxNativeReadiness.EligibilityPolicy.Excluded(PRISM_PID, Set.of(PRISM_PARENT), false));
+
+        assertThat(desktop.refusal(HARNESS)).contains(LinuxNativeReadiness.ANCESTORS_UNKNOWN);
+        assertThat(desktop.refusal(pid(PRISM_GRANDPARENT))).contains(LinuxNativeReadiness.ANCESTORS_UNKNOWN);
+    }
+
+    /** The policy reads PRISM's ancestors again at every call: a process can get a new parent when its parent exits. */
+    @Test
+    void theDesktopPolicyReadsTheAncestorsAtEveryCall() {
+        java.util.concurrent.atomic.AtomicReference<Set<Long>> ancestors =
+                new java.util.concurrent.atomic.AtomicReference<>(Set.of(PRISM_PARENT));
+        LinuxNativeReadiness.EligibilityPolicy desktop = LinuxNativeReadiness.EligibilityPolicy.desktopExcluding(
+                () -> new LinuxNativeReadiness.EligibilityPolicy.Excluded(PRISM_PID, ancestors.get()));
+
+        assertThat(desktop.admits(pid(PRISM_GRANDPARENT))).isTrue();
+        ancestors.set(Set.of(PRISM_GRANDPARENT));
+        assertThat(desktop.admits(pid(PRISM_GRANDPARENT)))
+                .as("PRISM was given a new parent")
+                .isFalse();
+        assertThat(desktop.admits(pid(PRISM_PARENT))).isTrue();
+    }
+
+    /** Every other rule still applies under the desktop policy: the user manager, PRISM's scopes, the cgroup. */
+    @Test
+    void theDesktopPolicyKeepsEveryOtherRule() {
+        LinuxNativeReadiness.EligibilityPolicy desktop = desktopOf(PRISM_PID, Set.of(PRISM_PARENT));
+        assertThat(LinuxNativeReadiness.eligibility(
+                        desktop, HARNESS, Optional.of("/user.slice/user-1001.slice/session-2.scope"), UID))
+                .hasValueSatisfying(r -> assertThat(r).contains("outside your session manager"));
+        assertThat(LinuxNativeReadiness.eligibility(desktop, HARNESS, Optional.of("/system.slice/cron.service"), UID))
+                .hasValueSatisfying(r -> assertThat(r).contains("outside your session manager"));
+        assertThat(LinuxNativeReadiness.eligibility(
+                        desktop,
+                        HARNESS,
+                        Optional.of(MANAGER + "/app.slice/prism-srm-limit-2071-1791970282990.scope/sub"),
+                        UID))
+                .hasValueSatisfying(r -> assertThat(r).contains("scope with PRISM's name"));
+        assertThat(LinuxNativeReadiness.eligibility(desktop, HARNESS, Optional.empty(), UID))
+                .contains("the process's cgroup could not be read");
+    }
+
+    /** The user manager's own process lives in its init.scope (systemd.special(7)); no policy admits it. */
+    @Test
+    void theUserManagerItselfIsNeverEligible() {
+        String init = MANAGER + "/init.scope";
+        assertThat(LinuxNativeReadiness.eligibility(desktopOf(PRISM_PID, Set.of()), HARNESS, Optional.of(init), UID))
+                .contains("it is your systemd user manager itself");
+        assertThat(LinuxNativeReadiness.eligibility(
+                        LinuxNativeReadiness.EligibilityPolicy.harnessOwned(Set.of(HARNESS)),
+                        HARNESS,
+                        Optional.of(init),
+                        UID))
+                .contains("it is your systemd user manager itself");
+        assertThat(LinuxNativeReadiness.eligibility(
+                        desktopOf(PRISM_PID, Set.of()),
+                        HARNESS,
+                        Optional.of(MANAGER + "/app.slice/init.scope-lookalike.scope"),
+                        UID))
+                .as("only the manager's own init.scope")
+                .isEmpty();
+    }
+
+    /** The real desktop policy, on this machine: this JVM and the process that started it are refused. */
+    @Test
+    void theRealDesktopPolicyRefusesThisProcessAndItsParent() {
+        LinuxNativeReadiness.EligibilityPolicy desktop = LinuxNativeReadiness.EligibilityPolicy.desktop();
+        ProcessHandle self = ProcessHandle.current();
+
+        assertThat(desktop.refusal(pid(self.pid()))).contains(LinuxNativeReadiness.PRISM_ITSELF);
+        self.parent()
+                .ifPresent(parent ->
+                        assertThat(desktop.refusal(pid(parent.pid()))).contains(LinuxNativeReadiness.PRISM_ANCESTOR));
+        assertThat(desktop.admitsNone()).isFalse();
+    }
 }

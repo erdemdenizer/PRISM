@@ -326,6 +326,19 @@ documentation (the planning evidence, doc-facts, of plan Rev 2.2):
   the macOS test machine (2287, 0, 63); the native suite 3 of 3 on the VM; hosted `verify` on Windows, Ubuntu and macOS and
   `linux-native-validation` passed; hosted `native-validation` failed, as it does by design. The product owner accepted this
   record on 2026-11-07.
+- **Consent and eligibility for desktop processes (2026-11-28), built and inert under K16.** Decision 6's consent and
+  decision 4's separate hard-memory consent can now be given by the user per request: the limiter answers a missing one
+  `CONSENT_REQUIRED` before anything is asked of the system, with the statements of `NativeConsent`; the limit service
+  answers the request with that offer and changes nothing (no record kept, no emulated limit stopped or started); the
+  Limits and Processes pages show `NativeConsentDialog` (Cancel the default) and send the same request again with the
+  consents, which the limiter admits for that call and that process only. A process the limiter already holds needs
+  no new adoption consent, and a scope that had a hard memory limit with consent needs no new one for later changes.
+  The limit service asks for `memory.high` on Linux (D14), so no hard memory limit is offered in the user interface;
+  the hard-memory consent is plumbed and tested at the service level. `EligibilityPolicy.desktop()` admits every
+  process except PRISM's own and its ancestors (by PID, read at each call); every other eligibility rule stays, and the
+  user manager's own `init.scope` is now refused under every policy. The product still builds `product(...)` with
+  `EligibilityPolicy.none()` and `NativeConsent.none()`, so no process reaches the dialog; the K16 source scan now also
+  forbids making the desktop policy in the main sources. Run on Windows only, with fakes; not on Linux.
 - **K16.** `HostPlatform` builds `LinuxScopeLimiter.product(...)`, which admits no process, opens no bus and reports
   every process `UNAVAILABLE` ("Linux native limits are not validated for desktop applications"; the system-wide report
   adds "(implemented, not enabled in this release)"; until 2026-11-27 it said "K16", an internal label, risk D12). There is no

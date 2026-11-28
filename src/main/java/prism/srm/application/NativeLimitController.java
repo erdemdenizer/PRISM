@@ -3,11 +3,13 @@ package prism.srm.application;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import prism.srm.domain.ControlOutcome;
 import prism.srm.domain.EffectiveLimits;
 import prism.srm.domain.LimitRecord;
 import prism.srm.domain.LimitSpec;
+import prism.srm.domain.NativeConsentKind;
 import prism.srm.domain.OperationResult;
 import prism.srm.domain.ProcessIdentity;
 import prism.srm.platform.ApplyResult;
@@ -77,6 +79,11 @@ final class NativeLimitController {
      * Empty when the ledger could not record the intent: then nothing was asked of the system.
      */
     Optional<ApplyResult> apply(ProcessIdentity identity, String name, LimitSpec spec) {
+        return apply(identity, name, spec, Set.of());
+    }
+
+    /** {@link #apply(ProcessIdentity, String, LimitSpec)} with the consents the user gave for this request (LIM-6). */
+    Optional<ApplyResult> apply(ProcessIdentity identity, String name, LimitSpec spec, Set<NativeConsentKind> granted) {
         LimitRecord intended = LimitRecord.intended(identity, name, spec.effective(), ledger.instance());
         if (!ledger.putDurably(intended)) {
             return Optional.empty();
@@ -84,7 +91,7 @@ final class NativeLimitController {
         // A Linux scope's ownership evidence goes to disk after the move and before any limit (plan Rev 2.2 A6): as a
         // change from no limit to the limits asked, so that every per-kind state while they are set is admitted.
         AtomicReference<LimitRecord> latest = new AtomicReference<>(intended);
-        ApplyResult result = limiter.apply(identity, spec, provenance -> {
+        ResourceLimiter.OwnershipRecorder recorder = provenance -> {
             LimitRecord owned = intended.applied(EffectiveLimits.NONE)
                     .withProvenance(provenance)
                     .changing(spec.effective());
@@ -93,10 +100,12 @@ final class NativeLimitController {
             }
             latest.set(owned);
             return true;
-        });
+        };
+        ApplyResult result = limiter.apply(identity, spec, recorder, granted);
         LimitRecord base = latest.get();
         switch (result.phase()) {
-            case NOT_ASSIGNED, ASSIGNED_RELEASED -> ledger.remove(identity);
+            // A consent not given: refused before anything was asked, as a refused assignment.
+            case NOT_ASSIGNED, ASSIGNED_RELEASED, CONSENT_REQUIRED -> ledger.remove(identity);
             case ENFORCED -> ledger.put(base.applied(result.observed().orElse(spec.effective())));
             case ASSIGNED_MISMATCH ->
                 ledger.put(
@@ -115,10 +124,16 @@ final class NativeLimitController {
      * ledger could not record a change that leaves a limit in force: then the system was not asked.
      */
     Optional<ChangeResult> change(ProcessIdentity identity, String name, LimitSpec spec) {
+        return change(identity, name, spec, Set.of());
+    }
+
+    /** {@link #change(ProcessIdentity, String, LimitSpec)} with the consents the user gave for this request (LIM-6). */
+    Optional<ChangeResult> change(
+            ProcessIdentity identity, String name, LimitSpec spec, Set<NativeConsentKind> granted) {
         Optional<NativeHold> hold = limiter.hold(identity);
         if (hold.isEmpty()) {
             ledger.remove(identity);
-            return Optional.of(limiter.change(identity, spec));
+            return Optional.of(limiter.change(identity, spec, granted));
         }
         EffectiveLimits to = spec.effective();
         Optional<LimitRecord> previous = ledger.find(identity);
@@ -153,7 +168,7 @@ final class NativeLimitController {
                             "the limits in force are unknown; remove the limits first"),
                     Optional.empty()));
         }
-        ChangeResult result = limiter.change(identity, spec);
+        ChangeResult result = limiter.change(identity, spec, granted);
         LimitRecord after =
                 ledger.find(identity).orElseGet(() -> LimitRecord.intended(identity, name, to, ledger.instance()));
         switch (result.phase()) {
@@ -164,7 +179,8 @@ final class NativeLimitController {
                                 : after.applied(result.observed().orElse(to)));
             case PARTIAL -> ledger.put(after.applied(result.observed().orElseThrow()));
             case UNVERIFIED -> ledger.put(after.flagged(LimitRecord.Flag.UNVERIFIED));
-            case NOT_DONE -> {
+            // A consent not given: nothing was set, as a change not done.
+            case NOT_DONE, CONSENT_REQUIRED -> {
                 if (previous.isPresent()) {
                     ledger.put(previous.get());
                 } else if (from.isPresent()) {

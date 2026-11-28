@@ -88,7 +88,12 @@ class NativeRecoveryLinuxVerdictsTest {
                 });
         assertThat(activity.entries()).anySatisfy(entry -> {
             assertThat(entry.severity()).isEqualTo(ActivitySeverity.WARNING);
-            assertThat(entry.message()).contains("systemd scope").contains("does not clear it");
+            assertThat(entry.message())
+                    .contains("systemd scope")
+                    .contains("was not cleared at this start")
+                    .contains("until the processes in the scope exit or a later start clears it")
+                    .as("risk D8: not \"this version does not clear\", which a clearing limiter contradicts")
+                    .doesNotContainIgnoringCase("this version does not clear");
         });
     }
 
@@ -212,7 +217,8 @@ class NativeRecoveryLinuxVerdictsTest {
                     .contains("demo (PID 2071)")
                     .contains("has exited")
                     .contains("processes it started")
-                    .contains("does not clear it")
+                    .contains("it was not cleared at this start")
+                    .doesNotContainIgnoringCase("this version does not clear")
                     .doesNotContain("starts no second limiter")
                     .doesNotContain("demo (PID 2071) may still be limited");
         });

@@ -3,6 +3,7 @@ package prism.srm.ui.processes;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Consumer;
 import javafx.beans.property.ReadOnlyStringProperty;
 import javafx.beans.property.ReadOnlyStringWrapper;
@@ -12,6 +13,7 @@ import prism.srm.domain.ControlRequest;
 import prism.srm.domain.LimitRequest;
 import prism.srm.domain.LimitResult;
 import prism.srm.domain.LimitsSnapshot;
+import prism.srm.domain.NativeConsentOffer;
 import prism.srm.domain.ProcessControlResult;
 import prism.srm.domain.ProcessDetailsResult;
 import prism.srm.domain.ProcessIdentity;
@@ -131,9 +133,11 @@ final class ProcessesViewModel {
                 .collect(java.util.stream.Collectors.toUnmodifiableSet()));
     }
 
-    void showLimitResult(LimitResult result) {
-        managed.accept(Objects.requireNonNull(result, "result"));
+    /** @return the consent the answer asks for, when this page sent the request (LIM-6) */
+    Optional<NativeConsentOffer> showLimitResult(LimitResult result) {
+        Optional<NativeConsentOffer> consent = managed.accept(Objects.requireNonNull(result, "result"));
         actions.acceptLimit(result);
+        return consent;
     }
 
     void showRecovered(List<RecoveredSuspension> entries) {

@@ -49,6 +49,15 @@ public interface CpuLimitDialog {
                     + " share of the whole machine. The process stays in its job until it exits; removing the limit"
                     + " clears it. If PRISM is ended without closing, the limit stays until the process exits.";
         }
+        if (capability
+                .mechanism()
+                .filter(ControlMechanism.SYSTEMD_SCOPE::equals)
+                .isPresent()) {
+            // Risk D8: never called emulated; the scope's cap does not apply to real-time processes.
+            return "Native hard: the kernel caps the process, through a systemd scope PRISM moves it into, and the"
+                    + " processes it starts afterwards at this share of the whole machine. The process stays in the"
+                    + " scope until it exits; removing the limit clears it. Real-time processes are not capped.";
+        }
         return "Emulated: PRISM stops and continues the process in short cycles, so the limit is approximate."
                 + " It cannot hold a process below about 5 % of what it would use.";
     }

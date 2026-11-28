@@ -2,6 +2,7 @@ package prism.srm.ui.limits;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +37,8 @@ import prism.srm.domain.LimitStatus;
 import prism.srm.domain.LimitsNotice;
 import prism.srm.domain.LimitsSnapshot;
 import prism.srm.domain.ManagedProcessView;
+import prism.srm.domain.NativeConsentKind;
+import prism.srm.domain.NativeConsentOffer;
 import prism.srm.domain.ProcessIdentity;
 import prism.srm.ui.control.ResultLineState;
 import prism.srm.ui.format.CapabilityWords;
@@ -318,14 +321,34 @@ final class LimitsViewModel {
                 .orElse(OptionalInt.empty());
     }
 
-    /** Takes the result of any request about limits; only the answer to one this page sent is shown. */
-    void accept(LimitResult result) {
+    /**
+     * Takes the result of any request about limits; only the answer to one this page sent is shown.
+     *
+     * @return the consent the native limit asked for needs (LIM-6), when this page sent the request: the page asks the
+     *     user, and {@link #consent} sends the request again once the user confirms
+     */
+    Optional<NativeConsentOffer> accept(LimitResult result) {
         if (!pending.remove(result.request())) {
-            return;
+            return Optional.empty();
         }
         line.showResult(result);
         refresh();
         line.arrived();
+        return result.consent();
+    }
+
+    /**
+     * The user confirmed the consent an answer asked for: the same request is sent again with it, for this process
+     * only, and nothing is kept for later requests. Nothing if the process is no longer listed.
+     */
+    void consent(LimitRequest request, NativeConsentOffer offer) {
+        if (rows.stream().noneMatch(row -> row.identity().equals(request.identity()))) {
+            return;
+        }
+        Set<NativeConsentKind> given = EnumSet.noneOf(NativeConsentKind.class);
+        given.addAll(request.consents());
+        given.addAll(offer.kinds());
+        send(request.withConsents(given));
     }
 
     private void send(LimitRequest request) {
@@ -484,6 +507,7 @@ final class LimitsViewModel {
                 .mechanism()
                 .map(mechanism -> switch (mechanism) {
                     case JOB_OBJECT -> "Job Object: the system enforces the limit.";
+                    case SYSTEMD_SCOPE -> "systemd scope: the kernel enforces the limit.";
                     case DUTY_CYCLE -> "Duty cycle: PRISM stops and continues the process; approximate.";
                     case RESIDENT_POLICY ->
                         "Watched resident memory: not a cap; OOM Guard applies the emergency action above the limit.";

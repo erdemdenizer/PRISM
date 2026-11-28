@@ -404,6 +404,14 @@ transitions, which sit under `@media (prefers-reduced-motion: no-preference)`, a
   and that a process that reaches it may fail; the fallback dialog says why the native limit
   was not applied, that the emulated limit is approximate, what it costs, and how many may run.
   Cancel is the default button in both.
+- The consent to a native limit (Linux, LIM-6) opens when the answer to a request of the page
+  asks for it, on the Limits page and on the Processes page. It names the process, lists every
+  statement the limiter gives as a plain list with a dash before each (8 px apart, the lines
+  wrapped beside the dash; a single statement is the body, not a list), and names the act on its
+  button ("Move and limit", "Move and set limits", "Set hard limit"). The act cannot be undone, so
+  its button is the plain destructive one of the consent to termination, with its edge in the
+  danger color where the kernel may terminate the process; Cancel is the default. It frames like
+  the CPU limit dialog. Under K16 it never opens.
 
 - After a hard kill and a restart, a process an earlier session may still cap shows "Capped by an
   earlier session" with the recorded values, and the notice above the table says the limit lasts

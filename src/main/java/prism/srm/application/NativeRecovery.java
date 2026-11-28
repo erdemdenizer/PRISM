@@ -387,6 +387,10 @@ public final class NativeRecovery implements EarlierLimits {
         LimitRecord record = result.record();
         String who = record.name() + " (PID " + record.identity().pid() + ")";
         String limits = record.describe();
+        // Risk D8: a scope's limits outlive the process while the processes it started remain in the scope.
+        String lasts = record.provenance().isPresent()
+                ? "The limit lasts until the processes in its systemd scope exit"
+                : "The limit lasts until the process exits";
         switch (result.verdict()) {
             case HELD_ELSEWHERE ->
                 activity.record(
@@ -410,21 +414,23 @@ public final class NativeRecovery implements EarlierLimits {
                 activity.record(
                         ActivitySeverity.WARNING,
                         who + " may still be limited by an earlier PRISM session (" + limits + "): " + result.detail()
-                                + ". The limit lasts until the process exits; PRISM starts no second limiter for it.");
-            // Linux (milestone 12): what a limiter that does not clear reports. Unreachable in the K16 product, which
-            // reads no ledger; the wording is listed in the M12 risk register (D8).
+                                + ". " + lasts + "; PRISM starts no second limiter for it.");
+            // Linux (milestone 12): a proven scope left as it was, because the limiter does not clear (the K16 product,
+            // which reads no ledger at all) or answered that it cannot. A clearing that was tried is CLEARED or
+            // CLEAR_FAILED instead (risk D8: the wording no longer says this version never clears).
             case OWNED_LIMITED ->
                 activity.record(
                         ActivitySeverity.WARNING,
                         who + " may still be limited by a systemd scope an earlier PRISM session created (" + limits
-                                + "): " + result.detail() + ". This version does not clear it; the limit lasts until"
-                                + " the processes in the scope exit, and PRISM starts no second limiter for it.");
+                                + "): " + result.detail() + ". It was not cleared at this start; the limit lasts until"
+                                + " the processes in the scope exit or a later start clears it, and PRISM starts no"
+                                + " second limiter for it.");
             case OWNED_CHILDREN_ONLY ->
                 activity.record(
                         ActivitySeverity.WARNING,
                         who + ", limited by a systemd scope an earlier PRISM session created (" + limits
                                 + "), has exited: " + result.detail() + ". The processes it started are still in the"
-                                + " scope and may be limited until they exit; this version does not clear it.");
+                                + " scope and may be limited until they exit; it was not cleared at this start.");
             case CLEARED ->
                 activity.record(
                         ActivitySeverity.INFO,

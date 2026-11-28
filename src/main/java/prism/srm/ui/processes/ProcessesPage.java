@@ -49,6 +49,7 @@ import prism.srm.domain.SuspendedProcess;
 import prism.srm.ui.Breakpoints;
 import prism.srm.ui.Stylesheets;
 import prism.srm.ui.control.CpuLimitDialog;
+import prism.srm.ui.control.NativeConsentDialog;
 import prism.srm.ui.control.PageHeader;
 import prism.srm.ui.control.SelectionLine;
 import prism.srm.ui.control.SheetOverlay;
@@ -147,6 +148,7 @@ public final class ProcessesPage extends VBox {
     private boolean filterAskedFor;
     private final Confirmation confirmation;
     private final CpuLimitDialog limitDialog;
+    private final NativeConsentDialog consentDialog;
     private final ResumeConfirmation resumeConfirmation;
     /** The list of what an earlier session may have left suspended; one, shown in its dialog on request. */
     private final RecoveredSuspensionsPane recoveredPane;
@@ -260,8 +262,36 @@ public final class ProcessesPage extends VBox {
             Confirmation confirmation,
             CpuLimitDialog limitDialog,
             ResumeConfirmation resumeConfirmation) {
+        this(
+                formatter,
+                zone,
+                logFolder,
+                detailsRequest,
+                controlRequest,
+                limitRequest,
+                recoveryRequest,
+                confirmation,
+                limitDialog,
+                resumeConfirmation,
+                NativeConsentDialog::showDialog);
+    }
+
+    /** @param consentDialog asks for the consent a native limit needs (LIM-6); a test answers in its place */
+    ProcessesPage(
+            ValueFormatter formatter,
+            ZoneId zone,
+            String logFolder,
+            Consumer<ProcessIdentity> detailsRequest,
+            Consumer<ControlRequest> controlRequest,
+            Consumer<LimitRequest> limitRequest,
+            Consumer<RecoveryRequest> recoveryRequest,
+            Confirmation confirmation,
+            CpuLimitDialog limitDialog,
+            ResumeConfirmation resumeConfirmation,
+            NativeConsentDialog consentDialog) {
         this.confirmation = confirmation;
         this.limitDialog = limitDialog;
+        this.consentDialog = consentDialog;
         this.resumeConfirmation = resumeConfirmation;
         model = new ProcessesViewModel(
                 formatter, zone, logFolder, detailsRequest, controlRequest, limitRequest, recoveryRequest);
@@ -583,9 +613,18 @@ public final class ProcessesPage extends VBox {
         model.showLimits(snapshot);
     }
 
-    /** Takes the result of a request about limits; shown if it is about the selected process. */
+    /**
+     * Takes the result of a request about limits; shown if it is about the selected process. Where the native limit a
+     * request of this page asked for needs the user's consent (LIM-6), the consent dialog asks at once, and only a
+     * confirmation sends the request again with it.
+     */
     public void showLimitResult(LimitResult result) {
-        model.showLimitResult(result);
+        model.showLimitResult(result).ifPresent(offer -> {
+            LimitRequest request = result.request();
+            if (consentDialog.accept(request.name(), request.identity().pid(), offer, this)) {
+                model.managed().consent(request, offer);
+            }
+        });
     }
 
     /** Takes the processes an earlier session may have left suspended. */

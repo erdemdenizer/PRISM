@@ -160,7 +160,8 @@ class ReadOnlyNativeScanTest {
 
     /**
      * K16 inside the native classes themselves: in the main sources the limiter is constructed once, in
-     * {@code product}, and the admitting pieces (a harness policy, harness consent, a scope manager) are never made, so
+     * {@code product}, and the admitting pieces (a harness policy, the desktop policy, harness consent, a scope manager)
+     * are never made, so
      * no second factory or hidden switch can compose an admitting limiter.
      */
     @Test
@@ -174,15 +175,21 @@ class ReadOnlyNativeScanTest {
                 if (code.startsWith("*") || code.startsWith("//") || code.startsWith("/*")) {
                     continue;
                 }
-                // Any use of the admitting factories other than their own declarations, qualified or not.
+                // Any use of the admitting factories other than their own declarations, qualified or not. The desktop
+                // policy (for the day K16 is lifted) admits processes too: no main code may make it while K16 holds.
                 boolean declaration = code.startsWith("static EligibilityPolicy harnessOwned(")
-                        || code.startsWith("static NativeConsent harness(");
+                        || code.startsWith("static NativeConsent harness(")
+                        || code.startsWith("static EligibilityPolicy desktop(")
+                        || code.startsWith("static EligibilityPolicy desktopExcluding(");
                 for (String admitting : List.of(
                         "harnessOwned(",
                         "::harnessOwned",
                         " harness(",
                         ".harness(",
                         "::harness",
+                        "desktop(",
+                        "::desktop",
+                        "desktopExcluding(",
                         "SystemdScopeManager(",
                         "SystemdScopeManager::new",
                         "LinuxScopeLimiter::new")) {
