@@ -120,7 +120,9 @@ class SystemdReadOnlySmokeTest {
         assertThat(Files.readString(Path.of("/proc/self/cgroup"), StandardCharsets.UTF_8))
                 .as("the test JVM was not moved")
                 .isEqualTo(cgroupBefore);
-        assertThat(first.productPolicy()).contains("every process UNAVAILABLE");
+        // The product's policy as it stands after K16 was lifted: desktop applications only, with consent.
+        assertThat(first.productPolicy()).isEqualTo(SystemdCapabilityProbe.PRODUCT_POLICY);
+        assertThat(first.productPolicy()).contains("app.slice").contains("consent");
         first.manager().flatMap(SystemdUserBus.Reading::value).ifPresent(manager -> {
             assertThat(LinuxNativeReadiness.majorVersion(manager.version())).isPresent();
             assertThat(manager.controlGroup()).startsWith("/");
