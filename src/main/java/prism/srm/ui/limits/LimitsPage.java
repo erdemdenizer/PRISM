@@ -33,6 +33,7 @@ import javafx.scene.layout.VBox;
 import prism.srm.domain.LimitRequest;
 import prism.srm.domain.LimitResult;
 import prism.srm.domain.LimitsSnapshot;
+import prism.srm.domain.NativeConsentOffer;
 import prism.srm.domain.ProcessIdentity;
 import prism.srm.ui.Breakpoints;
 import prism.srm.ui.Stylesheets;
@@ -41,6 +42,7 @@ import prism.srm.ui.control.CpuLimitDialog;
 import prism.srm.ui.control.DisabledReasons;
 import prism.srm.ui.control.FallbackOfferDialog;
 import prism.srm.ui.control.MemoryLimitDialog;
+import prism.srm.ui.control.NativeConsentDialog;
 import prism.srm.ui.control.PageHeader;
 import prism.srm.ui.control.ResidentOfferDialog;
 import prism.srm.ui.control.SelectionLine;
@@ -86,6 +88,7 @@ public final class LimitsPage extends VBox {
     private final MemoryLimitDialog memoryDialog;
     private final FallbackOfferDialog offerDialog;
     private final ResidentOfferDialog residentDialog;
+    private final NativeConsentDialog consentDialog;
     private final TableView<LimitRow> table = new TableView<>();
     private final InspectorLayout layout;
     private final LimitEditorPanel panel;
@@ -141,11 +144,24 @@ public final class LimitsPage extends VBox {
             MemoryLimitDialog memoryDialog,
             FallbackOfferDialog offerDialog,
             ResidentOfferDialog residentDialog) {
+        this(formatter, requests, dialog, memoryDialog, offerDialog, residentDialog, NativeConsentDialog::showDialog);
+    }
+
+    /** @param consentDialog asks for the consent a native limit needs (LIM-6); a test answers in its place */
+    LimitsPage(
+            ValueFormatter formatter,
+            Consumer<LimitRequest> requests,
+            CpuLimitDialog dialog,
+            MemoryLimitDialog memoryDialog,
+            FallbackOfferDialog offerDialog,
+            ResidentOfferDialog residentDialog,
+            NativeConsentDialog consentDialog) {
         this.model = new LimitsViewModel(formatter, requests);
         this.dialog = dialog;
         this.memoryDialog = memoryDialog;
         this.offerDialog = offerDialog;
         this.residentDialog = residentDialog;
+        this.consentDialog = consentDialog;
         getStyleClass().add("limits");
         getStylesheets().addAll(Stylesheets.table(), Stylesheets.control(), Stylesheets.limits());
 
@@ -319,9 +335,24 @@ public final class LimitsPage extends VBox {
         }
     }
 
-    /** Takes the result of a request about limits; shown if this page sent it. */
+    /**
+     * Takes the result of a request about limits; shown if this page sent it. Where the native limit it asked for
+     * needs the user's consent (LIM-6), the consent dialog asks at once, and only a confirmation sends the request
+     * again with it.
+     */
     public void showResult(LimitResult result) {
-        model.accept(result);
+        model.accept(result).ifPresent(offer -> askConsent(result.request(), offer));
+    }
+
+    /** The explicit consent to a native limit (LIM-6, ADR-0016 decisions 4 and 6): asked, never assumed. */
+    private void askConsent(LimitRequest request, NativeConsentOffer offer) {
+        Node focused = getScene() == null ? null : getScene().getFocusOwner();
+        if (consentDialog.accept(request.name(), request.identity().pid(), offer, this)) {
+            model.consent(request, offer);
+        }
+        if (focused != null && focused.getScene() == getScene() && !focused.isDisabled()) {
+            focused.requestFocus();
+        }
     }
 
     private void buildTable() {

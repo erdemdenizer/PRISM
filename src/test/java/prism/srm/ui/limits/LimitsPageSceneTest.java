@@ -116,4 +116,57 @@ class LimitsPageSceneTest {
         }
         return border.getStrokes().get(0).getTopStroke();
     }
+
+    /**
+     * LIM-6: the answer to a request of this page that asks for a consent opens the consent dialog at once; Cancel
+     * sends nothing, a confirmation sends the same request again with the consents, and an answer to a request of
+     * another page opens nothing.
+     */
+    @Test
+    void aConsentAnswerOpensTheConsentDialogAndOnlyAConfirmationSendsTheRequestAgain() {
+        List<LimitRequest> sent = new ArrayList<>();
+        List<String> asked = new ArrayList<>();
+        boolean[] confirm = {false};
+        prism.srm.ui.control.NativeConsentDialog consent = (name, pid, offer, owner) -> {
+            asked.add(name + " " + pid + " " + offer.kinds());
+            return confirm[0];
+        };
+        prism.srm.domain.ProcessIdentity notepad = identity(3_000);
+        List<Object> seen = SnapshotHarness.inspect(
+                Theme.LIGHT,
+                1100,
+                700,
+                () -> new LimitsPage(
+                        new ValueFormatter(Locale.US),
+                        sent::add,
+                        (name, pid, current, means, owner) -> java.util.OptionalInt.empty(),
+                        (name, pid, current, inUse, watched, owner) -> java.util.OptionalLong.empty(),
+                        (name, pid, offer, owner) -> false,
+                        (name, pid, reason, owner) -> false,
+                        consent),
+                root -> {
+                    LimitsPage page = (LimitsPage) root;
+                    page.show(snapshot(managed(notepad, "notepad.exe")));
+                    page.select(notepad);
+                    page.model().setCpuLimit(notepad, 20);
+                    page.showResult(
+                            LimitsViewModelConsentTest.consentAsked(sent.get(0), LimitsViewModelConsentTest.OFFER));
+                    List<Object> facts = new ArrayList<>();
+                    facts.add(sent.size());
+                    page.model().setCpuLimit(notepad, 20);
+                    confirm[0] = true;
+                    page.showResult(
+                            LimitsViewModelConsentTest.consentAsked(sent.get(1), LimitsViewModelConsentTest.OFFER));
+                    facts.add(sent.size());
+                    facts.add(sent.get(2).consents());
+                    facts.add(sent.get(2).percent().getAsInt());
+                    page.showResult(LimitsViewModelConsentTest.consentAsked(
+                            LimitRequest.cpuLimit(notepad, "notepad.exe", 50), LimitsViewModelConsentTest.OFFER));
+                    facts.add(asked.size());
+                    return facts;
+                });
+
+        assertThat(seen).containsExactly(1, 3, java.util.Set.of(prism.srm.domain.NativeConsentKind.ADOPTION), 20, 2);
+        assertThat(asked).first().isEqualTo("notepad.exe 3000 [ADOPTION]");
+    }
 }

@@ -255,14 +255,17 @@ limit is `UNAVAILABLE` too, with the same reason.
     make available (ADR-0015 §7). No setting, property or environment
     variable changes this. The product's limiter opens no bus connection, creates no scope and looks for no
     limits of earlier sessions. The mechanism below runs only on disposable processes that
-    the test harness starts and names to the limiter.
+    the test harness starts and names to the limiter. An eligibility policy for desktop
+    applications exists for the day K16 is lifted (every process except PRISM's own and the
+    processes PRISM runs under, with every other rule below), and the product does not use it.
   - **Preconditions.** Capability discovery is read-only: the unified cgroup v2 hierarchy
     with no v1 hierarchy mounted, `libsystemd` with every needed function, a reachable user
     manager of systemd 255 or later (adoption by pidfd), and the needed controllers
     delegated to it. It never creates a unit and never hands over a pidfd. A process is
-    eligible only if it runs inside the user's own `user@UID.service`, outside any scope with
-    PRISM's name, and its real, effective, saved and file system user IDs are the user's.
-    Anything else is `UNAVAILABLE` or refused, with the reason.
+    eligible only if it runs inside the user's own `user@UID.service` but not in its
+    `init.scope` (the user manager itself), outside any scope with PRISM's name, its real,
+    effective, saved and file system user IDs are the user's, and its four group IDs are
+    equal (no set-group-ID program). Anything else is `UNAVAILABLE` or refused, with the reason.
   - **Identity.** PRISM opens a pidfd for the target and checks the identity (PID and start
     time) and the user IDs after the open, then creates the scope with that descriptor
     (`PIDFDs`). PRISM's messages never name a process by PID number; a manager that does not
@@ -274,7 +277,12 @@ limit is `UNAVAILABLE` too, with the same reason.
     already be gone. Processes it starts afterwards share the scope. An external stop of the
     scope terminates its processes. Adoption needs explicit consent per process that states
     all of this, and that the desktop environment or service manager may see the process
-    differently.
+    differently. The limiter asks for it before anything is asked of the system, and the
+    consent dialog lists these statements as the limiter fixes them; Cancel is its default.
+    A consent is given for one request about one process and is not remembered for another
+    process or session; a later change of a process PRISM already holds needs no new one.
+    While it is asked, nothing is changed and no emulated limit starts. Under K16 no process
+    reaches this dialog.
   - **Ownership.** Before any limit is set, the unit name, its invocation id and its cgroup
     path are recorded durably. Every limit write goes to the unit object addressed by that
     invocation id, never by name, so a unit that later takes the name is never changed. Before
@@ -295,12 +303,15 @@ limit is `UNAVAILABLE` too, with the same reason.
     available the kernel may swap instead of killing, because `memory.swap.max` is not
     touched. PRISM does not claim that the target process itself will be killed. It needs a
     separate, explicit consent that the kernel may terminate the process or one of its
-    children, and the UI describes the risk in these terms before the limit is applied.
+    children, and the UI describes the risk in these terms before the limit is applied. The
+    limit service asks for `memory.high` on Linux (below), so the user interface offers no
+    hard memory limit there in this release; the consent for one exists in the limiter, the
+    limit service and the consent dialog.
   - **`memory.high`** is a throttling boundary and the intended default: above it the
     cgroup's processes are throttled and put under reclaim pressure. It does not itself invoke
     the OOM killer and may be breached under extreme conditions. `NATIVE_SOFT`. The mechanism
-    implements both boundaries, but the limit service does not yet request `memory.high`;
-    settling that is required before K16 can be lifted.
+    implements both boundaries, and the limit service requests `memory.high` where the
+    limiter offers it (risk D14, closed).
   - Both memory boundaries count only memory charged after the move; memory charged before it
     stays with the old cgroup.
   - **Read-back.** A limit is reported as applied only after `cpu.max`, `memory.high` or

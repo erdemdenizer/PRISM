@@ -4,10 +4,13 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import prism.srm.domain.LimitCapability;
 import prism.srm.domain.LimitKind;
 import prism.srm.domain.LimitRecord;
 import prism.srm.domain.LimitSpec;
+import prism.srm.domain.NativeConsentKind;
+import prism.srm.domain.NativeConsentOffer;
 import prism.srm.domain.ProcessIdentity;
 import prism.srm.domain.RecoveredLimit;
 import prism.srm.domain.ScopeProvenance;
@@ -71,6 +74,29 @@ public interface ResourceLimiter {
     }
 
     /**
+     * {@link #apply(ProcessIdentity, LimitSpec, OwnershipRecorder)}, with the consents the user gave for this request
+     * about this process (LIM-6). A limiter that needs a consent not given answers {@link
+     * ApplyResult.Phase#CONSENT_REQUIRED} before it asks anything of the system; one that needs none (Job Objects)
+     * ignores them. The consents are for this call only: a limiter never keeps them for another process.
+     */
+    default ApplyResult apply(
+            ProcessIdentity target, LimitSpec spec, OwnershipRecorder ownership, Set<NativeConsentKind> granted) {
+        return apply(target, spec, ownership);
+    }
+
+    /**
+     * The consents an operation with these limits on this process would need beyond those {@code granted}, and the
+     * statements they stand for; empty when it needs none, and where the operation would be refused for another
+     * reason first. Asks nothing of the system and changes nothing, so the limit service can ask the user before it
+     * changes anything itself (no emulated limit is stopped, no record is written). {@link #apply} and {@link #change}
+     * check again on their own. Empty for every limiter that needs no consent.
+     */
+    default Optional<NativeConsentOffer> consentNeeded(
+            ProcessIdentity target, LimitSpec spec, Set<NativeConsentKind> granted) {
+        return Optional.empty();
+    }
+
+    /**
      * Why no second limiter, native or emulated, may start on the process because it runs inside a scope a PRISM
      * session created and this limiter does not hold for it (milestone 12, plan Rev 2.2 §4.5 b: the scope-membership
      * rule, independent of any record); empty when nothing stands against it. Reads only; may be asked from the limiter
@@ -82,6 +108,15 @@ public interface ResourceLimiter {
 
     /** Changes the limits of the job the limiter holds for the process, to exactly these; see {@link ChangeResult}. */
     ChangeResult change(ProcessIdentity target, LimitSpec spec);
+
+    /**
+     * {@link #change(ProcessIdentity, LimitSpec)}, with the consents the user gave for this request (LIM-6); a change
+     * that needs one not given answers {@link ChangeResult.Phase#CONSENT_REQUIRED} and sets nothing. A limiter that
+     * needs none ignores them.
+     */
+    default ChangeResult change(ProcessIdentity target, LimitSpec spec, Set<NativeConsentKind> granted) {
+        return change(target, spec);
+    }
 
     /**
      * The process has exited: whatever its job still enforces on the processes it started is

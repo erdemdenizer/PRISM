@@ -28,6 +28,8 @@ import prism.srm.domain.LimitKind;
 import prism.srm.domain.LimitRecord;
 import prism.srm.domain.LimitSpec;
 import prism.srm.domain.MemoryBoundary;
+import prism.srm.domain.NativeConsentKind;
+import prism.srm.domain.NativeConsentOffer;
 import prism.srm.domain.OperationResult;
 import prism.srm.domain.ProcessIdentity;
 import prism.srm.domain.RecoveredLimit;
@@ -106,9 +108,16 @@ class LinuxScopeLimiterTest {
 
     private LinuxScopeLimiter harness(
             Set<ProcessIdentity> admitted, Set<ProcessIdentity> adoption, Set<ProcessIdentity> hardMemory) {
-        return new LinuxScopeLimiter(new LinuxScopeLimiter.Parts(
+        return composed(
                 LinuxNativeReadiness.EligibilityPolicy.harnessOwned(admitted),
-                NativeConsent.harness(adoption, hardMemory),
+                NativeConsent.harness(adoption, hardMemory));
+    }
+
+    /** A limiter with this policy and this consent, on the fake system, as {@link #harness} composes it. */
+    private LinuxScopeLimiter composed(LinuxNativeReadiness.EligibilityPolicy policy, NativeConsent consent) {
+        return new LinuxScopeLimiter(new LinuxScopeLimiter.Parts(
+                policy,
+                consent,
                 linux,
                 new ProcFs(proc.root),
                 () -> FakeProc.BOOT_TIME_SECONDS,
@@ -189,15 +198,158 @@ class LinuxScopeLimiterTest {
     void withoutConsentNothingIsAsked() {
         limiter = harness(Set.of(DEMO), Set.of(), Set.of());
         ApplyResult noAdoption = limiter.apply(DEMO, CPU20_THROTTLE256, p -> true);
+        assertThat(noAdoption.phase()).isEqualTo(ApplyResult.Phase.CONSENT_REQUIRED);
         assertThat(noAdoption.outcome().result()).isEqualTo(OperationResult.INVALID_ARGUMENT);
         assertThat(noAdoption.fallbackEligible()).isFalse();
+        assertThat(noAdoption.held()).isFalse();
+        assertThat(noAdoption.consent()).hasValueSatisfying(offer -> {
+            assertThat(offer.kinds()).containsExactly(NativeConsentKind.ADOPTION);
+            assertThat(offer.statements()).isEqualTo(NativeConsent.ADOPTION_STATEMENTS);
+        });
 
         limiter = harness(Set.of(DEMO), Set.of(DEMO), Set.of());
         ApplyResult noHard = limiter.apply(
                 DEMO, new LimitSpec(OptionalInt.empty(), OptionalLong.of(256L << 20), MemoryBoundary.HARD), p -> true);
+        assertThat(noHard.phase()).isEqualTo(ApplyResult.Phase.CONSENT_REQUIRED);
         assertThat(noHard.outcome().detail().orElseThrow()).contains("hard memory limit needs its own consent");
+        assertThat(noHard.consent()).hasValueSatisfying(offer -> {
+            assertThat(offer.kinds()).containsExactly(NativeConsentKind.HARD_MEMORY);
+            assertThat(offer.statements()).containsExactly(NativeConsent.HARD_MEMORY_STATEMENT);
+        });
         assertThat(linux.calls).noneMatch(c -> c.startsWith("pidfd_open"));
         assertThat(systemd.calls).isEmpty();
+    }
+
+    // ----- Consent per call (the product's consent dialog; K16 keeps it unreachable) -----
+
+    private static final LimitSpec HARD256 =
+            new LimitSpec(OptionalInt.empty(), OptionalLong.of(256L << 20), MemoryBoundary.HARD);
+
+    private ApplyResult apply(LimitSpec spec, Set<NativeConsentKind> granted) {
+        return limiter.apply(
+                DEMO,
+                spec,
+                provenance -> {
+                    events.add("record " + provenance.unit() + " "
+                            + provenance.invocationId().orElse("-"));
+                    return true;
+                },
+                granted);
+    }
+
+    /** As the product would be made: the limiter's own consent is none, and the user gives it for the call. */
+    @Test
+    void aConsentGivenForTheCallAdmitsTheAdoption() {
+        limiter = composed(LinuxNativeReadiness.EligibilityPolicy.harnessOwned(Set.of(DEMO)), NativeConsent.none());
+
+        assertThat(limiter.consentNeeded(DEMO, CPU20_THROTTLE256, Set.of()))
+                .hasValueSatisfying(offer -> assertThat(offer.kinds()).containsExactly(NativeConsentKind.ADOPTION));
+        assertThat(limiter.consentNeeded(DEMO, CPU20_THROTTLE256, Set.of(NativeConsentKind.ADOPTION)))
+                .isEmpty();
+        ApplyResult applied = apply(CPU20_THROTTLE256, Set.of(NativeConsentKind.ADOPTION));
+
+        assertThat(applied.phase()).isEqualTo(ApplyResult.Phase.ENFORCED);
+        assertThat(systemd.read(group(), "cpu.max")).isEqualTo("80000 100000");
+        assertThat(systemd.read(group(), "memory.high")).isEqualTo(String.valueOf(256L << 20));
+        // A later change of the adopted process needs no new adoption consent: the limiter holds it.
+        assertThat(limiter.consentNeeded(DEMO, CPU20_THROTTLE256.withCpuPercent(OptionalInt.of(30)), Set.of()))
+                .isEmpty();
+        assertThat(limiter.change(DEMO, CPU20_THROTTLE256.withCpuPercent(OptionalInt.of(30)))
+                        .phase())
+                .isEqualTo(ChangeResult.Phase.APPLIED);
+    }
+
+    /** Without any consent the answer is the consent result, and the fake systemd is asked nothing at all. */
+    @Test
+    void withoutAConsentForTheCallTheAnswerIsTheConsentAndNothingIsAsked() {
+        limiter = composed(LinuxNativeReadiness.EligibilityPolicy.harnessOwned(Set.of(DEMO)), NativeConsent.none());
+        LimitSpec cpuAndHard = HARD256.withCpuPercent(OptionalInt.of(20));
+
+        Optional<NativeConsentOffer> needed = limiter.consentNeeded(DEMO, cpuAndHard, Set.of());
+        ApplyResult refused = apply(cpuAndHard, Set.of());
+        ApplyResult onlyHard = apply(cpuAndHard, Set.of(NativeConsentKind.HARD_MEMORY));
+
+        assertThat(refused.phase()).isEqualTo(ApplyResult.Phase.CONSENT_REQUIRED);
+        assertThat(refused.consent()).isEqualTo(needed);
+        assertThat(refused.consent()).hasValueSatisfying(offer -> {
+            assertThat(offer.kinds())
+                    .containsExactlyInAnyOrder(NativeConsentKind.ADOPTION, NativeConsentKind.HARD_MEMORY);
+            List<String> all = new java.util.ArrayList<>(NativeConsent.ADOPTION_STATEMENTS);
+            all.add(NativeConsent.HARD_MEMORY_STATEMENT);
+            assertThat(offer.statements()).as("every statement, in order").isEqualTo(all);
+        });
+        assertThat(refused.outcome().detail().orElseThrow())
+                .contains("no consent to moving this process into a scope")
+                .contains("a hard memory limit needs its own consent");
+        assertThat(onlyHard.phase())
+                .as("a hard-memory consent does not stand for the adoption")
+                .isEqualTo(ApplyResult.Phase.CONSENT_REQUIRED);
+        assertThat(onlyHard.consent().orElseThrow().kinds()).containsExactly(NativeConsentKind.ADOPTION);
+        assertThat(linux.calls).as("no pidfd, no signal").noneMatch(c -> c.startsWith("pidfd"));
+        assertThat(systemd.calls).as("nothing asked of systemd").isEmpty();
+        assertThat(events).as("nothing recorded").isEmpty();
+        assertThat(limiter.hold(DEMO)).isEmpty();
+    }
+
+    /** A consent is for its call: given for one process, it does not admit another, nor a later call. */
+    @Test
+    void aConsentIsForItsCallAndItsProcessOnly() {
+        int otherPid = 2_090;
+        ProcessIdentity other = new ProcessIdentity(otherPid, FakeProc.start(TICKS));
+        proc.process(otherPid, "other", TICKS);
+        systemd.placeProcess(otherPid, MANAGER + "/app.slice/app-other-1.scope");
+        limiter = composed(
+                LinuxNativeReadiness.EligibilityPolicy.harnessOwned(Set.of(DEMO, other)), NativeConsent.none());
+
+        assertThat(apply(CPU20_THROTTLE256, Set.of(NativeConsentKind.ADOPTION)).phase())
+                .isEqualTo(ApplyResult.Phase.ENFORCED);
+        ApplyResult second = limiter.apply(other, CPU20_THROTTLE256, p -> true);
+
+        assertThat(second.phase()).isEqualTo(ApplyResult.Phase.CONSENT_REQUIRED);
+        assertThat(systemd.calls).noneMatch(c -> c.contains("prism-srm-limit-" + otherPid + "-"));
+    }
+
+    /** A process that could not be adopted anyway is never asked about: it gets its refusal and the fallback. */
+    @Test
+    void noConsentIsAskedForAProcessThatCouldNotBeAdopted() {
+        limiter = composed(LinuxNativeReadiness.EligibilityPolicy.harnessOwned(Set.of(DEMO)), NativeConsent.none());
+        systemd.placeProcess(PID, "/user.slice/user-1000.slice/session-2.scope");
+
+        assertThat(limiter.consentNeeded(DEMO, CPU20_THROTTLE256, Set.of())).isEmpty();
+        ApplyResult refused = apply(CPU20_THROTTLE256, Set.of());
+
+        assertThat(refused.phase()).isEqualTo(ApplyResult.Phase.NOT_ASSIGNED);
+        assertThat(refused.fallbackEligible()).isTrue();
+        assertThat(refused.consent()).isEmpty();
+        assertThat(systemd.calls).isEmpty();
+    }
+
+    /** The desktop policy, with the user's consent per call: any eligible process, never PRISM or its ancestors. */
+    @Test
+    void theDesktopPolicyAdmitsAnEligibleProcessWithTheUsersConsentAndNeverPrism() {
+        limiter = composed(
+                LinuxNativeReadiness.EligibilityPolicy.desktopExcluding(
+                        () -> new LinuxNativeReadiness.EligibilityPolicy.Excluded(PID, Set.of(1L))),
+                NativeConsent.none());
+        assertThat(limiter.capabilitiesFor(DEMO).get(LimitKind.CPU).reason())
+                .contains(LinuxNativeReadiness.PRISM_ITSELF);
+        assertThat(apply(CPU20_THROTTLE256, Set.of(NativeConsentKind.ADOPTION)).phase())
+                .as("PRISM's own process, consent or not")
+                .isEqualTo(ApplyResult.Phase.NOT_ASSIGNED);
+        assertThat(systemd.calls).isEmpty();
+
+        limiter = composed(
+                LinuxNativeReadiness.EligibilityPolicy.desktopExcluding(
+                        () -> new LinuxNativeReadiness.EligibilityPolicy.Excluded(9_100, Set.of(9_050L, 1L))),
+                NativeConsent.none());
+        assertThat(limiter.capabilities().get(LimitKind.CPU).available()).isTrue();
+        assertThat(apply(CPU20_THROTTLE256, Set.of()).phase()).isEqualTo(ApplyResult.Phase.CONSENT_REQUIRED);
+        assertThat(systemd.calls).isEmpty();
+        assertThat(apply(CPU20_THROTTLE256, Set.of(NativeConsentKind.ADOPTION)).phase())
+                .isEqualTo(ApplyResult.Phase.ENFORCED);
+        assertThat(limiter.mayHaveLeftLimits())
+                .as("a limiter that admits can leave limits")
+                .isTrue();
     }
 
     @Test
@@ -723,13 +875,62 @@ class LinuxScopeLimiterTest {
     void aChangeToAHardLimitNeedsItsConsent() {
         apply(CPU20_THROTTLE256);
         long sets = systemd.setCalls();
+        Optional<EffectiveLimits> before = limiter.hold(DEMO).orElseThrow().inForce();
 
-        ChangeResult change = limiter.change(
-                DEMO, new LimitSpec(OptionalInt.empty(), OptionalLong.of(256L << 20), MemoryBoundary.HARD));
+        ChangeResult change = limiter.change(DEMO, HARD256);
 
-        assertThat(change.phase()).isEqualTo(ChangeResult.Phase.NOT_DONE);
+        assertThat(change.phase()).isEqualTo(ChangeResult.Phase.CONSENT_REQUIRED);
         assertThat(change.outcome().detail().orElseThrow()).contains("consent");
+        assertThat(change.observed()).as("what the scope still holds").isEqualTo(before);
+        assertThat(change.consent()).hasValueSatisfying(offer -> {
+            assertThat(offer.kinds())
+                    .as("no new adoption consent for a process the limiter holds")
+                    .containsExactly(NativeConsentKind.HARD_MEMORY);
+            assertThat(offer.statements()).containsExactly(NativeConsent.HARD_MEMORY_STATEMENT);
+        });
+        assertThat(limiter.consentNeeded(DEMO, HARD256, Set.of())).isEqualTo(change.consent());
         assertThat(systemd.setCalls()).isEqualTo(sets);
+        assertThat(limiter.hold(DEMO).orElseThrow().inForce()).isEqualTo(before);
+    }
+
+    /**
+     * Native-API review of 2026-11-28: a hard-memory consent is kept only for a hard limit that reads back in force; one
+     * given with an adoption that set no hard limit, or with a change whose hard limit was not set, is not kept.
+     */
+    @Test
+    void aHardMemoryConsentIsKeptOnlyForAHardLimitThatTookEffect() {
+        limiter = composed(LinuxNativeReadiness.EligibilityPolicy.harnessOwned(Set.of(DEMO)), NativeConsent.none());
+        Set<NativeConsentKind> both = Set.of(NativeConsentKind.ADOPTION, NativeConsentKind.HARD_MEMORY);
+
+        assertThat(apply(CPU20_THROTTLE256, both).phase()).isEqualTo(ApplyResult.Phase.ENFORCED);
+        assertThat(limiter.consentNeeded(DEMO, HARD256, Set.of()))
+                .as("no hard limit was asked for with the adoption")
+                .hasValueSatisfying(offer -> assertThat(offer.kinds()).containsExactly(NativeConsentKind.HARD_MEMORY));
+
+        systemd.units.get(UNIT).oomPolicy = "stop";
+        ChangeResult refused = limiter.change(DEMO, HARD256, Set.of(NativeConsentKind.HARD_MEMORY));
+        assertThat(refused.phase()).isNotEqualTo(ChangeResult.Phase.APPLIED);
+        assertThat(systemd.read(group(), "memory.max")).isEqualTo("max");
+        assertThat(limiter.consentNeeded(DEMO, HARD256, Set.of()))
+                .as("the hard limit was not set, so its consent is not kept")
+                .isPresent();
+    }
+
+    /** The hard-memory consent given for a change admits it; the scope then keeps it for later changes this session. */
+    @Test
+    void aHardMemoryConsentForTheChangeAdmitsItAndTheScopeKeepsIt() {
+        apply(CPU20_THROTTLE256);
+
+        ChangeResult hard = limiter.change(DEMO, HARD256, Set.of(NativeConsentKind.HARD_MEMORY));
+
+        assertThat(hard.phase()).isEqualTo(ChangeResult.Phase.APPLIED);
+        assertThat(systemd.read(group(), "memory.max")).isEqualTo(String.valueOf(256L << 20));
+        assertThat(limiter.consentNeeded(DEMO, HARD256.withCpuPercent(OptionalInt.of(30)), Set.of()))
+                .isEmpty();
+        assertThat(limiter.change(DEMO, HARD256.withCpuPercent(OptionalInt.of(30)))
+                        .phase())
+                .as("a CPU change beside the hard limit asks for nothing again")
+                .isEqualTo(ChangeResult.Phase.APPLIED);
     }
 
     /** Test review M3: without the ownership evidence on disk no limit is ever set in the scope, not by a change either. */

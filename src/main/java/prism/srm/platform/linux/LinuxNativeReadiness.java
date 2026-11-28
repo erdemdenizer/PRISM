@@ -6,6 +6,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import prism.srm.domain.ProcessIdentity;
@@ -20,7 +21,8 @@ import prism.srm.domain.ProcessIdentity;
  * <p>Two questions are kept apart: whether the system could provide each kind ({@link #classify}), and whether one
  * process is eligible ({@link #eligibility}). In milestone 12 the product's policy is {@link EligibilityPolicy#none()}:
  * every process is refused, because desktop application ownership and lifecycle are not validated (K16); only a test
- * harness names the disposable processes it created ({@link EligibilityPolicy#harnessOwned}).
+ * harness names the disposable processes it created ({@link EligibilityPolicy#harnessOwned}). The policy a product
+ * without K16 would use, {@link EligibilityPolicy#desktop()}, exists and is tested, and nothing in the product makes it.
  */
 final class LinuxNativeReadiness {
 
@@ -81,32 +83,119 @@ final class LinuxNativeReadiness {
     /** The three kinds a Linux native limit can be. */
     record SystemReadiness(Readiness cpu, Readiness memoryThrottle, Readiness memoryHard) {}
 
+    /** Why a process is refused while desktop applications are not validated (K16). */
+    static final String NOT_VALIDATED = "Linux native limits are not validated for desktop applications";
+
+    /** Why PRISM's own process is refused under the desktop policy. */
+    static final String PRISM_ITSELF = "it is PRISM's own process";
+
+    /** Why a process PRISM runs under is refused under the desktop policy. */
+    static final String PRISM_ANCESTOR = "PRISM runs under it (it started PRISM, directly or through other processes)";
+
+    /** Why every process is refused when the processes PRISM runs under could not all be read. */
+    static final String ANCESTORS_UNKNOWN = "the processes PRISM runs under could not all be read";
+
+    /** How many parents are followed from PRISM's process at most; a chain longer than this is not expected. */
+    static final int MOST_ANCESTORS = 64;
+
     /** Which processes native operations may touch at all. */
     static final class EligibilityPolicy {
 
         private final Set<ProcessIdentity> harnessOwned;
+        /** The desktop policy: PRISM's own PID and the PIDs of the processes it runs under, read at each call. */
+        private final Optional<Supplier<Excluded>> desktop;
 
-        private EligibilityPolicy(Set<ProcessIdentity> harnessOwned) {
+        /**
+         * The processes the desktop policy never admits.
+         *
+         * @param complete whether the walk reached the top; when it did not, every process is refused (fail closed)
+         */
+        record Excluded(long own, Set<Long> ancestors, boolean complete) {
+            Excluded {
+                ancestors = Set.copyOf(ancestors);
+            }
+
+            Excluded(long own, Set<Long> ancestors) {
+                this(own, ancestors, true);
+            }
+        }
+
+        private EligibilityPolicy(Set<ProcessIdentity> harnessOwned, Optional<Supplier<Excluded>> desktop) {
             this.harnessOwned = Set.copyOf(harnessOwned);
+            this.desktop = Objects.requireNonNull(desktop, "desktop");
         }
 
         /** The product's policy in milestone 12: no process; desktop behaviour is not validated (K16). */
         static EligibilityPolicy none() {
-            return new EligibilityPolicy(Set.of());
+            return new EligibilityPolicy(Set.of(), Optional.empty());
         }
 
         /** A test harness's policy: exactly the disposable processes it created and names here. */
         static EligibilityPolicy harnessOwned(Set<ProcessIdentity> identities) {
-            return new EligibilityPolicy(identities);
+            return new EligibilityPolicy(identities, Optional.empty());
+        }
+
+        /**
+         * The policy for desktop applications, for the day K16 is lifted; nothing in the product uses it while K16
+         * holds. It admits every process except PRISM's own and the processes PRISM runs under: its parent, that one's
+         * parent, and so on ({@link ProcessHandle#parent()}, read again at every call, as a process can be given a new
+         * parent when its parent exits). They are compared by PID alone, within the walk of that call: a PID reused in
+         * the middle of a walk can only add a process that is not an ancestor, which errs on the safe side. A chain
+         * longer than {@link #MOST_ANCESTORS} refuses every process. Every other rule of {@link #eligibility} and of the
+         * limiter still applies: the user manager and its own {@code init.scope}, the user and group IDs, PRISM's
+         * scopes, the cgroup.
+         */
+        static EligibilityPolicy desktop() {
+            return new EligibilityPolicy(Set.of(), Optional.of(EligibilityPolicy::prismAndAncestors));
+        }
+
+        /** {@link #desktop()} with the excluded processes from elsewhere, for tests. */
+        static EligibilityPolicy desktopExcluding(Supplier<Excluded> excluded) {
+            return new EligibilityPolicy(Set.of(), Optional.of(excluded));
+        }
+
+        /** PRISM's PID and its ancestors' PIDs, now: a few reads of {@code /proc/<pid>/stat} through the JDK. */
+        private static Excluded prismAndAncestors() {
+            ProcessHandle self = ProcessHandle.current();
+            List<Long> ancestors = new ArrayList<>();
+            Optional<ProcessHandle> parent = self.parent();
+            while (parent.isPresent() && ancestors.size() < MOST_ANCESTORS) {
+                long pid = parent.get().pid();
+                if (ancestors.contains(pid)) {
+                    break;
+                }
+                ancestors.add(pid);
+                parent = parent.get().parent();
+            }
+            return new Excluded(
+                    self.pid(), Set.copyOf(ancestors), parent.isEmpty() || ancestors.size() < MOST_ANCESTORS);
+        }
+
+        /** Why the policy refuses the process; empty when it admits it. */
+        Optional<String> refusal(ProcessIdentity identity) {
+            if (desktop.isPresent()) {
+                Excluded excluded = desktop.get().get();
+                if (!excluded.complete()) {
+                    return Optional.of(ANCESTORS_UNKNOWN);
+                }
+                if (identity.pid() == excluded.own()) {
+                    return Optional.of(PRISM_ITSELF);
+                }
+                if (excluded.ancestors().contains(identity.pid())) {
+                    return Optional.of(PRISM_ANCESTOR);
+                }
+                return Optional.empty();
+            }
+            return harnessOwned.contains(identity) ? Optional.empty() : Optional.of(NOT_VALIDATED);
         }
 
         boolean admits(ProcessIdentity identity) {
-            return harnessOwned.contains(identity);
+            return refusal(identity).isEmpty();
         }
 
         /** Whether the policy admits no process at all: the product's. */
         boolean admitsNone() {
-            return harnessOwned.isEmpty();
+            return desktop.isEmpty() && harnessOwned.isEmpty();
         }
     }
 
@@ -190,8 +279,9 @@ final class LinuxNativeReadiness {
      */
     static Optional<String> eligibility(
             EligibilityPolicy policy, ProcessIdentity identity, Optional<String> processCgroup, long uid) {
-        if (!policy.admits(identity)) {
-            return Optional.of("Linux native limits are not validated for desktop applications");
+        Optional<String> refused = policy.refusal(identity);
+        if (refused.isPresent()) {
+            return refused;
         }
         if (processCgroup.isEmpty()) {
             return Optional.of("the process's cgroup could not be read");
@@ -200,6 +290,10 @@ final class LinuxNativeReadiness {
         String manager = "/user.slice/user-" + uid + ".slice/user@" + uid + ".service/";
         if (!path.startsWith(manager)) {
             return Optional.of("it runs outside your session manager (in " + path + ")");
+        }
+        // The user manager's own process lives in its init.scope (user@.service(5), example 1); it is never moved.
+        if (path.equals(manager + "init.scope") || path.startsWith(manager + "init.scope/")) {
+            return Optional.of("it is your systemd user manager itself");
         }
         if (ScopeNames.enclosingPrismScope(path).isPresent()) {
             return Optional.of("it is in a scope with PRISM's name; an earlier session may limit it");

@@ -10,22 +10,24 @@ import prism.srm.domain.ProcessIdentity;
  * the process or a child. The limiter refuses an adoption without the first and a hard memory limit without the second,
  * before it asks anything of the system.
  *
- * <p>In milestone 12 the product grants none ({@link #none()}): it has no dialog that could collect them (K18), and
- * desktop applications are not eligible at all (K16). Only a test harness grants them, for the disposable processes it
- * created ({@link #harness}). The texts the dialogs will show are fixed here, so that the consent the harness declares
- * stands for exactly these statements.
+ * <p>These are the consents a limiter is made with. The product's limiter is made with none ({@link #none()}); a user
+ * gives them per request instead, in the consent dialog, which the limiter asks for with a {@code CONSENT_REQUIRED}
+ * answer that carries the statements below ({@code NativeConsentOffer}), and admits for that call only. Under K16 no
+ * process reaches that dialog: desktop applications are not eligible at all. Only a test harness declares consents at
+ * construction, for the disposable processes it created ({@link #harness}). The texts the dialog shows are fixed here,
+ * so that the consent the user gives and the one the harness declares stand for exactly these statements.
  */
 final class NativeConsent {
 
     /** The statements a user reads before a first adoption (plan §2.6, items 1 to 5). */
     static final List<String> ADOPTION_STATEMENTS = List.of(
-            "This process will be moved into a systemd scope PRISM creates (prism-srm-limit-….scope).",
+            "This process will be moved into a systemd scope that PRISM creates for it.",
             "When the limits are removed, the process does not return to its earlier systemd unit; it stays in this scope"
                     + " until it exits.",
             "Processes it starts from now on share the same limits and stay in the same scope.",
             "Your desktop environment or service manager may see this application's ownership or lifecycle differently.",
-            "Anyone who stops this scope from outside (systemctl --user stop …) terminates the processes in it; PRISM"
-                    + " never does.");
+            "Anyone who stops this scope from outside, for example with systemctl --user stop, terminates the processes"
+                    + " in it; PRISM never does.");
 
     /** The statement a user confirms, separately, before a hard memory limit (plan §3). */
     static final String HARD_MEMORY_STATEMENT =

@@ -1,11 +1,14 @@
 package prism.srm.ui.processes;
 
 import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalLong;
+import java.util.Set;
 import java.util.function.Consumer;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanWrapper;
@@ -17,6 +20,8 @@ import prism.srm.domain.LimitRequest;
 import prism.srm.domain.LimitResult;
 import prism.srm.domain.LimitsSnapshot;
 import prism.srm.domain.ManagedProcessView;
+import prism.srm.domain.NativeConsentKind;
+import prism.srm.domain.NativeConsentOffer;
 import prism.srm.domain.OomManagement;
 import prism.srm.domain.ProcessIdentity;
 
@@ -56,6 +61,8 @@ final class ManagedActions {
     private final ReadOnlyBooleanWrapper chosen = new ReadOnlyBooleanWrapper(false);
     /** Requests on their way, by process: Set CPU limit on an unmanaged process sends two. */
     private final Map<ProcessIdentity, Integer> inFlight = new HashMap<>();
+    /** The requests this page sent that have not been answered yet, so that only their answers ask for a consent. */
+    private final Set<LimitRequest> sent = new HashSet<>();
 
     private Optional<LimitsSnapshot> limits = Optional.empty();
     private boolean monitoring = true;
@@ -177,15 +184,34 @@ final class ManagedActions {
         return inFlight.containsKey(identity);
     }
 
-    /** Takes the result of a request about managed processes. */
-    void accept(LimitResult result) {
+    /**
+     * Takes the result of a request about managed processes.
+     *
+     * @return the consent the native limit asked for needs (LIM-6), when this page sent the request; the page asks the
+     *     user, and {@link #consent} sends the request again once the user confirms
+     */
+    Optional<NativeConsentOffer> accept(LimitResult result) {
         ProcessIdentity identity = result.request().identity();
         inFlight.computeIfPresent(identity, (key, count) -> count > 1 ? count - 1 : null);
+        boolean ours = sent.remove(result.request());
         refresh();
+        return ours ? result.consent() : Optional.empty();
+    }
+
+    /**
+     * The user confirmed the consent an answer asked for: the same request is sent again with it, for this process
+     * only; nothing is kept for later requests.
+     */
+    void consent(LimitRequest request, NativeConsentOffer offer) {
+        Set<NativeConsentKind> given = EnumSet.noneOf(NativeConsentKind.class);
+        given.addAll(request.consents());
+        given.addAll(offer.kinds());
+        send(request.withConsents(given));
     }
 
     private void send(LimitRequest request) {
         inFlight.merge(request.identity(), 1, Integer::sum);
+        sent.add(request);
         refresh();
         requests.accept(request);
     }

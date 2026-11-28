@@ -52,6 +52,7 @@ import prism.srm.domain.ManagedProcess;
 import prism.srm.domain.ManagedProcessView;
 import prism.srm.domain.ManagedSettings;
 import prism.srm.domain.MemoryBoundary;
+import prism.srm.domain.NativeConsentOffer;
 import prism.srm.domain.OomManagement;
 import prism.srm.domain.OomSignalStatus;
 import prism.srm.domain.OperationResult;
@@ -546,6 +547,11 @@ public final class LimitService {
                 .orElse(own);
     }
 
+    /** What holds this system's native limits, in a word: "scope" on Linux, "job" with Job Objects (risk D8). */
+    private String holder() {
+        return LimitMessages.holder(nativeCapability(LimitKind.CPU));
+    }
+
     private boolean nativeCpuSystem() {
         return natives.limiter().capabilities().get(LimitKind.CPU).available();
     }
@@ -975,7 +981,10 @@ public final class LimitService {
                 }
                 unmanagedHolds.put(identity, removed.get().name());
                 forgetManaged(identity);
-                return LimitMessages.result(request, ControlOutcome.success(), LimitMessages.unmanagedNative(request));
+                return LimitMessages.result(
+                        request,
+                        ControlOutcome.success(),
+                        LimitMessages.unmanagedNative(request, nativeCapability(LimitKind.CPU)));
             });
         }
         forgetManaged(identity);
@@ -1022,6 +1031,13 @@ public final class LimitService {
             clearCpuFailure(identity);
             return Carried.answered(LimitMessages.result(
                     request, ControlOutcome.success(), LimitMessages.limitStored(request, percent)));
+        }
+        // A consent the native limit needs is asked before anything changes, so an emulated limit the user chose keeps
+        // running while the user decides (LIM-6). The spec is the one asked for once the emulated limit has stopped.
+        Optional<LimitResult> consent =
+                consentFirst(request, nativeSpecOf(settings.withCpuLimit(OptionalInt.of(percent)), false));
+        if (consent.isPresent()) {
+            return Carried.answered(consent.get());
         }
         // Barrier (plan D15): the emulated limit stops first and must have released everything.
         stopLimit(identity);
@@ -1141,7 +1157,7 @@ public final class LimitService {
                 failures.put(identity, what);
                 failureNotes.put(identity, LimitNote.NATIVE_UNSETTLED);
                 Wording wording = switch (step.phase()) {
-                    case UNCERTAIN -> LimitMessages.uncertain(request);
+                    case UNCERTAIN -> LimitMessages.uncertain(request, nativeCapability(LimitKind.CPU));
                     case UNVERIFIED -> LimitMessages.unverified(request, candidates(identity));
                     case PARTIAL -> LimitMessages.partial(request, inForce(step));
                     default -> LimitMessages.mismatch(request, inForce(step));
@@ -1150,7 +1166,35 @@ public final class LimitService {
             }
             case NOT_APPLIED, NOT_DONE, DONE ->
                 LimitMessages.result(request, step.outcome(), LimitMessages.nativeFailed(request, describe(step)));
+            case CONSENT -> consentAsked(request, step.consent().orElseThrow());
         };
+    }
+
+    /**
+     * The limiter needs a consent this request does not carry (LIM-6, ADR-0016 decisions 4 and 6): the request is
+     * answered with what the user must confirm, and nothing else happens. Nothing native was asked, no setting is
+     * changed, no failure is noted, no emulated limit starts and none is offered; the user interface sends the same
+     * request again with the consents once the user confirms them. Nothing of it is kept for the process.
+     */
+    private LimitResult consentAsked(LimitRequest request, NativeConsentOffer offer) {
+        return LimitMessages.consentNeeded(
+                request,
+                ControlOutcome.of(OperationResult.INVALID_ARGUMENT, "the user's consent is needed: " + offer.kinds()),
+                offer);
+    }
+
+    /**
+     * Asks the limiter, before anything changes, whether the native limits a request leads to need a consent it does
+     * not carry (LIM-6): if so, the request is answered with the offer at once, before an emulated limit is stopped,
+     * a barrier is checked or a record is written. Reads only; the limiter checks again when it is asked.
+     */
+    private Optional<LimitResult> consentFirst(LimitRequest request, LimitSpec spec) {
+        if (spec.none()) {
+            return Optional.empty();
+        }
+        return natives.limiter()
+                .consentNeeded(request.identity(), spec, request.consents())
+                .map(offer -> consentAsked(request, offer));
     }
 
     private LimitResult goneNow(LimitRequest request, NativeStep step) {
@@ -1288,6 +1332,10 @@ public final class LimitService {
                     LimitMessages.result(request, ControlOutcome.success(), LimitMessages.memoryStored(request, text)));
         }
         LimitSpec spec = nativeSpec(identity, settings.withMemoryLimit(OptionalLong.of(bytes)));
+        Optional<LimitResult> consent = consentFirst(request, spec);
+        if (consent.isPresent()) {
+            return Carried.answered(consent.get());
+        }
         return nativeStep(request, spec, step -> Carried.answered(memoryStepEnded(request, settings, bytes, step)));
     }
 
@@ -1299,8 +1347,12 @@ public final class LimitService {
                 registry.update(identity, settings.withMemoryLimit(OptionalLong.of(bytes)));
                 memoryFailures.remove(identity);
                 residentOffered.remove(identity);
+                MemoryBoundary boundary =
+                        step.observed().map(EffectiveLimits::memoryBoundary).orElse(memoryBoundary());
                 yield LimitMessages.result(
-                        request, ControlOutcome.success(), LimitMessages.memoryLimited(request, text));
+                        request,
+                        ControlOutcome.success(),
+                        LimitMessages.memoryLimited(request, text, nativeCapability(LimitKind.MEMORY), boundary));
             }
             case NOT_APPLIED -> {
                 String reason =
@@ -1382,7 +1434,9 @@ public final class LimitService {
         return LimitMessages.result(
                 request,
                 ControlOutcome.success(),
-                wasWatched ? LimitMessages.memoryNoLongerWatched(request) : LimitMessages.memoryRemoved(request));
+                wasWatched
+                        ? LimitMessages.memoryNoLongerWatched(request)
+                        : LimitMessages.memoryRemoved(request, nativeCapability(LimitKind.MEMORY)));
     }
 
     private Carried enable(LimitRequest request) {
@@ -1413,6 +1467,10 @@ public final class LimitService {
             clearCpuFailure(identity);
             return Carried.answered(
                     LimitMessages.result(request, ControlOutcome.success(), LimitMessages.enabled(request, false)));
+        }
+        Optional<LimitResult> consent = consentFirst(request, spec);
+        if (consent.isPresent()) {
+            return Carried.answered(consent.get());
         }
         Optional<LimitResult> barrier = barrier(request);
         if (barrier.isPresent()) {
@@ -1685,7 +1743,23 @@ public final class LimitService {
             Phase phase,
             ControlOutcome outcome,
             Optional<EffectiveLimits> observed,
-            boolean fallbackEligible) {
+            boolean fallbackEligible,
+            Optional<NativeConsentOffer> consent) {
+
+        NativeStep(
+                Kind kind,
+                Phase phase,
+                ControlOutcome outcome,
+                Optional<EffectiveLimits> observed,
+                boolean fallbackEligible) {
+            this(kind, phase, outcome, observed, fallbackEligible, Optional.empty());
+        }
+
+        /** The limiter needs a consent the request does not carry: nothing was asked of the system (LIM-6). */
+        static NativeStep consent(ControlOutcome outcome, NativeConsentOffer offer) {
+            return new NativeStep(Kind.CONSENT, Phase.CONSENT, outcome, Optional.empty(), false, Optional.of(offer));
+        }
+
         /** Which answer of the limiter or the ledger the step came from. */
         enum Phase {
             NONE,
@@ -1699,7 +1773,8 @@ public final class LimitService {
             PARTIAL,
             UNVERIFIED,
             NOT_DONE,
-            NO_HOLD
+            NO_HOLD,
+            CONSENT
         }
 
         enum Kind {
@@ -1714,18 +1789,22 @@ public final class LimitService {
             /** The ledger cannot record it. */
             LEDGER,
             /** The process exited. */
-            GONE
+            GONE,
+            /** A consent the request does not carry is needed; nothing was changed, nothing is offered instead. */
+            CONSENT
         }
     }
 
     /** The native spec a process's settings ask for, limited to the kinds this system provides natively. */
     private LimitSpec nativeSpec(ProcessIdentity identity, ManagedSettings settings) {
-        OptionalInt cpu = nativeCpuSystem() ? settings.cpuLimitPercent() : OptionalInt.empty();
+        // The emulated limit holds the CPU: the job's spec leaves it alone.
+        return nativeSpecOf(settings, runs.containsKey(identity));
+    }
+
+    /** {@link #nativeSpec}, with the CPU left alone where {@code emulatedHoldsCpu}. */
+    private LimitSpec nativeSpecOf(ManagedSettings settings, boolean emulatedHoldsCpu) {
+        OptionalInt cpu = nativeCpuSystem() && !emulatedHoldsCpu ? settings.cpuLimitPercent() : OptionalInt.empty();
         OptionalLong memory = nativeMemorySystem() ? settings.memoryLimitBytes() : OptionalLong.empty();
-        if (runs.containsKey(identity)) {
-            // The emulated limit holds the CPU: the job's spec leaves it alone.
-            cpu = OptionalInt.empty();
-        }
         return new LimitSpec(cpu, memory, memoryBoundary());
     }
 
@@ -1750,9 +1829,13 @@ public final class LimitService {
         ProcessIdentity identity = request.identity();
         if (natives.hold(identity).isPresent()) {
             return handOver(request, spec, () -> {
-                Optional<ChangeResult> changed = natives.change(identity, request.name(), spec);
+                Optional<ChangeResult> changed = natives.change(identity, request.name(), spec, request.consents());
                 return () -> {
                     NativeStep step = changeStep(spec, changed);
+                    if (step.kind() == NativeStep.Kind.CONSENT) {
+                        return Carried.answered(
+                                consentAsked(request, step.consent().orElseThrow()));
+                    }
                     if (step.phase() != NativeStep.Phase.NO_HOLD) {
                         return then.apply(step);
                     }
@@ -1790,8 +1873,14 @@ public final class LimitService {
             if (!coordinator.journalHealthy()) {
                 return () -> then.apply(journalStep());
             }
-            Optional<ApplyResult> recorded = natives.apply(identity, request.name(), spec);
-            return () -> then.apply(assignStep(identity, recorded));
+            Optional<ApplyResult> recorded = natives.apply(identity, request.name(), spec, request.consents());
+            return () -> {
+                NativeStep step = assignStep(identity, recorded);
+                // A consent not given (LIM-6): answered as such, whatever the request; nothing changed, nothing starts.
+                return step.kind() == NativeStep.Kind.CONSENT
+                        ? Carried.answered(consentAsked(request, step.consent().orElseThrow()))
+                        : then.apply(step);
+            };
         });
     }
 
@@ -1923,14 +2012,23 @@ public final class LimitService {
                         applied.outcome(),
                         Optional.empty(),
                         false);
+            case CONSENT_REQUIRED ->
+                NativeStep.consent(applied.outcome(), applied.consent().orElseThrow());
         };
     }
 
     /** A change of the job PRISM holds, on the worker; {@code then} on the limiter thread once it has ended (D6). */
     private Carried nativeChange(LimitRequest request, LimitSpec spec, Function<NativeStep, LimitResult> then) {
         return handOver(request, spec, () -> {
-            Optional<ChangeResult> changed = natives.change(request.identity(), request.name(), spec);
-            return () -> Carried.answered(then.apply(changeStep(spec, changed)));
+            Optional<ChangeResult> changed =
+                    natives.change(request.identity(), request.name(), spec, request.consents());
+            return () -> {
+                NativeStep step = changeStep(spec, changed);
+                return Carried.answered(
+                        step.kind() == NativeStep.Kind.CONSENT
+                                ? consentAsked(request, step.consent().orElseThrow())
+                                : then.apply(step));
+            };
         });
     }
 
@@ -1976,6 +2074,8 @@ public final class LimitService {
                         changed.outcome(),
                         Optional.of(EffectiveLimits.NONE),
                         false);
+            case CONSENT_REQUIRED ->
+                NativeStep.consent(changed.outcome(), changed.consent().orElseThrow());
         };
     }
 
@@ -2406,7 +2506,7 @@ public final class LimitService {
                             watched.set(watchedCount());
                             activity.record(
                                     ActivitySeverity.INFO,
-                                    "PRISM cleared the limits the job of " + label
+                                    "PRISM cleared the limits the " + holder() + " of " + label
                                             + " still carried for the processes it started.");
                         }
                         return Carried.NOTHING;
@@ -2494,7 +2594,7 @@ public final class LimitService {
             watched.set(watchedCount());
             activity.record(
                     ActivitySeverity.WARNING,
-                    "The job of " + name + " (PID " + identity.pid()
+                    "The " + holder() + " of " + name + " (PID " + identity.pid()
                             + "), which has exited, still carries limits PRISM"
                             + " could not clear ("
                             + forgotten.inForce().map(EffectiveLimits::describe).orElse("unknown")
@@ -2502,7 +2602,7 @@ public final class LimitService {
         } else if (forgotten.survivors() > 0) {
             activity.record(
                     ActivitySeverity.INFO,
-                    "The job of " + name + " (PID " + identity.pid() + ") still counted "
+                    "The " + holder() + " of " + name + " (PID " + identity.pid() + ") still counted "
                             + forgotten.survivors()
                             + (forgotten.survivors() == 1 ? " process" : " processes")
                             + " after it exited; PRISM cleared its limits for them.");
@@ -2655,7 +2755,8 @@ public final class LimitService {
         for (Residue residue : residues.values()) {
             notices.add(new LimitsNotice(
                     LimitsNotice.Kind.RESIDUE,
-                    "The job of " + residue.name() + " (PID " + residue.exited().pid()
+                    "The " + holder() + " of " + residue.name() + " (PID "
+                            + residue.exited().pid()
                             + "), which has exited, still carries"
                             + " limits PRISM could not clear ("
                             + residue.inForce().describe() + "); "

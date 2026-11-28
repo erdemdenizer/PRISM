@@ -4,6 +4,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
+import java.util.Set;
 
 /**
  * A request about managing one process.
@@ -15,6 +16,9 @@ import java.util.OptionalLong;
  * @param bytes the memory limit to set; present exactly for {@link LimitAction#SET_MEMORY_LIMIT},
  *     checked the same way
  * @param oom the OOM settings to set; present exactly for {@link LimitAction#SET_OOM}
+ * @param consents the native-limit consents the user gave for this request about this process (LIM-6, ADR-0016
+ *     decisions 4 and 6), empty unless the user confirmed a {@link NativeConsentOffer} for it; never remembered for
+ *     another request. A request that sets no native limit ignores them
  */
 public record LimitRequest(
         LimitAction action,
@@ -22,7 +26,8 @@ public record LimitRequest(
         String name,
         OptionalInt percent,
         OptionalLong bytes,
-        Optional<OomManagement> oom) {
+        Optional<OomManagement> oom,
+        Set<NativeConsentKind> consents) {
 
     public LimitRequest {
         Objects.requireNonNull(action, "action");
@@ -31,6 +36,7 @@ public record LimitRequest(
         Objects.requireNonNull(percent, "percent");
         Objects.requireNonNull(bytes, "bytes");
         Objects.requireNonNull(oom, "oom");
+        consents = Set.copyOf(consents);
         if (percent.isPresent() != (action == LimitAction.SET_CPU_LIMIT)) {
             throw new IllegalArgumentException("A percentage is given exactly for setting a CPU limit: " + action);
         }
@@ -41,6 +47,16 @@ public record LimitRequest(
         if (oom.isPresent() != (action == LimitAction.SET_OOM)) {
             throw new IllegalArgumentException("OOM settings are given exactly for setting them: " + action);
         }
+    }
+
+    public LimitRequest(
+            LimitAction action,
+            ProcessIdentity identity,
+            String name,
+            OptionalInt percent,
+            OptionalLong bytes,
+            Optional<OomManagement> oom) {
+        this(action, identity, name, percent, bytes, oom, Set.of());
     }
 
     public LimitRequest(
@@ -69,5 +85,10 @@ public record LimitRequest(
     public static LimitRequest oom(ProcessIdentity identity, String name, OomManagement oom) {
         return new LimitRequest(
                 LimitAction.SET_OOM, identity, name, OptionalInt.empty(), OptionalLong.empty(), Optional.of(oom));
+    }
+
+    /** The same request, with these consents given for it: what is sent after the user confirmed an offer. */
+    public LimitRequest withConsents(Set<NativeConsentKind> given) {
+        return new LimitRequest(action, identity, name, percent, bytes, oom, given);
     }
 }

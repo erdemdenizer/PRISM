@@ -48,6 +48,17 @@
 }
 
 /*
+ * The consent to a native limit (ui.control.NativeConsentDialog): the statements as a plain list, one dash
+ * before each and its lines wrapped beside it, 8 px apart (NativeConsentDialog.STATEMENT_GAP: each wraps to
+ * two lines, so 4 px would blur them); the dialog's frame and its 8 px between parts are those of the CPU
+ * limit dialog.
+ */
+.native-consent-line {
+  -fx-spacing: 8;
+  -fx-alignment: top-left;
+}
+
+/*
  * UI redesign: the sheet over a page (ui.control.SheetOverlay), from the right, on the raised surface with a
  * hairline at its left edge, over a scrim. No shadow: what it shows changes every second.
  */

@@ -115,6 +115,17 @@ class HostPlatformTest {
         assertThat(linux.recoveryClears()).isFalse();
         assertThat(linux.apply(process, spec, provenance -> true).phase()).isEqualTo(ApplyResult.Phase.NOT_ASSIGNED);
         assertThat(linux.apply(process, spec).phase()).isEqualTo(ApplyResult.Phase.NOT_ASSIGNED);
+        // K16 stands whatever consent a request carries: the policy refuses before any consent is looked at.
+        java.util.Set<prism.srm.domain.NativeConsentKind> every =
+                java.util.EnumSet.allOf(prism.srm.domain.NativeConsentKind.class);
+        prism.srm.domain.LimitSpec hard = spec.withMemoryBytes(java.util.OptionalLong.of(256L << 20));
+        ApplyResult consented = linux.apply(process, hard, provenance -> true, every);
+        assertThat(consented.phase()).isEqualTo(ApplyResult.Phase.NOT_ASSIGNED);
+        assertThat(consented.outcome().detail().orElseThrow()).contains("not validated for desktop applications");
+        assertThat(linux.consentNeeded(process, hard, java.util.Set.of()))
+                .as("no consent is ever asked for")
+                .isEmpty();
+        assertThat(linux.change(process, hard, every).phase()).isEqualTo(prism.srm.platform.ChangeResult.Phase.NO_HOLD);
         assertThat(linux.clearOwned(prism.srm.domain.LimitRecord.intended(process, "demo", spec.effective(), "1-1"))
                         .outcome()
                         .result())

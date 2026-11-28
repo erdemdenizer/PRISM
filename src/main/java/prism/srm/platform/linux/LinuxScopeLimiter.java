@@ -6,6 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +14,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -33,6 +35,8 @@ import prism.srm.domain.LimitKind;
 import prism.srm.domain.LimitRecord;
 import prism.srm.domain.LimitSpec;
 import prism.srm.domain.MemoryBoundary;
+import prism.srm.domain.NativeConsentKind;
+import prism.srm.domain.NativeConsentOffer;
 import prism.srm.domain.OperationResult;
 import prism.srm.domain.ProcessIdentity;
 import prism.srm.domain.RecoveredLimit;
@@ -53,8 +57,11 @@ import prism.srm.platform.ResourceLimiter;
  * attaches to a unit.
  *
  * <p><b>Who may be adopted (K16).</b> Nothing is asked of the system before the {@link
- * LinuxNativeReadiness.EligibilityPolicy} admits the identity and {@link NativeConsent} holds the adoption consent (and,
- * for {@code memory.max}, the separate hard-memory consent). The product's limiter ({@link #product}) admits no process:
+ * LinuxNativeReadiness.EligibilityPolicy} admits the identity and the adoption consent is given (and, for {@code
+ * memory.max}, the separate hard-memory consent): by the {@link NativeConsent} the limiter was made with, or by the user
+ * for the call ({@link NativeConsentKind}). A consent not given is answered {@code CONSENT_REQUIRED}, with the statements
+ * of {@link NativeConsent} to show, before anything is asked of the system. The product's limiter ({@link #product})
+ * admits no process:
  * every capability is {@code UNAVAILABLE} with the reason that Linux native limits are not validated for desktop
  * applications, and it never opens a bus connection. Only a test harness makes a limiter that admits the disposable
  * processes it created.
@@ -82,7 +89,7 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
 
     private static final Logger LOG = LoggerFactory.getLogger(LinuxScopeLimiter.class);
 
-    static final String NOT_VALIDATED = "Linux native limits are not validated for desktop applications";
+    static final String NOT_VALIDATED = LinuxNativeReadiness.NOT_VALIDATED;
     // Shown to the user, so it names no internal decision label (risk D12; K16 is the decision behind it).
     static final String PRODUCT_REASON = NOT_VALIDATED + " (implemented, not enabled in this release)";
     static final String CPU_QUOTA = "CPUQuotaPerSecUSec";
@@ -112,6 +119,13 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
         Optional<ScopeProvenance> provenance = Optional.empty();
         /** The ownership evidence is on disk (A6); until then no limit is set in the scope. */
         boolean recorded;
+
+        /**
+         * A hard memory limit the user consented to reads back in force on this scope (LIM-6): a later change of this
+         * process in this session needs no new consent, as it needs no new adoption consent. Written under the lock,
+         * read by {@link #consentNeeded}.
+         */
+        volatile boolean hardMemory;
 
         /** Whether the process is known to be in the scope and what the scope is known to hold, as one value. */
         volatile NativeHold view = new NativeHold(NativeHold.State.UNCERTAIN, Optional.empty());
@@ -323,8 +337,9 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
 
     /** Why the process may not be adopted; asked before anything else, without any bus call. */
     private Optional<String> eligibility(ProcessIdentity target) {
-        if (!policy.admits(target)) {
-            return Optional.of(NOT_VALIDATED);
+        Optional<String> policyRefusal = policy.refusal(target);
+        if (policyRefusal.isPresent()) {
+            return policyRefusal;
         }
         if (files.isEmpty()) {
             return Optional.of("the cgroup v2 file system is not mounted");
@@ -559,7 +574,19 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
 
     @Override
     public ApplyResult apply(ProcessIdentity target, LimitSpec spec, OwnershipRecorder ownership) {
+        return apply(target, spec, ownership, Set.of());
+    }
+
+    /**
+     * An adoption with these limits. The consents are admitted when the limiter was made with them or when {@code
+     * granted} holds them for this call; one missing is answered {@link ApplyResult.Phase#CONSENT_REQUIRED} once the
+     * process is eligible and the system could provide the limits, before anything is asked of the system.
+     */
+    @Override
+    public ApplyResult apply(
+            ProcessIdentity target, LimitSpec spec, OwnershipRecorder ownership, Set<NativeConsentKind> granted) {
         Objects.requireNonNull(ownership, "ownership");
+        Objects.requireNonNull(granted, "granted");
         lock.lock();
         try {
             if (closed) {
@@ -576,20 +603,17 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
             if (refused.isPresent()) {
                 return ApplyResult.notAssigned(fail(OperationResult.UNSUPPORTED, refused.get()), true);
             }
-            if (!consent.adoption(target)) {
-                return ApplyResult.notAssigned(
-                        fail(OperationResult.INVALID_ARGUMENT, "no consent to moving this process into a scope"),
-                        false);
-            }
-            if (hard(spec) && !consent.hardMemory(target)) {
-                return ApplyResult.notAssigned(
-                        fail(OperationResult.INVALID_ARGUMENT, "a hard memory limit needs its own consent"), false);
-            }
+            // What the system cannot provide is refused before a consent is asked: the user is never asked to agree to
+            // a move that would not be made.
             Optional<String> system = kindsUnavailable(spec);
             if (system.isPresent()) {
                 return ApplyResult.notAssigned(fail(OperationResult.UNSUPPORTED, system.get()), true);
             }
-            return adopt(target, spec, ownership);
+            Optional<NativeConsentOffer> missing = missingConsent(target, spec, granted, true, false);
+            if (missing.isPresent()) {
+                return ApplyResult.consentRequired(consentRefusal(missing.get()), missing.get());
+            }
+            return adopt(target, spec, ownership, hard(spec) && hardGranted(target, granted));
         } finally {
             lock.unlock();
         }
@@ -597,6 +621,92 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
 
     private static boolean hard(LimitSpec spec) {
         return spec.memoryBytes().isPresent() && spec.memoryBoundary() == MemoryBoundary.HARD;
+    }
+
+    // ----- Consent (LIM-6, ADR-0016 decisions 4 and 6) -----
+
+    /**
+     * Read without the lock and without asking anything of the system: a process the limiter holds needs no adoption
+     * consent again, only the hard-memory one for a hard memory limit its scope has not had; any other process needs
+     * the adoption consent once it is eligible and the system could provide the limits. Empty where it would be refused
+     * for another reason first, which {@link #apply} and {@link #change} say themselves.
+     */
+    @Override
+    public Optional<NativeConsentOffer> consentNeeded(
+            ProcessIdentity target, LimitSpec spec, Set<NativeConsentKind> granted) {
+        Objects.requireNonNull(granted, "granted");
+        if (closed || spec.none() || admitsNone()) {
+            return Optional.empty();
+        }
+        Hold hold = holds.get(target);
+        if (hold != null) {
+            // As change() does: what the system cannot provide is refused before a consent is asked.
+            return kindsUnavailable(spec).isPresent()
+                    ? Optional.empty()
+                    : missingConsent(target, spec, granted, false, hold.hardMemory);
+        }
+        if (eligibility(target).isPresent() || kindsUnavailable(spec).isPresent()) {
+            return Optional.empty();
+        }
+        return missingConsent(target, spec, granted, true, false);
+    }
+
+    /**
+     * The consents the operation needs that neither the limiter's own {@link NativeConsent} nor {@code granted} gives,
+     * with their fixed statements; empty when none is missing.
+     *
+     * @param adopting whether the operation moves the process into a scope
+     * @param heldHard whether the user consented to a hard memory limit on the scope the limiter holds
+     */
+    private Optional<NativeConsentOffer> missingConsent(
+            ProcessIdentity target,
+            LimitSpec spec,
+            Set<NativeConsentKind> granted,
+            boolean adopting,
+            boolean heldHard) {
+        Set<NativeConsentKind> kinds = EnumSet.noneOf(NativeConsentKind.class);
+        List<String> statements = new ArrayList<>();
+        if (adopting && !consent.adoption(target) && !granted.contains(NativeConsentKind.ADOPTION)) {
+            kinds.add(NativeConsentKind.ADOPTION);
+            statements.addAll(NativeConsent.ADOPTION_STATEMENTS);
+        }
+        if (hard(spec) && !heldHard && !hardGranted(target, granted)) {
+            kinds.add(NativeConsentKind.HARD_MEMORY);
+            statements.add(NativeConsent.HARD_MEMORY_STATEMENT);
+        }
+        return kinds.isEmpty() ? Optional.empty() : Optional.of(new NativeConsentOffer(kinds, statements));
+    }
+
+    /**
+     * Under the lock: the scope keeps the user's hard-memory consent only once a hard memory limit given with it reads
+     * back in force, so a consent for a limit that was not set (refused, not sent, {@code OOMPolicy} not {@code
+     * continue}) is not kept for later changes (native-API review of 2026-11-28).
+     */
+    private static void rememberHardConsent(
+            Hold hold, boolean hardConsent, LimitSpec spec, Optional<EffectiveLimits> observed) {
+        if (hardConsent
+                && hard(spec)
+                && observed.filter(limits ->
+                                limits.memoryBytes().isPresent() && limits.memoryBoundary() == MemoryBoundary.HARD)
+                        .isPresent()) {
+            hold.hardMemory = true;
+        }
+    }
+
+    private boolean hardGranted(ProcessIdentity target, Set<NativeConsentKind> granted) {
+        return consent.hardMemory(target) || granted.contains(NativeConsentKind.HARD_MEMORY);
+    }
+
+    /** The outcome of a refusal for a consent not given, for the log. */
+    private static ControlOutcome consentRefusal(NativeConsentOffer missing) {
+        List<String> why = new ArrayList<>();
+        if (missing.adoption()) {
+            why.add("no consent to moving this process into a scope");
+        }
+        if (missing.hardMemory()) {
+            why.add("a hard memory limit needs its own consent");
+        }
+        return fail(OperationResult.INVALID_ARGUMENT, String.join("; ", why));
     }
 
     private Optional<String> kindsUnavailable(LimitSpec spec) {
@@ -617,7 +727,8 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
     }
 
     /** Steps A2 to A9; under the lock. */
-    private ApplyResult adopt(ProcessIdentity target, LimitSpec spec, OwnershipRecorder ownership) {
+    private ApplyResult adopt(
+            ProcessIdentity target, LimitSpec spec, OwnershipRecorder ownership, boolean hardConsent) {
         ScopeManager manager = scopes.orElseThrow();
         CgroupFiles cgroups = files.orElseThrow();
         String unit = ScopeNames.of(target).orElse("");
@@ -748,15 +859,10 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
             hold.recorded = true;
             // A7 and A8.
             Sent sent = new Sent(proven.get().invocationId().orElseThrow());
-            setKinds(
-                    manager,
-                    unit,
-                    Optional.of(EffectiveLimits.NONE),
-                    spec.effective(),
-                    consent.hardMemory(target),
-                    sent);
+            setKinds(manager, unit, Optional.of(EffectiveLimits.NONE), spec.effective(), hardConsent, sent);
             Optional<EffectiveLimits> observed =
                     settledReadBack(cgroups, proven.get().cgroupPath().orElseThrow(), spec.effective());
+            rememberHardConsent(hold, hardConsent, spec, observed);
             Optional<Outside> left = outsideItsScope(target, hold);
             if (sent.gone || (left.isPresent() && left.get().kind() != Outside.Kind.EXITED)) {
                 // Moved out, or the unit changed, while the limits were set: they are not known to be the target's
@@ -1077,6 +1183,17 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
 
     @Override
     public ChangeResult change(ProcessIdentity target, LimitSpec spec) {
+        return change(target, spec, Set.of());
+    }
+
+    /**
+     * A change of the scope the limiter holds. It needs no adoption consent, as the process was adopted; a hard memory
+     * limit the scope has not had needs the hard-memory consent, from the limiter's {@link NativeConsent} or {@code
+     * granted}, and is otherwise answered {@link ChangeResult.Phase#CONSENT_REQUIRED} with nothing sent.
+     */
+    @Override
+    public ChangeResult change(ProcessIdentity target, LimitSpec spec, Set<NativeConsentKind> granted) {
+        Objects.requireNonNull(granted, "granted");
         lock.lock();
         try {
             Hold hold = holds.get(target);
@@ -1101,13 +1218,15 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
             if (liveness(target, hold.fd) == Liveness.EXITED) {
                 return notDone(OperationResult.PROCESS_NOT_FOUND, "the process has exited");
             }
-            if (hard(spec) && !consent.hardMemory(target)) {
-                return notDone(OperationResult.INVALID_ARGUMENT, "a hard memory limit needs its own consent");
-            }
             Optional<String> system = kindsUnavailable(spec);
             if (system.isPresent()) {
                 return notDone(OperationResult.UNSUPPORTED, system.get());
             }
+            Optional<NativeConsentOffer> missing = missingConsent(target, spec, granted, false, hold.hardMemory);
+            if (missing.isPresent()) {
+                return ChangeResult.consentRequired(consentRefusal(missing.get()), hold.inForce(), missing.get());
+            }
+            boolean hardConsent = hard(spec) && (hold.hardMemory || hardGranted(target, granted));
             // Ownership and membership now, immediately before anything is sent: the unit is still the invocation PRISM
             // made and the process is still in it. Otherwise nothing is sent (independent audit follow-up).
             Optional<Outside> outside = outsideItsScope(target, hold);
@@ -1132,8 +1251,9 @@ public final class LinuxScopeLimiter implements ResourceLimiter {
             String group = hold.provenance.get().cgroupPath().orElseThrow();
             Optional<EffectiveLimits> before = hold.inForce();
             Sent sent = new Sent(hold.provenance.get().invocationId().orElseThrow());
-            setKinds(scopes.orElseThrow(), hold.unit, before, spec.effective(), consent.hardMemory(target), sent);
+            setKinds(scopes.orElseThrow(), hold.unit, before, spec.effective(), hardConsent, sent);
             Optional<EffectiveLimits> observed = settledReadBack(files.orElseThrow(), group, spec.effective());
+            rememberHardConsent(hold, hardConsent, spec, observed);
             Optional<Outside> movedDuring = outsideItsScope(target, hold);
             if (sent.gone || (movedDuring.isPresent() && movedDuring.get().kind() != Outside.Kind.EXITED)) {
                 // Left, or the unit changed, between the check and the sends (a window systemd offers no way to close):

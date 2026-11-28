@@ -18,6 +18,8 @@ import prism.srm.domain.LimitCapability;
 import prism.srm.domain.LimitKind;
 import prism.srm.domain.LimitRecord;
 import prism.srm.domain.LimitSpec;
+import prism.srm.domain.NativeConsentKind;
+import prism.srm.domain.NativeConsentOffer;
 import prism.srm.domain.OperationResult;
 import prism.srm.domain.ProcessIdentity;
 import prism.srm.domain.RecoveredLimit;
@@ -204,6 +206,55 @@ public final class FakeResourceLimiter implements ResourceLimiter {
                     false);
         }
         return apply(target, spec);
+    }
+
+    // ----- Consent (LIM-6): by default none is needed, as with Job Objects -----
+
+    /** The consent the fake needs for an operation with these limits on this process; by default none. */
+    public volatile BiFunction<ProcessIdentity, LimitSpec, Optional<NativeConsentOffer>> needs =
+            (target, spec) -> Optional.empty();
+
+    /** Whether {@link #consentNeeded} answers; false: only apply and change say so, as in a race after the check. */
+    public volatile boolean answersConsentFirst = true;
+
+    /** The consents each apply and change was given, in order. */
+    public final List<Set<NativeConsentKind>> granted = new CopyOnWriteArrayList<>();
+
+    private Optional<NativeConsentOffer> missing(ProcessIdentity target, LimitSpec spec, Set<NativeConsentKind> given) {
+        return needs.apply(target, spec).filter(offer -> !given.containsAll(offer.kinds()));
+    }
+
+    @Override
+    public Optional<NativeConsentOffer> consentNeeded(
+            ProcessIdentity target, LimitSpec spec, Set<NativeConsentKind> given) {
+        return answersConsentFirst ? missing(target, spec, given) : Optional.empty();
+    }
+
+    @Override
+    public ApplyResult apply(
+            ProcessIdentity target, LimitSpec spec, OwnershipRecorder ownership, Set<NativeConsentKind> given) {
+        granted.add(Set.copyOf(given));
+        Optional<NativeConsentOffer> offer = missing(target, spec, given);
+        if (offer.isPresent()) {
+            calls.add("consent " + target.pid());
+            return ApplyResult.consentRequired(
+                    ControlOutcome.of(OperationResult.INVALID_ARGUMENT, "no consent"), offer.get());
+        }
+        return apply(target, spec, ownership);
+    }
+
+    @Override
+    public ChangeResult change(ProcessIdentity target, LimitSpec spec, Set<NativeConsentKind> given) {
+        granted.add(Set.copyOf(given));
+        Optional<NativeConsentOffer> offer = missing(target, spec, given);
+        if (offer.isPresent() && holds.containsKey(target)) {
+            calls.add("consent " + target.pid());
+            return ChangeResult.consentRequired(
+                    ControlOutcome.of(OperationResult.INVALID_ARGUMENT, "no consent"),
+                    holds.get(target).inForce(),
+                    offer.get());
+        }
+        return change(target, spec);
     }
 
     @Override

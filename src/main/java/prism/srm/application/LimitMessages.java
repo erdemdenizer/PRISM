@@ -9,6 +9,8 @@ import prism.srm.domain.LimitAction;
 import prism.srm.domain.LimitCapability;
 import prism.srm.domain.LimitRequest;
 import prism.srm.domain.LimitResult;
+import prism.srm.domain.MemoryBoundary;
+import prism.srm.domain.NativeConsentOffer;
 import prism.srm.domain.OomManagement;
 
 /**
@@ -26,14 +28,29 @@ public final class LimitMessages {
 
     /** What every native limit is, said where one is set (CAP-5, plan §10), in the words of its mechanism. */
     static String enforced(LimitCapability capability) {
-        if (capability
-                .mechanism()
-                .filter(mechanism -> mechanism == ControlMechanism.JOB_OBJECT)
-                .isPresent()) {
+        if (is(capability, ControlMechanism.JOB_OBJECT)) {
             return "Enforced by the system (Job Object). The process and the child processes it starts from now on"
                     + " share the cap; it stays in the job until it exits.";
         }
+        if (is(capability, ControlMechanism.SYSTEMD_SCOPE)) {
+            // Risk D8: the cpu controller of cgroup v2 does not limit real-time processes (cgroup-v2.rst, CPU).
+            return "Enforced by the kernel through the process's own systemd scope. The processes it starts from now on"
+                    + " share the cap; it stays in the scope until it exits. The CPU cap does not apply to real-time"
+                    + " processes.";
+        }
         return "Enforced by the system.";
+    }
+
+    private static boolean is(LimitCapability capability, ControlMechanism mechanism) {
+        return capability.mechanism().filter(mechanism::equals).isPresent();
+    }
+
+    /**
+     * What holds a native limit, in a word: "scope" for a systemd scope (Linux, ADR-0016), "job" for a Job Object and
+     * wherever the mechanism is not known (risk D8).
+     */
+    static String holder(LimitCapability capability) {
+        return is(capability, ControlMechanism.SYSTEMD_SCOPE) ? "scope" : "job";
     }
 
     static LimitResult result(LimitRequest request, ControlOutcome outcome, Wording wording) {
@@ -199,16 +216,38 @@ public final class LimitMessages {
         return new Wording(target(request) + " is limited to " + percent + " % of the CPU.", enforced(capability));
     }
 
-    static Wording memoryLimited(LimitRequest request, String bytes) {
+    /**
+     * A native memory limit in force, in the words of its mechanism and boundary (risk D8): a Job Object's commit
+     * limit; a systemd scope's {@code memory.high}, which throttles; or its {@code memory.max}, under which the kernel
+     * may terminate a process. A scope counts only memory charged after the move (cgroup-v2.rst, memory ownership).
+     */
+    static Wording memoryLimited(
+            LimitRequest request, String bytes, LimitCapability capability, MemoryBoundary boundary) {
+        if (is(capability, ControlMechanism.SYSTEMD_SCOPE)) {
+            String before = " Memory it used before it was moved into its scope is not counted. The processes it starts"
+                    + " from now on share the limit.";
+            if (boundary == MemoryBoundary.THROTTLE) {
+                return new Wording(
+                        target(request) + " is held near " + bytes + ".",
+                        "Above it the kernel slows the process down and reclaims its memory; it does not stop or"
+                                + " terminate the process for it, and the use can go above the amount for a while."
+                                + before);
+            }
+            return new Wording(
+                    target(request) + " may use at most " + bytes + ".",
+                    "When it reaches the limit and the kernel cannot reclaim enough, the kernel may terminate the"
+                            + " process or one of the processes it started." + before);
+        }
         return new Wording(
                 target(request) + " may commit at most " + bytes + ".",
                 "A process that reaches the limit cannot allocate memory and may fail or crash. The child processes it"
                         + " starts from now on have the same limit each.");
     }
 
-    static Wording memoryRemoved(LimitRequest request) {
+    static Wording memoryRemoved(LimitRequest request, LimitCapability capability) {
         return new Wording(
-                "The memory limit of " + target(request) + " is removed.", "It stays in its job until it exits.");
+                "The memory limit of " + target(request) + " is removed.",
+                "It stays in its " + holder(capability) + " until it exits.");
     }
 
     static Wording noMemoryLimit(LimitRequest request) {
@@ -240,11 +279,11 @@ public final class LimitMessages {
         return new Wording(actionName(request.action()) + " did not complete for " + target(request) + ".", what);
     }
 
-    static Wording uncertain(LimitRequest request) {
+    static Wording uncertain(LimitRequest request, LimitCapability capability) {
         return new Wording(
                 "PRISM cannot tell whether the limit of " + target(request) + " took effect.",
-                "It keeps the job, checks again at the next request and clears it at shutdown. No second limiter is"
-                        + " started meanwhile; remove the limit to force a check.");
+                "It keeps the " + holder(capability) + ", checks again at the next request and clears it at shutdown."
+                        + " No second limiter is started meanwhile; remove the limit to force a check.");
     }
 
     static Wording mismatch(LimitRequest request, String inForce) {
@@ -325,10 +364,39 @@ public final class LimitMessages {
                 "Its native limits are still in force (" + inForce + "); it stays as it is. PRISM tries again later.");
     }
 
-    static Wording unmanagedNative(LimitRequest request) {
+    static Wording unmanagedNative(LimitRequest request, LimitCapability capability) {
         return new Wording(
                 target(request) + " is no longer managed.",
-                "Its native limits are cleared; it stays in PRISM's job, without limits, until it exits.");
+                "Its native limits are cleared; it stays in PRISM's " + holder(capability)
+                        + ", without limits, until it exits.");
+    }
+
+    // ----- Consent to a native limit (LIM-6, ADR-0016 decisions 4 and 6) -----
+
+    /**
+     * The native limit asked for needs a consent the request does not carry: nothing was changed, and the user is asked.
+     * The statements themselves are in the offer, as the limiter fixed them.
+     */
+    static LimitResult consentNeeded(LimitRequest request, ControlOutcome outcome, NativeConsentOffer offer) {
+        Wording wording = consentWording(request, offer);
+        return new LimitResult(
+                request, outcome, wording.headline(), wording.explanation(), Optional.empty(), Optional.of(offer));
+    }
+
+    static Wording consentWording(LimitRequest request, NativeConsentOffer offer) {
+        StringBuilder why = new StringBuilder();
+        if (offer.adoption()) {
+            why.append("The limit is set through a systemd scope the process is moved into, and the move cannot be"
+                    + " undone while it runs.");
+        }
+        if (offer.hardMemory()) {
+            if (!why.isEmpty()) {
+                why.append(' ');
+            }
+            why.append("A hard memory limit lets the kernel terminate the process or one of its child processes.");
+        }
+        why.append(" Nothing was changed.");
+        return new Wording("PRISM asks for your consent before it limits " + target(request) + ".", why.toString());
     }
 
     static Wording disabledNative(LimitRequest request) {

@@ -35,6 +35,8 @@ import prism.srm.domain.LimitsNotice;
 import prism.srm.domain.LimitsSnapshot;
 import prism.srm.domain.ManagedProcessView;
 import prism.srm.domain.MemoryBoundary;
+import prism.srm.domain.NativeConsentKind;
+import prism.srm.domain.NativeConsentOffer;
 import prism.srm.domain.OperationResult;
 import prism.srm.domain.ProcessIdentity;
 import prism.srm.domain.RecoveredLimit;
@@ -1221,5 +1223,208 @@ class LimitServiceNativeTest {
         assertThat(service.snapshot().notices())
                 .extracting(LimitsNotice::kind)
                 .contains(LimitsNotice.Kind.LEDGER_FAILED);
+    }
+
+    // ----- Consent to a native limit (LIM-6, ADR-0016 decisions 4 and 6; the product's Linux limiter is K16's) -----
+
+    private static final LimitCapability SCOPE_CPU =
+            LimitCapability.of(CapabilityLevel.NATIVE_HARD, ControlMechanism.SYSTEMD_SCOPE);
+    private static final LimitCapability SCOPE_MEMORY =
+            LimitCapability.of(CapabilityLevel.NATIVE_SOFT, ControlMechanism.SYSTEMD_SCOPE);
+    private static final NativeConsentOffer ADOPTION = new NativeConsentOffer(
+            Set.of(NativeConsentKind.ADOPTION), List.of("The process is moved into a scope.", "It stays there."));
+
+    /** As a scope limiter: a process it does not hold needs the adoption consent; one it holds needs none again. */
+    private void asAScopeLimiter() {
+        limiter.system = Map.of(LimitKind.CPU, SCOPE_CPU, LimitKind.MEMORY, SCOPE_MEMORY);
+        limiter.needs = (target, spec) -> limiter.holds.containsKey(target) ? Optional.empty() : Optional.of(ADOPTION);
+    }
+
+    private LimitResult withConsent(LimitResult asked) {
+        return ask(asked.request().withConsents(asked.consent().orElseThrow().kinds()));
+    }
+
+    @Test
+    void aNativeLimitThatNeedsAConsentIsAnsweredWithTheOfferAndNothingIsDone() {
+        asAScopeLimiter();
+        managed();
+
+        LimitResult asked = limit(20);
+        scheduler.advance(Duration.ofSeconds(5));
+
+        assertThat(asked.outcome().succeeded()).isFalse();
+        assertThat(asked.consent()).contains(ADOPTION);
+        assertThat(asked.fallback()).as("no emulated limit is offered instead").isEmpty();
+        assertThat(asked.text()).contains("asks for your consent").contains("Nothing was changed");
+        assertThat(applies()).as("the system was not asked").isZero();
+        assertThat(limiter.calls).noneMatch(call -> call.startsWith("consent"));
+        assertThat(ledger.find(DEMO)).as("nothing recorded").isEmpty();
+        assertThat(service.limiting(DEMO)).as("no emulated limit").isFalse();
+        assertThat(suspends()).isZero();
+        assertThat(view().process().settings().cpuLimitPercent())
+                .as("the setting is not changed")
+                .isEmpty();
+        assertThat(view().offer()).isEmpty();
+        assertThat(view().cpu().status()).isNotEqualTo(LimitStatus.FAILED);
+    }
+
+    @Test
+    void theSameRequestWithTheConsentApplies() {
+        asAScopeLimiter();
+        managed();
+
+        LimitResult applied = withConsent(limit(20));
+
+        assertThat(applied.outcome().succeeded()).isTrue();
+        assertThat(applied.consent()).isEmpty();
+        assertThat(applied.text())
+                .contains("limited to 20 %")
+                .contains("own systemd scope")
+                .contains("real-time");
+        assertThat(applies()).isEqualTo(1);
+        assertThat(limiter.granted).last().isEqualTo(Set.of(NativeConsentKind.ADOPTION));
+        assertThat(view().cpu().status()).isEqualTo(LimitStatus.ACTIVE_ENFORCED);
+        assertThat(view().process().settings().cpuLimitPercent()).hasValue(20);
+        assertThat(ledger.find(DEMO).orElseThrow().state()).isEqualTo(LedgerState.APPLIED);
+
+        // A later change of the adopted process needs no new consent, and none is carried.
+        LimitResult changed = limit(30);
+        assertThat(changed.outcome().succeeded()).isTrue();
+        assertThat(limiter.granted).last().isEqualTo(Set.of());
+    }
+
+    @Test
+    void theSameRequestWithoutTheConsentIsAskedAgainAndNothingIsApplied() {
+        asAScopeLimiter();
+        managed();
+
+        LimitResult first = limit(20);
+        LimitResult again = limit(20);
+        LimitResult memory = memory(256);
+
+        assertThat(first.consent()).isPresent();
+        assertThat(again.consent()).as("a consent is not remembered").isPresent();
+        assertThat(memory.consent()).isPresent();
+        assertThat(applies()).isZero();
+        assertThat(view().process().settings().memoryLimitBytes()).isEmpty();
+        assertThat(ledger.find(DEMO)).isEmpty();
+    }
+
+    /** A consent given for one process does not stand for another, which is asked on its own. */
+    @Test
+    void aConsentIsForTheProcessOfItsRequestOnly() {
+        asAScopeLimiter();
+        ProcessIdentity other = new ProcessIdentity(4_343, Instant.parse("2026-10-10T10:00:01Z"));
+        managed();
+        assertThat(ask(LimitRequest.of(LimitAction.MANAGE, other, "other"))
+                        .outcome()
+                        .succeeded())
+                .isTrue();
+
+        assertThat(withConsent(limit(20)).outcome().succeeded()).isTrue();
+        LimitResult forOther = ask(LimitRequest.cpuLimit(other, "other", 20));
+
+        assertThat(forOther.consent()).isPresent();
+        assertThat(limiter.holds).doesNotContainKey(other);
+    }
+
+    /** An emulated limit the user chose keeps running while a consent is asked, and none starts at the new value. */
+    @Test
+    void noEmulatedLimitStartsOrStopsWhileAConsentIsPending() {
+        limiter.apply = FakeResourceLimiter.notAssigned(OperationResult.ACCESS_DENIED, "refused", true);
+        managed();
+        limit(20);
+        assertThat(ask(LimitAction.ACCEPT_EMULATED_CPU).outcome().succeeded()).isTrue();
+        assertThat(service.limiting(DEMO)).isTrue();
+        asAScopeLimiter();
+
+        LimitResult asked = limit(30);
+        scheduler.advance(Duration.ofSeconds(5));
+
+        assertThat(asked.consent()).isPresent();
+        assertThat(asked.fallback()).isEmpty();
+        assertThat(service.limiting(DEMO))
+                .as("the chosen emulated limit was not stopped")
+                .isTrue();
+        assertThat(view().process().settings().cpuLimitPercent())
+                .as("still the limit it runs at")
+                .hasValue(20);
+        assertThat(applies()).as("only the refused first attempt").isEqualTo(1);
+    }
+
+    /**
+     * Where the limiter says so only when asked to apply (a race after the check before), the answer is the same and
+     * nothing starts: no emulated limit, no record left.
+     */
+    @Test
+    void aConsentTheLimiterAsksOnlyWhenApplyingIsAnsweredTheSameAndLeavesNothing() {
+        asAScopeLimiter();
+        limiter.answersConsentFirst = false;
+        managed();
+
+        LimitResult asked = limit(20);
+        scheduler.advance(Duration.ofSeconds(5));
+
+        assertThat(asked.consent()).contains(ADOPTION);
+        assertThat(asked.fallback()).isEmpty();
+        assertThat(limiter.calls).contains("consent 4242");
+        assertThat(service.limiting(DEMO)).isFalse();
+        assertThat(ledger.find(DEMO)).as("the intent recorded first is removed").isEmpty();
+        assertThat(view().process().settings().cpuLimitPercent()).isEmpty();
+        assertThat(withConsent(asked).outcome().succeeded()).isTrue();
+    }
+
+    /** Windows: a Job Object limiter needs no consent, ignores any, and answers exactly as before. */
+    @Test
+    void aJobObjectLimiterNeedsNoConsentAndIgnoresOne() {
+        managed();
+
+        LimitResult plain = limit(20);
+        LimitResult carrying =
+                ask(LimitRequest.cpuLimit(DEMO, "demo", 30).withConsents(Set.of(NativeConsentKind.ADOPTION)));
+
+        assertThat(plain.outcome().succeeded()).isTrue();
+        assertThat(plain.consent()).isEmpty();
+        assertThat(plain.text()).contains("Enforced by the system (Job Object)");
+        assertThat(carrying.outcome().succeeded()).isTrue();
+        assertThat(carrying.consent()).isEmpty();
+        assertThat(view().cpu().inEffect().mechanism()).contains(ControlMechanism.JOB_OBJECT);
+        assertThat(limiter.calls).noneMatch(call -> call.startsWith("consent"));
+    }
+
+    /**
+     * Hard memory (LIM-6): the plumbing below a user interface that offers no hard memory limit on Linux (risk D14:
+     * the service asks for memory.high there). A limiter that offers a hard memory limit through a scope needs its
+     * separate consent, for the adopted process too; with it, the limit applies.
+     */
+    @Test
+    void aHardMemoryLimitNeedsItsOwnConsentAndAppliesWithIt() {
+        LimitCapability scopeHard = LimitCapability.of(CapabilityLevel.NATIVE_HARD, ControlMechanism.SYSTEMD_SCOPE);
+        limiter.system = Map.of(LimitKind.CPU, SCOPE_CPU, LimitKind.MEMORY, scopeHard);
+        NativeConsentOffer hard = new NativeConsentOffer(
+                Set.of(NativeConsentKind.HARD_MEMORY), List.of("The kernel may terminate the process."));
+        limiter.needs = (target, spec) -> {
+            if (!limiter.holds.containsKey(target)) {
+                return Optional.of(ADOPTION);
+            }
+            return spec.memoryBytes().isPresent() && spec.memoryBoundary() == MemoryBoundary.HARD
+                    ? Optional.of(hard)
+                    : Optional.empty();
+        };
+        managed();
+        assertThat(withConsent(limit(20)).outcome().succeeded()).isTrue();
+
+        LimitResult asked = memory(256);
+        assertThat(asked.consent()).contains(hard);
+        assertThat(asked.text()).contains("A hard memory limit lets the kernel terminate the process");
+        assertThat(limiter.calls).noneMatch(call -> call.contains("memory 256 MiB"));
+
+        LimitResult applied = withConsent(asked);
+
+        assertThat(applied.outcome().succeeded()).isTrue();
+        assertThat(limiter.granted).last().isEqualTo(Set.of(NativeConsentKind.HARD_MEMORY));
+        assertThat(limiter.calls).contains("change 4242 CPU 20 %, memory 256 MiB");
+        assertThat(applied.text()).contains("may use at most 256 MiB").contains("the kernel may terminate");
+        assertThat(view().process().settings().memoryLimitBytes()).hasValue(256 * MIB);
     }
 }
